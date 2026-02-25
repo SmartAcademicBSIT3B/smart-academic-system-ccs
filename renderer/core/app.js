@@ -1,15 +1,12 @@
-function loadModule(name) {
-  fetch(`../modules/${name}/index.html`)
-    .then((res) => res.text())
-    .then((html) => {
-      document.getElementById("content").innerHTML = html;
-
-      const script = document.createElement("script");
-      script.src = `../modules/${name}/script.js`;
-      document.body.appendChild(script);
-    });
+function navigateToArchiveLogin() {
+  const archiveLoginUrl = new URL('../modules/m1_archive/login.html', window.location.href);
+  window.location.href = archiveLoginUrl.href;
 }
 
-function openModule1() {
-  window.location.href = "../../modules/module1-archive/index.html";
-}
+document.addEventListener('DOMContentLoaded', () => {
+  const archiveLoginButton = document.getElementById('archive-login-link');
+
+  if (archiveLoginButton) {
+    archiveLoginButton.addEventListener('click', navigateToArchiveLogin);
+  }
+});
