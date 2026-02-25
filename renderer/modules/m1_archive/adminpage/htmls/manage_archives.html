@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Archives</title>
+
+    <link rel="stylesheet" href="../css/tables.css">
+    <link rel="stylesheet" href="../css/form_manage_archives.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+
+<body>
+
+<div class="page">
+
+    <h1 class="page-title">MANAGE ARCHIVES</h1>
+
+    <!-- Controls -->
+    <div class="controls">
+        <div class="left-controls">
+            <input type="text" placeholder="Search">
+
+            <div class="select-wrapper">
+                <select>
+                    <option>Sort By</option>
+                    <option>Section</option>
+                    <option>Advisor</option>
+                    <option>Date</option>
+                </select>
+                <span class="arrow"></span>
+            </div>
+
+            <button class="filter-btn">Filter</button>
+        </div>
+
+        <div class="right-controls">
+            <div class="tooltip">
+                <button class="generate-btn">
+                    <i data-lucide="printer"></i>
+                </button>
+                <span class="tooltip-text">Generate Report</span>
+            </div>
+
+            <div class="tooltip">
+                <button class="add-btn" id="open-modal">+</button>
+                <span class="tooltip-text">Add File</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="archive-modal" class="modal">
+        <div class="modal-content">
+
+            <div class="form-header">
+                <h4>ADDING NEW FILE</h4>
+            </div>
+
+            <div class="form-body">
+
+    <!-- TOP ROW -->
+    <div class="grid-3">
+
+        <div class="input-group">
+            <label>TITLE</label>
+            <input type="text" placeholder="Type here">
+        </div>
+
+        <div class="input-group">
+            <label>SECTION</label>
+            <div class="select-wrapper">
+                <select>
+                    <option disabled selected>Section</option>
+                    <option>BSIT-3A</option>
+                    <option>BSIT-3B</option>
+                </select>
+                <span class="arrow"></span>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>PROFESSOR</label>
+            <div class="select-wrapper">
+                <select>
+                    <option disabled selected>Professor</option>
+                    <option>Juan Delacruz</option>
+                    <option>Maria Lopez</option>
+                </select>
+                <span class="arrow"></span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- AUTHORS -->
+    <h4 class="authors-title">AUTHORS</h4>
+
+    <div class="grid-3">
+        <div class="input-group">
+            <label>AUTHOR 1</label>
+            <input type="text" placeholder="Type here">
+        </div>
+
+        <div class="input-group">
+            <label>AUTHOR 2</label>
+            <input type="text" placeholder="Type here">
+        </div>
+
+        <div class="input-group">
+            <label>AUTHOR 3</label>
+            <input type="text" placeholder="Type here">
+        </div>
+    </div>
+
+    <!-- KEYWORDS + FILE -->
+    <div class="grid-3">
+
+        <div class="input-group keywords-field">
+            <label>KEYWORDS</label>
+            <input type="text" placeholder="e.g. Machine Learning, AI, etc.">
+        </div>
+
+        <div class="input-group upload-field">
+            <input type="file" id="file-upload" hidden>
+            <label for="file-upload" class="upload-btn">
+                <i class="fa fa-upload"></i> UPLOAD FILE
+            </label>
+        </div>
+    </div>
+</div>
+            <div class="form-actions">
+                <button class="cancel-btn" id="close-modal">Cancel</button>
+                <button class="save-btn">Save</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-card">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox"></th>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Author(s)</th>
+                        <th>Section</th>
+                        <th>Advisor</th>
+                        <th>Date</th>
+                        <th>Keyword</th>
+                        <th>File</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td>001</td>
+                        <td>Archiving System</td>
+                        <td>Acosta & Sanchez</td>
+                        <td>BSIT-4A</td>
+                        <td>Dela Cruz</td>
+                        <td>Feb 2025</td>
+                        <td>Thesis</td>
+                        <td><a href="#">file.pdf</a></td>
+                        <td class="action-cell">
+                            <div class="dropdown">
+                                <button class="dots-btn">
+                                    <i data-lucide="more-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <button>Edit</button>
+                                    <button class="danger">Delete</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+lucide.createIcons();
+
+// dropdown
+document.querySelectorAll(".dots-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+        e.stopPropagation();
+        document.querySelectorAll(".dropdown-menu").forEach(m => m.classList.remove("show"));
+        btn.nextElementSibling.classList.toggle("show");
+    });
+});
+
+document.addEventListener("click", () => {
+    document.querySelectorAll(".dropdown-menu").forEach(m => m.classList.remove("show"));
+});
+
+// modal
+const modal = document.getElementById("archive-modal");
+
+document.getElementById("open-modal").onclick = () => modal.style.display = "flex";
+document.getElementById("close-modal").onclick = () => modal.style.display = "none";
+</script>
+
+</body>
+</html>

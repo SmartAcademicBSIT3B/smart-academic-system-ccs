@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View Archives</title>
+    <link rel="stylesheet" href="../css/view_archives.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<div class="page">
+
+    <h2 class="title">VIEW ARCHIVES</h2>
+
+    <!-- FILTERS -->
+    <div class="controls">
+        <div class="left-controls">
+            <div class="search-box">
+                <input type="text" placeholder="Search">
+            </div>
+
+            <!-- FILTER -->
+            <div class="filter-group">
+                <button class="filter-toggle">
+                    Filter Option
+                    <i data-lucide="chevron-down" class="filter-arrow"></i>
+                </button>
+
+                <div class="filter-dropdown">
+                    <label><input type="radio" name="course"> BSIT</label>
+                    <label><input type="radio" name="course"> BSCS</label>
+                    <label><input type="radio" name="sort"> A-Z</label>
+                    <label><input type="radio" name="sort"> Z-A</label>
+                    <label><input type="radio" name="sort"> Date Published</label>
+                </div>
+            </div>
+
+            <button class="filter-btn">Filter</button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+        <!-- LEFT LIST -->
+        <div class="archive-list">
+            <div class="archive-card active">
+                <h3>Archiving System for CCS Graduating Students</h3>
+                <p>Acosta, D. Montipolca, C. & Sanchez, P.</p>
+                <span>Feb, 2025</span>
+                <p class="desc">Lorem ipsum dolor sit amet...</p>
+            </div>
+
+            <div class="archive-card">
+                <h3>Archiving System for CCS Graduating Students</h3>
+                <p>Acosta, D. Montipolca, C. & Sanchez, P.</p>
+                <span>Feb, 2025</span>
+                <p class="desc">Lorem ipsum dolor sit amet...</p>
+            </div>
+        </div>
+
+        <!-- RIGHT PREVIEW -->
+        <div class="preview">
+            <div class="preview-box"></div>
+
+            <div class="preview-pagination">
+                <div class="pagination">
+                    <div class="tooltip">
+                        <button class="download">
+                         <i data-lucide="download"></i>
+                        <span class="tooltip-text">Download File</span>
+                    </div>
+                    </button>
+                    <input type="number" id="pageNumber" value="1" min="1">
+                    <span>of 34</span>
+                </div>
+                <button class="viewfull-btn">See Full Documents</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const toggleBtn = document.querySelector('.filter-toggle');
+const dropdown = document.querySelector('.filter-dropdown');
+const filterGroup = document.querySelector('.filter-group');
+
+toggleBtn.onclick = function(e) {
+    e.stopPropagation();
+    dropdown.classList.toggle('show');
+    filterGroup.classList.toggle('active');
+};
+
+document.addEventListener('click', () => {
+    dropdown.classList.remove('show');
+    filterGroup.classList.remove('active');
+});
+
+// Handle page number change
+document.getElementById('pageNumber').addEventListener('input', function(e) {
+    const page = e.target.value;
+    // Ensure it's within a valid range (e.g., between 1 and 34)
+    if (page >= 1 && page <= 34) {
+        // Scroll or navigate to the specific page in the archive
+        console.log(`Navigate to page ${page}`);
+    }
+});
+
+lucide.createIcons();
+</script>
+
+</body>
+</html>

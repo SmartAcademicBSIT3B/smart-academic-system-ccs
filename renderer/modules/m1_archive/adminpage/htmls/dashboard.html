@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+
+    <!-- PAGE TITLE -->
+    <h2 class="page-title">DASHBOARD</h2>
+
+    <!-- STATS CARDS -->
+    <div class="cards">
+        <div class="card highlight">
+            <h3>123</h3>
+            <p>Population of</p>
+            <span>BSIT 4th Year</span>
+        </div>
+
+        <div class="card highlight">
+            <h3>123</h3>
+            <p>Population of</p>
+            <span>BSCS 4th Year</span>
+        </div>
+
+        <div class="card">
+            <h3>123</h3>
+            <p>Thesis/Capstone</p>
+            <span>RECORDS</span>
+        </div>
+
+        <div class="card">
+            <h3>123</h3>
+            <p>Number of</p>
+            <span>EXTERNAL PARTNERS</span>
+        </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="dashboard-grid">
+
+        <!-- LEFT SIDE -->
+        <div class="left-section">
+
+            <div class="chart-box large">
+                <h4>Statistics of Deployed 4th Year per School Year</h4>
+                <canvas id="barChart"></canvas>
+            </div>
+
+            <div class="bottom-charts">
+                <div class="chart-box">
+                    <h4>Deployment in Different Fields</h4>
+                    <canvas id="smallBarChart"></canvas>
+                </div>
+
+                <div class="chart-box">
+                    <h4>Thesis/Capstone Completion Percentage</h4>
+                    <canvas id="pieChart1"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT SIDE -->
+        <div class="right-section">
+
+            <div class="chart-box">
+                <h4>Population Per Section</h4>
+                <canvas id="pieChart2"></canvas>
+            </div>
+
+            <div class="chart-box">
+                <h4>Deployment Status</h4>
+                <canvas id="pieChart3"></canvas>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

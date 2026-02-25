@@ -1,0 +1,329 @@
+:root {
+    --bg-gradient-start: #0B0D10;
+    --bg-gradient-end: #12151A;
+
+    --app-bg: #0B0D10;
+    --secondary-bg: #12151A;
+
+    --accent-blue: #9DC6FF;
+
+    --panel-bg: #181C22;
+
+    --primary-text: #C9CCD1;
+    --secondary-text: #9AA0A6;
+
+    --border-color: #3A3F46;
+}
+
+/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--app-bg);
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar {
+    width: 80px;
+    min-width: 80px;
+    height: 100vh;
+    background: linear-gradient(to bottom, var(--bg-gradient-start), var(--bg-gradient-end));
+    border-right: 2px solid var(--border-color);
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease;
+    overflow: hidden;
+}
+
+.sidebar:hover {
+    width: 280px;
+}
+
+/* LOGO */
+.logo {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 85px;
+    padding-left: 15px;
+    margin-bottom: 20px;
+}
+
+.ccs-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    transition: opacity 0.2s ease;
+}
+
+.sidebar:hover .ccs-logo {
+    opacity: 0;
+    position: absolute;
+}
+
+.system-title {
+    position: absolute;
+    left: 35px;
+    top: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    line-height: 1.4;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.sidebar:hover .system-title {
+    opacity: 1;
+}
+
+/* MENU */
+.menu {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* MENU ITEM */
+.menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 50px;
+    padding: 0 30px;
+    color: var(--primary-text);
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.menu-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.menu-item i {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.menu-left span {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    white-space: normal;
+    line-height: 1.2;
+    max-width: 170px;
+}
+
+/* COLLAPSED */
+.sidebar:not(:hover) .menu-left span {
+    display: none;
+}
+
+.sidebar:not(:hover) .menu-item {
+    justify-content: center;
+}
+
+/* EXPANDED */
+.sidebar:hover .menu-left span {
+    display: inline-block;
+    opacity: 1;
+}
+
+/* HOVER + ACTIVE */
+.menu-item:hover {
+    color: var(--accent-blue);
+}
+
+.menu-item.active {
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+
+/* SUBMENU */
+.submenu {
+    list-style: none;
+    margin-left: 52px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.submenu.open {
+    max-height: 300px;
+}
+
+.submenu li {
+    font-size: 13px;
+    color: var(--secondary-text);
+    padding: 6px 0;
+    opacity: 0;
+    transition: 0.2s;
+    cursor: pointer;
+}
+
+.sidebar:hover .submenu li {
+    opacity: 1;
+}
+
+.sidebar:not(:hover) .submenu {
+    display: none;
+}
+
+.submenu li:hover {
+    color: var(--accent-blue);
+}
+
+/* ARROW */
+.arrow {
+    opacity: 0;
+    transition: 0.2s;
+    margin-left: auto;
+}
+
+.sidebar:hover .arrow {
+    opacity: 1;
+}
+
+.arrow.rotate {
+    transform: rotate(180deg);
+}
+
+/* Add this to your existing CSS */
+
+/* Smaller Arrow for Coordinators Submenu */
+.arrow-small {
+    width: 14px;
+    height: 14px;
+    margin-left: 20px;  /* Adjusts arrow to be inside the submenu */
+    transition: 0.2s;
+}
+
+/* Adjust alignment of the arrows */
+ .arrow-small {
+    margin-right: 50px;  /* Adjust the right margin for better alignment */
+}
+
+.sidebar .submenu .menu-item.dropdown {
+    margin-right: 20px;  /* Adjust the right margin for better alignment */
+}
+
+/* Adjust the arrow size when rotated */
+.arrow-small.rotate {
+    transform: rotate(90deg);
+}
+
+/* PUSH BOTTOM ITEMS */
+.bottom-menu {
+    margin-top: auto;
+}
+
+/* ================= MAIN LAYOUT ================= */
+
+.layout {
+    display: flex;
+    height: 100vh;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(to bottom, var(--bg-gradient-start), var(--bg-gradient-end));
+}
+
+/* HEADER */
+.header {
+    height: 70px;
+    background: #0E1116;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--primary-text);
+}
+
+.header span {
+    color: white;
+}
+
+/* PROFILE ICON */
+.profile-dropdown {
+    position: relative;
+}
+
+.profile-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--panel-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--primary-text);   /* 🔥 correct color */
+    transition: 0.2s;
+}
+
+.profile-icon:hover {
+    background: var(--border-color);
+}
+
+/* PROFILE MENU */
+.profile-menu {
+    position: absolute;
+    right: 0;
+    top: 50px;
+    background: #232830;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    width: 140px;
+    display: none;
+    flex-direction: column;
+    z-index: 200;
+}
+
+.profile-menu button {
+    background: none;
+    border: none;
+    color: var(--primary-text);
+    padding: 10px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.profile-menu button:hover {
+    background: var(--border-color);
+}
+
+.profile-menu.show {
+    display: flex;
+}
+
+/* PAGE CONTENT */
+.page-content {
+    flex: 1;
+}
+
+#content-frame {
+    width: 100%;
+    height: calc(100vh - 70px);
+    border: none;
+}

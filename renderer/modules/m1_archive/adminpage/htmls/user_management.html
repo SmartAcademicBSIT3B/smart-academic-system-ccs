@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Coordinators Management</title>
+    <link rel="stylesheet" href="../css/tables.css">
+    <link rel="stylesheet" href="../css/form_user_management.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"> <!-- Font Awesome -->
+</head>
+
+<body>
+
+<div class="page">
+
+    <h1 class="page-title">COORDINATORS MANAGEMENT</h1>
+
+    <!-- Controls -->
+    <div class="controls">
+        <div class="left-controls">
+            <input type="text" placeholder="Search">
+            <div class="select-wrapper">
+                <select>
+                    <option>Sort By</option>
+                    <option>Name (A-Z)</option>
+                    <option>Name (Z-A)</option>
+                    <option>Status</option>
+                </select>
+                <span class="arrow"></span> <!-- Arrow Icon for Dropdown -->
+            </div>
+            <button class="filter-btn">Filter</button>
+        </div>
+        <div class="right-controls">
+            <div class="tooltip">
+                <button class="generate-btn">
+                    <i data-lucide="printer"></i>
+                </button>
+                <span class="tooltip-text">Generate Report</span>
+            </div>
+            <div class="tooltip">
+                <button class="add-btn" id="add-coordinator-btn">+</button>
+                <span class="tooltip-text">Add Coordinator</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal - Add/Update Coordinator Form -->
+    <div id="add-coordinator-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="form-header">
+                <h4 id="modal-title">ADDING NEW COORDINATOR</h4> <!-- Default title is "Adding New Coordinator" -->
+            </div>
+
+            <div class="form-body">
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="employee-id">EMPLOYEE ID</label>
+                        <input type="text" id="employee-id" placeholder="e.g. 00-0000" />
+                    </div>
+                    <div class="input-group">
+                        <label for="profile">
+                            <i class="fa fa-upload" aria-hidden="true"></i> UPLOAD PROFILE
+                        </label>
+                        <input type="file" id="profile" />
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="name">NAME</label>
+                        <input type="text" id="name" placeholder="Type here" class="required-field" />
+                        <div class="error-msg">Required field.</div>
+                    </div>
+                    <div class="input-group">
+                        <label for="username">USERNAME</label>
+                        <input type="text" id="username" placeholder="surname_00000" class="required-field" />
+                        <div class="error-msg">Required field.</div>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <!-- Password Field -->
+                    <div class="input-group password-wrapper">
+                        <label for="password">PASSWORD</label>
+                        <input type="password" id="password" placeholder="Type here" class="required-field" />
+                        <button type="button" class="toggle-password" onclick="togglePassword('password')">
+                            <svg id="password-eye" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+                                      stroke="currentColor"
+                                      stroke-width="2"/>
+                                <circle cx="12" cy="12" r="3"
+                                        stroke="currentColor"
+                                        stroke-width="2"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Confirm Password Field -->
+                    <div class="input-group password-wrapper">
+                        <label for="confirm-password">CONFIRM PASSWORD</label>
+                        <input type="password" id="confirm-password" placeholder="Type here" class="required-field" />
+                        <button type="button" class="toggle-password" onclick="togglePassword('confirm-password')">
+                            <svg id="confirm-password-eye" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+                                      stroke="currentColor"
+                                      stroke-width="2"/>
+                                <circle cx="12" cy="12" r="3"
+                                        stroke="currentColor"
+                                        stroke-width="2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="status" placeholder="Status" class="required field"> </label>
+                        <div class="select-wrapper">
+                            <select id="status">
+                                <option>Active</option>
+                                <option>Inactive</option>
+                            </select>
+                            <span class="arrowstatus"></span> <!-- Arrow Icon for Dropdown -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="cancel-btn" id="cancel-btn">Cancel</button>
+                <button class="save-btn" id="save-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" /></th>
+                        <th>ID</th>
+                        <th>Profile</th>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="row-001">
+                        <td><input type="checkbox" /></td>
+                        <td>001</td>
+                        <td><img src="../images/company1.png" class="company-logo"></td>
+                        <td>Juan Delacruz</td>
+                        <td>delacruz_001</td>
+                        <td>****</td>
+                        <td><span class="status active">Active</span></td>
+                        <td class="action-cell">
+                            <div class="dropdown">
+                                <button class="dots-btn">
+                                    <i data-lucide="more-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <button onclick="openEditModal('001')">Edit</button>
+                                    <button class="danger">Delete</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr id="row-002">
+                        <td><input type="checkbox" /></td>
+                        <td>002</td>
+                        <td><img src="../images/company1.png" class="company-logo"></td>
+                        <td>Maria Lopez</td>
+                        <td>lopez_002</td>
+                        <td>****</td>
+                        <td><span class="status inactive">Inactive</span></td>
+                        <td class="action-cell">
+                            <div class="dropdown">
+                                <button class="dots-btn">
+                                    <i data-lucide="more-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <button onclick="openEditModal('002')">Edit</button>
+                                    <button class="danger">Delete</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    lucide.createIcons();
+
+    document.querySelectorAll(".dots-btn").forEach(btn => {
+        btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+
+            document.querySelectorAll(".dropdown-menu").forEach(menu => {
+                menu.classList.remove("show");
+            });
+
+            this.nextElementSibling.classList.toggle("show");
+        });
+    });
+
+    document.addEventListener("click", () => {
+        document.querySelectorAll(".dropdown-menu").forEach(menu => {
+            menu.classList.remove("show");
+        });
+    });
+
+    // Toggle modal visibility when the "Add" button is clicked
+    document.getElementById("add-coordinator-btn").addEventListener("click", () => {
+        const modal = document.getElementById("add-coordinator-modal");
+        modal.style.display = modal.style.display === "none" ? "flex" : "none";
+        // Change header title when opening the Add form
+        document.getElementById("modal-title").innerText = "ADDING NEW COORDINATOR";
+    });
+
+    // Close the modal when the cancel button is clicked
+    document.getElementById("cancel-btn").addEventListener("click", () => {
+        document.getElementById("add-coordinator-modal").style.display = "none";
+    });
+
+    // Open Edit Modal
+    // Open Edit Modal
+function openEditModal(rowId) {
+    const modal = document.getElementById("add-coordinator-modal");
+    const row = document.getElementById(`row-${rowId}`);
+
+    // Change header title to "Edit Coordinator"
+    document.getElementById("modal-title").innerText = "EDIT COORDINATOR";
+
+    // Populate modal with data
+    document.getElementById("employee-id").value = row.cells[1].innerText;
+    document.getElementById("name").value = row.cells[2].innerText;
+    document.getElementById("username").value = row.cells[3].innerText;
+
+    // Set the status dropdown value dynamically based on the current row's status
+    const status = row.cells[6].innerText.trim().toLowerCase();
+    document.getElementById("status").value = status.charAt(0).toUpperCase() + status.slice(1);
+
+    modal.style.display = "flex";
+}
+
+    // Save edited data to row
+   // Save edited data to row
+    document.getElementById("save-btn").addEventListener("click", () => {
+    const modal = document.getElementById("add-coordinator-modal");
+    const rowId = document.getElementById("employee-id").value; // Use employee ID to identify row
+    const row = document.getElementById(`row-${rowId}`);
+
+    // Update the row with new values from the modal
+    row.cells[1].innerText = document.getElementById("employee-id").value;
+    row.cells[2].innerText = document.getElementById("name").value;
+    row.cells[3].innerText = document.getElementById("username").value;
+    row.cells[6].innerText = document.getElementById("status").value;
+
+    // Update the status circle color based on the selected value in the dropdown
+    const statusCircle = row.cells[6].querySelector(".status-circle");
+    const statusValue = document.getElementById("status").value.trim().toLowerCase();
+    
+    if (statusValue === "active") {
+        statusCircle.style.backgroundColor = "green"; // Active status - green
+    } else {
+        statusCircle.style.backgroundColor = "gray"; // Inactive status - gray
+    }
+
+    // Close modal
+    modal.style.display = "none";
+});
+
+    // Toggle password visibility
+    function togglePassword(fieldId) {
+        const password = document.getElementById(fieldId);
+        const eyeIcon = document.getElementById(fieldId === 'password' ? 'password-eye' : 'confirm-password-eye');
+
+        if (password.type === "password") {
+            password.type = "text";
+            eyeIcon.innerHTML = `
+                <path d="M17.94 17.94C16.12 19.24 14.11 20 12 20C5 20 1 12 1 12C2.18 9.61 3.83 7.56 5.77 6.11M9.88 9.88C9.32 10.44 9 11.19 9 12C9 13.66 10.34 15 12 15C12.81 15 13.56 14.68 14.12 14.12M1 1L23 23"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
+            `;
+        } else {
+            password.type = "password";
+            eyeIcon.innerHTML = `
+                <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+              stroke="currentColor"
+              stroke-width="2"/>
+                <circle cx="12" cy="12" r="3"
+                        stroke="currentColor"
+                        stroke-width="2"/>
+            `;
+        }
+    }
+</script>
+
+</body>
+</html>

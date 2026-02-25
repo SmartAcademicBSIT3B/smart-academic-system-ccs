@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Thesis/Capstone Login</title>
+    <link rel="stylesheet" href="login.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Background Glow -->
+    <div class="background-glow"></div>
+
+    <div class="container">
+      <!-- Left Panel -->
+      <div class="left-panel">
+        <img src="images/CCSLOGO.png" class="logo" alt="Logo" />
+
+        <p class="welcome-text">Welcome to</p>
+        <h1 class="title">
+          THESIS/CAPSTONE<br />
+          ARCHIVING AND<br />
+          HOST TRAINING<br />
+          ESTABLISHMENT (HTE)<br />
+          FOR CCS GRADUATING<br />
+          STUDENTS
+        </h1>
+
+        <p class="school">PAMANTASAN NG LUNGSOD NG PASIG</p>
+        <p class="college">College of Computer Studies</p>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="right-panel">
+        <!-- Back Button -->
+        <button class="back-btn" onclick="goBack()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M15 18L9 12L15 6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+
+        <h2>Login</h2>
+
+        <form id="loginForm">
+          <label>USERNAME</label>
+          <input type="text" id="username" required />
+
+          <label>PASSWORD</label>
+
+          <!-- Password Wrapper with Eye -->
+          <div class="password-wrapper">
+            <input type="password" id="password" required />
+
+            <button
+              type="button"
+              class="toggle-password"
+              onclick="togglePassword()"
+            >
+              <svg
+                id="eyeIcon"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="3"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <a href="#" class="forgot">forgot password?</a>
+
+          <button type="submit">LOGIN</button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // Login Logic
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const username = document.getElementById("username").value;
+          const password = document.getElementById("password").value;
+
+          if (username === "123" && password === "123") {
+            window.location.href = "adminpage/htmls/1main_menu.html";
+          } else {
+            alert("Invalid username or password.");
+          }
+        });
+
+      // Back Button
+      function goBack() {
+        window.history.back();
+      }
+
+      // Show/Hide Password
+      function togglePassword() {
+        const password = document.getElementById("password");
+        const eyeIcon = document.getElementById("eyeIcon");
+
+        if (password.type === "password") {
+          password.type = "text";
+          eyeIcon.innerHTML = `
+                <path d="M17.94 17.94C16.12 19.24 14.11 20 12 20C5 20 1 12 1 12C2.18 9.61 3.83 7.56 5.77 6.11M9.88 9.88C9.32 10.44 9 11.19 9 12C9 13.66 10.34 15 12 15C12.81 15 13.56 14.68 14.12 14.12M1 1L23 23"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"/>
+            `;
+        } else {
+          password.type = "password";
+          eyeIcon.innerHTML = `
+                <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+                      stroke="currentColor"
+                      stroke-width="2"/>
+                <circle cx="12" cy="12" r="3"
+                        stroke="currentColor"
+                        stroke-width="2"/>
+            `;
+        }
+      }
+    </script>
+  </body>
+</html>

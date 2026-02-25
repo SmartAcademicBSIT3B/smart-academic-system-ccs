@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OJT Students</title>
+    <link rel="stylesheet" href="../css/tables.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<div class="page">
+
+    <h1 class="page-title">OJT STUDENTS</h1>
+
+    <!-- Controls -->
+    <div class="controls">
+
+        <div class="left-controls">
+            <input type="text" placeholder="Search">
+
+            <!-- UPDATED SELECT -->
+            <div class="select-wrapper">
+                <select>
+                    <option>Sort By</option>
+                    <option>Name (A-Z)</option>
+                    <option>Name (Z-A)</option>
+                    <option>Status</option>
+                </select>
+                <span class="arrow"></span>
+            </div>
+
+            <button class="filter-btn">Filter</button>
+        </div>
+
+        <!-- RIGHT BUTTONS -->
+        <div class="right-controls">
+
+            <div class="tooltip">
+                <button class="generate-btn">
+                    <i data-lucide="printer"></i>
+                </button>
+                <span class="tooltip-text">Generate Report</span>
+            </div>
+
+            <div class="tooltip">
+                <button class="add-btn">+</button>
+                <span class="tooltip-text">Add User</span>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+        <div class="table-wrapper">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" /></th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Section</th>
+                        <th>Status</th>
+                        <th>External Partner Assigned</th>
+                        <th>Field</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr>
+                        <td><input type="checkbox" /></td>
+                        <td>001</td>
+                        <td>Juan Delacruz</td>
+                        <td>BSIT-4B</td>
+                        <td><span class="status deployed">Deployed</span></td>
+                        <td>Company A</td>
+                        <td>Web Designer</td>
+                        <td class="action-cell">
+                            <div class="dropdown">
+                                <button class="dots-btn">
+                                    <i data-lucide="more-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <button>Edit</button>
+                                    <button class="danger">Delete</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td><input type="checkbox" /></td>
+                        <td>002</td>
+                        <td>Maria Santos</td>
+                        <td>BSCS-4A</td>
+                        <td><span class="status pre-deployment">Pre-Deployment</span></td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td class="action-cell">
+                            <div class="dropdown">
+                                <button class="dots-btn">
+                                    <i data-lucide="more-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <button>Edit</button>
+                                    <button class="danger">Delete</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td><input type="checkbox" /></td>
+                        <td>003</td>
+                        <td>Carlos Reyes</td>
+                        <td>BSIT-4C</td>
+                        <td><span class="status pending">Pending Requirements</span></td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td class="action-cell">
+                            <div class="dropdown">
+                                <button class="dots-btn">
+                                    <i data-lucide="more-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <button>Edit</button>
+                                    <button class="danger">Delete</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    lucide.createIcons();
+
+    document.querySelectorAll(".dots-btn").forEach(btn => {
+        btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+
+            document.querySelectorAll(".dropdown-menu").forEach(menu => {
+                menu.classList.remove("show");
+            });
+
+            this.nextElementSibling.classList.toggle("show");
+        });
+    });
+
+    document.addEventListener("click", () => {
+        document.querySelectorAll(".dropdown-menu").forEach(menu => {
+            menu.classList.remove("show");
+        });
+    });
+
+    document.querySelector(".generate-btn").addEventListener("click", () => {
+        window.print();
+    });
+
+    const select = document.querySelector(".select-wrapper select");
+
+        select.addEventListener("change", () => {
+        select.blur(); // 🔥 removes focus after selecting
+    });
+</script>
+
+</body>
+</html>
