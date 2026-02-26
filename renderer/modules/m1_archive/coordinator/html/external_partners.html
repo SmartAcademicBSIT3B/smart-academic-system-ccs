@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>External Partners</title>
+    <link rel="stylesheet" href="../css/external_partners.css">
+    <link rel="stylesheet" href="../css/form_external_partners.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"> <!-- Font Awesome -->
+</head>
+
+<body>
+
+<div class="page">
+
+    <h1 class="page-title">EXTERNAL PARTNERS</h1>
+
+    <!-- Controls -->
+    <div class="controls">
+        <div class="left-controls">
+            <input type="text" placeholder="Search">
+            <div class="select-wrapper">
+                <select>
+                    <option>Sort By</option>
+                    <option>Company Name</option>
+                    <option>Representative</option>
+                </select>
+                <span class="arrow"></span> <!-- Arrow Icon for Dropdown -->
+            </div>
+            <button class="filter-btn">Filter</button>
+        </div>
+        <div class="right-controls">
+            <div class="tooltip">
+                <button class="generate-btn">
+                    <i data-lucide="printer"></i>
+                </button>
+                <span class="tooltip-text">Generate Report</span>
+            </div>
+            <div class="tooltip">
+                <button class="add-btn" id="add-externalpartner-btn">+</button>
+                <span class="tooltip-text">Add External Partner</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal - Add/Update External Partner Form -->
+    <div id="add-externalpartner-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="form-header">
+                <h4 id="modal-title">ADDING NEW EXTERNAL PARTNER</h4> <!-- Default title is "Adding New Coordinator" -->
+            </div>
+
+            <div class="form-body">
+               <div class="grid-4">
+                <div class="input-group">
+                    <label>NAME OF COMPANY</label>
+                    <input type="text" placeholder="Type here" class="required-field">
+                </div>
+
+                <div class="input-group">
+                    <label>CONTACT NO</label>    
+                    <input type="text" placeholder="Type here" class="required-field">
+
+                </div>
+
+                <div class="input-group">
+                    <label>EMAIL ADDRESS</label>
+                    <input type="email" placeholder="Type here" class="required-field">
+                </div>
+
+                <div class="input-group">
+                        <label for="profile">
+                            <i class="fa fa-upload" aria-hidden="true"></i> UPLOAD LOGO
+                        </label>
+                    </div>
+            </div>
+
+              <h4 class="section-title">ADDRESS</h4>
+
+            <div class="grid-4">
+                <div class="input-group">
+                    <label>Bldg./Floor No./Street No.</label>
+                    <input type="text" placeholder="Type here">
+                </div>
+
+                <div class="input-group">
+                    <label>Street</label>
+                    <input type="text" placeholder="Type here">
+                </div>
+
+                <div class="input-group">
+                    <label>Barangay</label>
+                    <input type="text" placeholder="Type here">
+                </div>
+
+                <div class="input-group">
+                    <label>Province/City</label>
+                    <input type="text" placeholder="Type here">
+                </div>
+
+            </div>
+
+            <!-- REPRESENTATIVE -->
+            <h4 class="section-title">COMPANY REPRESENTATIVE</h4>
+
+            <div class="grid-4">
+                <div class="input-group">
+                    <label>NAME OF REPRESENTATIVE</label>
+                    <input type="text" placeholder="Type here">
+                </div>
+
+                <div class="input-group">
+                    <label>JOB DESCRIPTION</label>
+                    <input type="text" placeholder="Type here">
+                </div>
+
+                <div class="input-group">
+                    <label>CONTACT NO.</label>
+                    <input type="text" placeholder="Type here">
+                </div>
+
+                <div class="input-group">
+                    <label>EMAIL ADDRESS</label>
+                    <input type="email" placeholder="Type here">
+                </div>
+            </div>
+
+        </div>
+
+        <div class="form-actions">
+            <button class="cancel-btn" id="cancel-btn">Cancel</button>
+            <button class="save-btn">Save</button>
+        </div>
+
+    </div>
+</div>
+
+     <!-- Table -->
+    <div class="table-card">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" /></th>
+                        <th>ID</th>
+                        <th>Logo</th>
+                        <th>Company Name</th>
+                        <th>Address</th>
+                        <th>Company Email</th>
+                        <th>Company Contact no.</th>
+                        <th>Representative</th>
+                        <th>Job Description</th>
+                        <th>Email Address</th>
+                        <th>Contact No.</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr>
+                        <td><input type="checkbox" /></td>
+                        <td>001</td>
+                        <td><img src="../images/company1.png" class="company-logo"></td>
+                        <td>IT Res Incorporated</td>
+                        <td>Pasig City</td>
+                        <td>info@itres.com</td>
+                        <td>0912-345-6789</td>
+                        <td>Aaron Valiente</td>
+                        <td>HR</td>
+                        <td>a_valiente@gmail.com</td>
+                        <td>0998-765-4321</td>
+                        <td class="action-cell">
+                            <div class="dropdown">
+                                <button class="dots-btn">
+                                    <i data-lucide="more-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <button onclick="openEditModal('001')">Edit</button>
+                                    <button class="danger">Delete</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    lucide.createIcons();
+
+    document.querySelectorAll(".dots-btn").forEach(btn => {
+        btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+
+            document.querySelectorAll(".dropdown-menu").forEach(menu => {
+                menu.classList.remove("show");
+            });
+
+            this.nextElementSibling.classList.toggle("show");
+        });
+    });
+
+    document.addEventListener("click", () => {
+        document.querySelectorAll(".dropdown-menu").forEach(menu => {
+            menu.classList.remove("show");
+        });
+    });
+
+    // Toggle modal visibility when the "Add" button is clicked
+    document.getElementById("add-externalpartner-btn").addEventListener("click", () => {
+        const modal = document.getElementById("add-externalpartner-modal");
+        modal.style.display = modal.style.display === "none" || modal.style.display === "" ? "flex" : "none";
+        // Change header title when opening the Add form
+        document.getElementById("modal-title").innerText = "ADDING NEW EXTERNAL PARTNER";
+    });
+
+    // Close the modal when the cancel button is clicked
+    document.getElementById("cancel-btn").addEventListener("click", () => {
+        const modal = document.getElementById("add-externalpartner-modal");
+        modal.style.display = "none";
+    });
+
+    // Edit modal functionality (if needed)
+    function openEditModal(rowId) {
+        const modal = document.getElementById("add-externalpartner-modal");
+        const row = document.getElementById(`row-${rowId}`);
+
+        // Change header title to "Edit External Partner"
+        document.getElementById("modal-title").innerText = "EDIT EXTERNAL PARTNER";
+
+        // Populate modal with data
+        document.getElementById("employee-id").value = row.cells[1].innerText;
+        document.getElementById("name").value = row.cells[2].innerText;
+        document.getElementById("username").value = row.cells[3].innerText;
+
+        // Set the status dropdown value dynamically based on the current row's status
+        const status = row.cells[6].innerText.trim().toLowerCase();
+        document.getElementById("status").value = status.charAt(0).toUpperCase() + status.slice(1);
+
+        modal.style.display = "flex";
+    }
+
+    // Close modal after saving
+    document.getElementById("save-btn").addEventListener("click", () => {
+        const modal = document.getElementById("add-externalpartner-modal");
+        modal.style.display = "none";
+    });
+</script>
+
+</body>
+</html>

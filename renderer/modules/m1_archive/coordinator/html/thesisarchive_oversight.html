@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Thesis Archive Oversight</title>
+    <link rel="stylesheet" href="../css/thesisarchive_oversight.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<div class="app">
+    <!-- MAIN AREA -->
+    <div class="main">
+        <!-- PAGE CONTENT -->
+        <div class="page">
+
+            <h2 class="title">THESIS/CAPSTONE ARCHIVE OVERSIGHT</h2>
+
+            <!-- CONTROLS -->
+            <div class="controls">
+                <div class="left-controls">
+                    <div class="search-box">
+                        <input type="text" placeholder="Search">
+                        <i data-lucide="search" class="search-icon"></i>
+                    </div>
+
+                    <div class="filter-group">
+                        <button class="filter-toggle">
+                            Filter Option
+                            <i data-lucide="chevron-down" class="filter-arrow"></i>
+                        </button>
+
+                        <div class="filter-dropdown">
+                            <label><input type="radio" name="course"> BSIT</label>
+                            <label><input type="radio" name="course"> BSCS</label>
+                            <label><input type="radio" name="sort"> A-Z</label>
+                            <label><input type="radio" name="sort"> Z-A</label>
+                            <label><input type="radio" name="sort"> Date Published</label>
+                        </div>
+                    </div>
+
+                    <button class="filter-btn">Filter</button>
+                </div>
+            </div>
+
+            <!-- CONTENT -->
+            <div class="content">
+                <div class="archive-list">
+                    <div class="archive-card active">
+                        <h3>Archiving System for CCS Graduating Students</h3>
+                        <p>Acosta, D. Montipolca, C. & Sanchez, P.</p>
+                        <span>Feb, 2025</span>
+                        <p class="desc">Lorem ipsum dolor sit amet...</p>
+                    </div>
+
+                    <div class="archive-card">
+                        <h3>Student Monitoring System</h3>
+                        <p>Dela Cruz, J. & Ramos, K.</p>
+                        <span>Jan, 2025</span>
+                        <p class="desc">Lorem ipsum dolor sit amet...</p>
+                    </div>
+                </div>
+
+                <div class="preview">
+                    <div class="preview-box">
+                        <p class="empty-text">Select a document to preview</p>
+                    </div>
+
+                    <div class="preview-pagination">
+                        <div class="pagination">
+                            <div class="tooltip">
+                                <button class="download">
+                                    <i data-lucide="download"></i>
+                                </button>
+                                <span class="tooltip-text">Download File</span>
+                            </div>
+
+                            <input type="number" value="1" min="1">
+                            <span>of 34</span>
+                        </div>
+
+                        <button class="viewfull-btn">See Full Documents</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+const toggleBtn = document.querySelector('.filter-toggle');
+const dropdown = document.querySelector('.filter-dropdown');
+
+toggleBtn.onclick = function(e) {
+    e.stopPropagation();
+    dropdown.classList.toggle('show');
+    toggleBtn.classList.toggle('active');
+};
+
+document.addEventListener('click', () => {
+    dropdown.classList.remove('show');
+    toggleBtn.classList.remove('active');
+});
+
+lucide.createIcons();
+</script>
+
+</body>
+</html>

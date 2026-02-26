@@ -1,0 +1,192 @@
+/* =========================
+   COLOR PALETTE
+========================= */
+:root {
+    --bg-gradient-start: #0B0D10;
+    --bg-gradient-end: #12151A;
+    --app-bg: #0B0D10;
+    --secondary-bg: #12151A;
+    --accent-blue: #9DC6FF;
+    --panel-bg: #181C22;
+    --primary-text: #C9CCD1;
+    --secondary-text: #9AA0A6;
+    --border-color: #3A3F46;
+}
+
+/* =========================
+   GLOBAL
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  background: linear-gradient(
+    to bottom,
+    var(--bg-gradient-start),
+    var(--bg-gradient-end)
+  );
+  color: var(--primary-text);
+  padding: 40px;
+}
+
+/* TITLE */
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 30px;
+}
+
+.main-container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding: 40px 0 40px 80px;
+    box-sizing: border-box;
+}
+
+/* =========================
+   MAIN CONTENT AREA
+========================= */
+.content-bg {
+    position: relative;
+    width: min(1200px, 100% - 80px);
+    background: var(--secondary-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 48px 80px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+.sidebar {
+    position: absolute;
+    left: -22px;
+    top: -10px;
+    width: 384px;
+    height: 1096px;
+    background: var(--panel-bg);
+    border: 3px solid var(--border-color);
+    padding-left: 55px;
+}
+
+.system-title {
+    margin-top: 50px;
+    color: white;
+    font-size: 25px;
+    line-height: 25px;
+}
+
+.bold {
+    font-weight: 700;
+}
+
+.menu {
+    position: absolute;
+    font-size: 17px;
+    color: var(--primary-text);
+}
+
+.dashboard { top: 257px; left: 102px; }
+.archive { top: 303px; left: 102px; }
+
+.hte-title { 
+    top: 366px; 
+    left: 102px; 
+    font-weight: 500; 
+}
+
+.partners { 
+    top: 407px; 
+    left: 124px; 
+    color: var(--accent-blue); 
+}
+
+.active { 
+    top: 440px; 
+    left: 124px; 
+    color: var(--accent-blue); 
+    text-decoration: underline; 
+}
+
+.settings { top: 919px; left: 100px; }
+.help { top: 974px; left: 100px; }
+
+/* =========================
+   HEADER
+========================= */
+.header {
+    position: absolute;
+    top: 53px;
+    left: 441px;
+}
+
+.header h1 {
+    font-size: 40px;
+    font-weight: 400;
+    color: white;
+}
+
+/* =========================
+   SECTION TITLE + CARDS
+   (Google Classroom–style)
+========================= */
+.section-title {
+    margin: 0 0 24px 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--primary-text);
+}
+
+.class-cards-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+.class-card {
+    flex: 0 0 360px;
+    min-height: 170px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 24px 28px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.class-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.55);
+}
+
+.card-title {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+.divider {
+    height: 1px;
+    background: var(--primary-text);
+    margin: 14px 0;
+    opacity: 0.4;
+}
+
+.card-footer {
+    font-size: 14px;
+    color: var(--secondary-text);
+}

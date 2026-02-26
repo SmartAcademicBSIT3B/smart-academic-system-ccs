@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="../css/1main_menu.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+        <div class="logo">
+            <img src="../../images/CCSLOGO.png" class="ccs-logo">
+
+            <h2 class="system-title">
+                Thesis/Capstone<br>
+                Archiving and<br>
+                Host Training<br>
+                Establishment System
+            </h2>
+        </div>
+
+        <ul class="menu">
+
+            <li class="menu-item active" onclick="loadPage('dashboard.html', this)">
+                <div class="menu-left">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </div>
+            </li>
+
+            <li class="menu-item active" onclick="loadPage('thesisarchive_oversight.html', this)">
+                <div class="menu-left">
+                    <i data-lucide="archive"></i>
+                    <span>Thesis/Capstone <br> Archives</span>
+                </div>
+            </li>
+
+            <li class="menu-item dropdown" onclick="toggleMenu(this)">
+                <div class="menu-left">
+                    <i data-lucide="building"></i>
+                    <span>HTE Management</span>
+                </div>
+                <i class="arrow" data-lucide="chevron-down"></i>
+            </li>
+
+            <ul class="submenu">
+                <li onclick="loadPage('external_partners.html', this)">External Partners</li>
+                <li onclick="loadPage('ojt_students.html', this)">OJT Students</li>
+                </ul>
+            </ul>
+
+            <div class="bottom-menu">
+                <li class="menu-item" onclick="loadPage('settings.html', this)">
+                    <div class="menu-left">
+                        <i data-lucide="settings"></i>
+                        <span>System Setting</span>
+                    </div>
+                </li>
+
+                <li class="menu-item" onclick="loadPage('help.html', this)">
+                    <div class="menu-left">
+                        <i data-lucide="help-circle"></i>
+                        <span>Help</span>
+                    </div>
+                </li>
+            </div>
+
+        </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+        <!-- HEADER -->
+        <div class="header">
+            <h1>Welcome, <span>Coordinator</span></h1>
+
+            <div class="profile-dropdown">
+                <div class="profile-icon" onclick="toggleProfileMenu(event)">
+                    <i data-lucide="user"></i>
+                </div>
+
+                <div class="profile-menu">
+                    <button>My Profile</button>
+                    <button>Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- IFRAME CONTENT -->
+        <div class="page-content">
+            <iframe id="content-frame" src="dashboard.html"></iframe>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+lucide.createIcons();
+
+/* Dropdown submenu */
+function toggleMenu(element) {
+    const submenu = element.nextElementSibling;
+    const arrow = element.querySelector(".arrow");
+
+    submenu.classList.toggle("open");
+    arrow.classList.toggle("rotate");
+}
+
+/* Subsubmenu toggle */
+function toggleSubSubMenu(element) {
+    const submenu = element.nextElementSibling;
+    const arrow = element.querySelector(".arrow-small");  // Small arrow for Coordinators
+
+    submenu.classList.toggle("open");
+    arrow.classList.toggle("rotate");
+}
+
+/* Iframe loader */
+function loadPage(page, element) {
+    document.getElementById("content-frame").src = page;
+
+    document.querySelectorAll(".menu-item").forEach(item => {
+        item.classList.remove("active");
+    });
+
+    if(element.classList.contains("menu-item")){
+        element.classList.add("active");
+    }
+}
+
+/* Profile dropdown */
+function toggleProfileMenu(event) {
+    event.stopPropagation();
+    document.querySelector(".profile-menu").classList.toggle("show");
+}
+
+document.addEventListener("click", function () {
+    const menu = document.querySelector(".profile-menu");
+    if (menu) menu.classList.remove("show");
+});
+</script>
+
+</body>
+</html>
