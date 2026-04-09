@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>OJT Students</title>
     <link rel="stylesheet" href="../css/tables.css">
+    <link rel="stylesheet" href="../css/form_ojt_students.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -45,12 +46,124 @@
             </div>
 
             <div class="tooltip">
-                <button class="add-btn">+</button>
+                <button class="add-btn" id="add-ojt-btn">+</button>
                 <span class="tooltip-text">Add User</span>
             </div>
 
         </div>
 
+    </div>
+
+    <!-- DOWNLOAD OPTIONS MODAL -->
+    <div id="export-modal" class="modal" style="display:none;">
+        <div class="modal-content choice-modal-content">
+            <div class="form-header">
+                <h4>DOWNLOAD REPORT</h4>
+            </div>
+            <div class="choice-actions">
+                <button type="button" class="choice-btn" id="export-csv-btn">
+                    <i data-lucide="file-text"></i>
+                    CSV
+                </button>
+                <button type="button" class="choice-btn" id="export-excel-btn">
+                    <i data-lucide="sheet"></i>
+                    Excel
+                </button>
+                <button type="button" class="choice-btn" id="export-pdf-btn">
+                    <i data-lucide="file-output"></i>
+                    PDF
+                </button>
+                <button type="button" class="choice-btn" id="export-doc-btn">
+                    <i data-lucide="file"></i>
+                    DOC
+                </button>
+            </div>
+            <div class="form-actions choice-footer">
+                <button class="cancel-btn" id="export-cancel-btn" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SELECT ADD MODE MODAL -->
+    <div id="select-mode-modal" class="modal" style="display:none;">
+        <div class="modal-content choice-modal-content">
+            <div class="form-header">
+                <h4>ADD OJT STUDENT</h4>
+            </div>
+
+            <div class="choice-actions">
+                <button type="button" class="choice-btn" id="manual-add-btn">
+                    <i data-lucide="file-plus-2"></i>
+                    Add manually
+                </button>
+                <button type="button" class="choice-btn" id="csv-add-btn">
+                    <i data-lucide="upload"></i>
+                    Upload CSV file
+                </button>
+                <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none;">
+            </div>
+
+            <div class="form-actions choice-footer">
+                <button class="cancel-btn" id="cancel-mode-btn" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT STUDENT MODAL -->
+    <div id="student-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="form-header">
+                <h4 id="student-modal-title">ADDING NEW OJT STUDENT</h4>
+            </div>
+
+            <div class="form-body">
+                <div class="grid-3">
+                    <div class="input-group">
+                        <label>NAME</label>
+                        <input id="student-name" type="text" placeholder="Type here">
+                    </div>
+                    <div class="input-group">
+                        <label>SECTION</label>
+                        <input id="student-section" type="text" placeholder="Type here">
+                    </div>
+                    <div class="input-group">
+                        <label>STATUS</label>
+                        <select id="student-status">
+                            <option>Deployed</option>
+                            <option>Pre-Deployment</option>
+                            <option>Pending Requirements</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-3">
+                    <div class="input-group">
+                        <label>EMAIL</label>
+                        <input id="student-email" type="email" placeholder="Type here">
+                    </div>
+                    <div class="input-group">
+                        <label>CONTACT NO.</label>
+                        <input id="student-contact" type="text" placeholder="Type here">
+                    </div>
+                    <div class="input-group">
+                        <label>EXTERNAL PARTNER ASSIGNED</label>
+                        <input id="student-partner" type="text" placeholder="Type here">
+                    </div>
+                </div>
+
+                <div class="grid-3">
+                    <div class="input-group">
+                        <label>NATURE OF BUSINESS</label>
+                        <input id="student-nature" type="text" placeholder="Type here">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="cancel-btn" id="student-cancel-btn" type="button">Cancel</button>
+                <button class="save-btn" id="student-save-btn" type="button">Save</button>
+            </div>
+        </div>
     </div>
 
     <!-- Table -->
@@ -64,9 +177,11 @@
                         <th>ID</th>
                         <th>Name</th>
                         <th>Section</th>
+                        <th>Email</th>
+                        <th>Contact no.</th>
                         <th>Status</th>
                         <th>External Partner Assigned</th>
-                        <th>Field</th>
+                        <th>Nature of Business</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -77,6 +192,8 @@
                         <td>001</td>
                         <td>Juan Delacruz</td>
                         <td>BSIT-4B</td>
+                        <td>sample@plpasig.edu.ph</td>
+                        <td>09123456789</td>
                         <td><span class="status deployed">Deployed</span></td>
                         <td>Company A</td>
                         <td>Web Designer</td>
@@ -86,7 +203,7 @@
                                     <i data-lucide="more-vertical"></i>
                                 </button>
                                 <div class="dropdown-menu">
-                                    <button>Edit</button>
+                                    <button class="edit-btn" type="button">Edit</button>
                                     <button class="danger">Delete</button>
                                 </div>
                             </div>
@@ -98,6 +215,8 @@
                         <td>002</td>
                         <td>Maria Santos</td>
                         <td>BSCS-4A</td>
+                        <td>sample@plpasig.edu.ph</td>
+                        <td>09123456789</td>
                         <td><span class="status pre-deployment">Pre-Deployment</span></td>
                         <td>--</td>
                         <td>--</td>
@@ -107,7 +226,7 @@
                                     <i data-lucide="more-vertical"></i>
                                 </button>
                                 <div class="dropdown-menu">
-                                    <button>Edit</button>
+                                    <button class="edit-btn" type="button">Edit</button>
                                     <button class="danger">Delete</button>
                                 </div>
                             </div>
@@ -119,6 +238,8 @@
                         <td>003</td>
                         <td>Carlos Reyes</td>
                         <td>BSIT-4C</td>
+                        <td>sample@plpasig.edu.ph</td>
+                        <td>09123456789</td>
                         <td><span class="status pending">Pending Requirements</span></td>
                         <td>--</td>
                         <td>--</td>
@@ -128,7 +249,7 @@
                                     <i data-lucide="more-vertical"></i>
                                 </button>
                                 <div class="dropdown-menu">
-                                    <button>Edit</button>
+                                    <button class="edit-btn" type="button">Edit</button>
                                     <button class="danger">Delete</button>
                                 </div>
                             </div>
@@ -145,25 +266,108 @@
 <script>
     lucide.createIcons();
 
-    document.querySelectorAll(".dots-btn").forEach(btn => {
-        btn.addEventListener("click", function (e) {
+    // Dropdown (delegated)
+    document.addEventListener("click", (e) => {
+        const dots = e.target.closest(".dots-btn");
+        if (dots) {
             e.stopPropagation();
+            document.querySelectorAll(".dropdown-menu").forEach(m => m.classList.remove("show"));
+            const menu = dots.nextElementSibling;
+            if (menu) menu.classList.toggle("show");
+            return;
+        }
+        document.querySelectorAll(".dropdown-menu").forEach(m => m.classList.remove("show"));
+    });
 
-            document.querySelectorAll(".dropdown-menu").forEach(menu => {
-                menu.classList.remove("show");
+    // Export modal + downloads
+    const exportModal = document.getElementById("export-modal");
+    const exportCancelBtn = document.getElementById("export-cancel-btn");
+    const exportCsvBtn = document.getElementById("export-csv-btn");
+    const exportExcelBtn = document.getElementById("export-excel-btn");
+    const exportPdfBtn = document.getElementById("export-pdf-btn");
+    const exportDocBtn = document.getElementById("export-doc-btn");
+
+    function openModal(el){ el.style.display = "flex"; }
+    function closeModal(el){ el.style.display = "none"; }
+
+    function getReportName() {
+        const title = (document.querySelector(".page-title")?.textContent || "report")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+        const date = new Date().toISOString().slice(0, 10);
+        return `${title}_${date}`;
+    }
+
+    function getTable() {
+        return document.querySelector("table");
+    }
+
+    function escapeCsvCell(value) {
+        const s = String(value ?? "");
+        if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+        return s;
+    }
+
+    function tableToCsv(table) {
+        const rows = Array.from(table.querySelectorAll("tr"));
+        return rows.map(row => {
+            const cells = Array.from(row.querySelectorAll("th,td")).map(cell => {
+                return escapeCsvCell(cell.textContent.trim());
             });
+            return cells.join(",");
+        }).join("\n");
+    }
 
-            this.nextElementSibling.classList.toggle("show");
-        });
-    });
+    function downloadBlob(content, mime, filename) {
+        const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
 
-    document.addEventListener("click", () => {
-        document.querySelectorAll(".dropdown-menu").forEach(menu => {
-            menu.classList.remove("show");
-        });
-    });
+    function downloadTableAsHtmlDoc(table, filename, mime) {
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${table.outerHTML}</body></html>`;
+        downloadBlob(html, mime, filename);
+    }
 
     document.querySelector(".generate-btn").addEventListener("click", () => {
+        openModal(exportModal);
+        lucide.createIcons();
+    });
+
+    exportCancelBtn.addEventListener("click", () => closeModal(exportModal));
+    exportModal.addEventListener("click", (e) => { if (e.target === exportModal) closeModal(exportModal); });
+
+    exportCsvBtn.addEventListener("click", () => {
+        const table = getTable();
+        if (!table) return;
+        const csv = tableToCsv(table);
+        downloadBlob(csv, "text/csv;charset=utf-8", `${getReportName()}.csv`);
+        closeModal(exportModal);
+    });
+
+    exportExcelBtn.addEventListener("click", () => {
+        const table = getTable();
+        if (!table) return;
+        downloadTableAsHtmlDoc(table, `${getReportName()}.xls`, "application/vnd.ms-excel");
+        closeModal(exportModal);
+    });
+
+    exportDocBtn.addEventListener("click", () => {
+        const table = getTable();
+        if (!table) return;
+        downloadTableAsHtmlDoc(table, `${getReportName()}.doc`, "application/msword");
+        closeModal(exportModal);
+    });
+
+    exportPdfBtn.addEventListener("click", () => {
+        closeModal(exportModal);
         window.print();
     });
 
@@ -171,6 +375,259 @@
 
         select.addEventListener("change", () => {
         select.blur(); // 🔥 removes focus after selecting
+    });
+
+    // Add options + add/edit modal
+    const selectModeModal = document.getElementById("select-mode-modal");
+    const studentModal = document.getElementById("student-modal");
+    const csvInput = document.getElementById("csv-file-input");
+    const studentModalTitle = document.getElementById("student-modal-title");
+
+    const nameEl = document.getElementById("student-name");
+    const sectionEl = document.getElementById("student-section");
+    const statusEl = document.getElementById("student-status");
+    const emailEl = document.getElementById("student-email");
+    const contactEl = document.getElementById("student-contact");
+    const partnerEl = document.getElementById("student-partner");
+    const natureEl = document.getElementById("student-nature");
+
+    let editingRow = null;
+
+    function openModal(el){ el.style.display = "flex"; }
+    function closeModal(el){ el.style.display = "none"; }
+
+    function resetStudentForm(){
+        nameEl.value = "";
+        sectionEl.value = "";
+        statusEl.value = "Deployed";
+        emailEl.value = "";
+        contactEl.value = "";
+        partnerEl.value = "";
+        natureEl.value = "";
+    }
+
+    function getNextId(){
+        const tbody = document.querySelector("table tbody");
+        const ids = Array.from(tbody.querySelectorAll("tr td:nth-child(2)"))
+            .map(td => parseInt(td.textContent, 10))
+            .filter(n => Number.isFinite(n));
+        const next = (ids.length ? Math.max(...ids) : 0) + 1;
+        return String(next).padStart(3, "0");
+    }
+
+    function statusClassFromText(text){
+        const t = String(text || "").trim().toLowerCase();
+        if (t.includes("pre")) return "pre-deployment";
+        if (t.includes("pending")) return "pending";
+        return "deployed";
+    }
+
+    function setStatusCell(td, statusText){
+        const cls = statusClassFromText(statusText);
+        const label = String(statusText || "").trim() || "Deployed";
+        td.innerHTML = `<span class="status ${cls}">${label}</span>`;
+    }
+
+    function addStudentRow(data){
+        const tbody = document.querySelector("table tbody");
+        const tr = document.createElement("tr");
+        const id = data.id || getNextId();
+        tr.innerHTML = `
+            <td><input type="checkbox" /></td>
+            <td>${id}</td>
+            <td>${data.name || ""}</td>
+            <td>${data.section || ""}</td>
+            <td>${data.email || ""}</td>
+            <td>${data.contact || ""}</td>
+            <td></td>
+            <td>${data.partner || "--"}</td>
+            <td>${data.nature || "--"}</td>
+            <td class="action-cell">
+                <div class="dropdown">
+                    <button class="dots-btn" type="button">
+                        <i data-lucide="more-vertical"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                        <button class="edit-btn" type="button">Edit</button>
+                        <button class="danger" type="button">Delete</button>
+                    </div>
+                </div>
+            </td>
+        `;
+        setStatusCell(tr.cells[6], data.status || "Deployed");
+        tbody.appendChild(tr);
+        lucide.createIcons();
+    }
+
+    document.getElementById("add-ojt-btn").addEventListener("click", () => openModal(selectModeModal));
+    document.getElementById("cancel-mode-btn").addEventListener("click", () => closeModal(selectModeModal));
+
+    document.getElementById("manual-add-btn").addEventListener("click", () => {
+        closeModal(selectModeModal);
+        editingRow = null;
+        studentModalTitle.textContent = "ADDING NEW OJT STUDENT";
+        resetStudentForm();
+        openModal(studentModal);
+    });
+
+    document.getElementById("csv-add-btn").addEventListener("click", () => {
+        csvInput.value = "";
+        csvInput.click();
+    });
+
+    document.getElementById("student-cancel-btn").addEventListener("click", () => closeModal(studentModal));
+
+    document.getElementById("student-save-btn").addEventListener("click", () => {
+        const data = {
+            name: nameEl.value.trim(),
+            section: sectionEl.value.trim(),
+            status: statusEl.value,
+            email: emailEl.value.trim(),
+            contact: contactEl.value.trim(),
+            partner: partnerEl.value.trim() || "--",
+            nature: natureEl.value.trim() || "--",
+        };
+
+        if (editingRow) {
+            editingRow.cells[2].textContent = data.name;
+            editingRow.cells[3].textContent = data.section;
+            editingRow.cells[4].textContent = data.email;
+            editingRow.cells[5].textContent = data.contact;
+            setStatusCell(editingRow.cells[6], data.status);
+            editingRow.cells[7].textContent = data.partner;
+            editingRow.cells[8].textContent = data.nature;
+        } else {
+            addStudentRow(data);
+        }
+
+        closeModal(studentModal);
+    });
+
+    // Edit (delegated)
+    document.addEventListener("click", (e) => {
+        const editBtn = e.target.closest(".edit-btn");
+        if (!editBtn) return;
+        const row = editBtn.closest("tr");
+        if (!row) return;
+
+        editingRow = row;
+        studentModalTitle.textContent = "EDIT OJT STUDENT";
+
+        nameEl.value = row.cells[2]?.textContent.trim() || "";
+        sectionEl.value = row.cells[3]?.textContent.trim() || "";
+        emailEl.value = row.cells[4]?.textContent.trim() || "";
+        contactEl.value = row.cells[5]?.textContent.trim() || "";
+        statusEl.value = row.cells[6]?.textContent.trim() || "Deployed";
+        partnerEl.value = row.cells[7]?.textContent.trim() || "";
+        natureEl.value = row.cells[8]?.textContent.trim() || "";
+
+        closeModal(selectModeModal);
+        openModal(studentModal);
+    });
+
+    function parseCsvRow(line){
+        const out = [];
+        let cur = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++){
+            const ch = line[i];
+            if (ch === '"'){
+                if (inQuotes && line[i + 1] === '"'){ cur += '"'; i++; }
+                else { inQuotes = !inQuotes; }
+                continue;
+            }
+            if (ch === "," && !inQuotes){ out.push(cur.trim()); cur = ""; continue; }
+            cur += ch;
+        }
+        out.push(cur.trim());
+        return out.map(v => v.replace(/^"|"$/g, "").trim());
+    }
+
+    function normalizeHeader(h){
+        return String(h || "").trim().toLowerCase().replace(/\s+/g," ").replace(/[._-]/g," ");
+    }
+
+    csvInput.addEventListener("change", async () => {
+        const file = csvInput.files && csvInput.files[0];
+        if (!file) return;
+        const isCsv = file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv");
+        if (!isCsv) { alert("Please select a CSV file."); return; }
+
+        closeModal(selectModeModal);
+
+        const text = await file.text();
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        if (!lines.length) { alert("CSV is empty."); return; }
+
+        const firstRow = parseCsvRow(lines[0]);
+        const hasHeader = firstRow.some(v => /[a-zA-Z]/.test(v));
+        let headers = [];
+        let startIdx = 0;
+        if (hasHeader){ headers = firstRow.map(normalizeHeader); startIdx = 1; }
+
+        const headerIndex = (names) => {
+            if (!headers.length) return -1;
+            const set = new Set(names.map(normalizeHeader));
+            return headers.findIndex(h => set.has(h));
+        };
+
+        const idx = {
+            id: headerIndex(["id"]),
+            name: headerIndex(["name"]),
+            section: headerIndex(["section"]),
+            email: headerIndex(["email"]),
+            contact: headerIndex(["contact", "contact no", "contact no."]),
+            status: headerIndex(["status"]),
+            partner: headerIndex(["external partner assigned", "partner", "external partner"]),
+            nature: headerIndex(["nature of business", "nature"]),
+        };
+
+        let imported = 0;
+        for (let i = startIdx; i < lines.length; i++){
+            const cols = parseCsvRow(lines[i]);
+            if (cols.every(c => !c)) continue;
+
+            // No header fallback order:
+            // Name, Section, Email, Contact, Status, Partner, Nature, (optional) ID
+            const row = headers.length
+                ? {
+                    id: idx.id >= 0 ? cols[idx.id] : "",
+                    name: idx.name >= 0 ? cols[idx.name] : "",
+                    section: idx.section >= 0 ? cols[idx.section] : "",
+                    email: idx.email >= 0 ? cols[idx.email] : "",
+                    contact: idx.contact >= 0 ? cols[idx.contact] : "",
+                    status: idx.status >= 0 ? cols[idx.status] : "Deployed",
+                    partner: idx.partner >= 0 ? cols[idx.partner] : "--",
+                    nature: idx.nature >= 0 ? cols[idx.nature] : "--",
+                }
+                : {
+                    name: cols[0] || "",
+                    section: cols[1] || "",
+                    email: cols[2] || "",
+                    contact: cols[3] || "",
+                    status: cols[4] || "Deployed",
+                    partner: cols[5] || "--",
+                    nature: cols[6] || "--",
+                    id: cols[7] || "",
+                };
+
+            addStudentRow(row);
+            imported++;
+        }
+
+        alert(imported ? `Imported ${imported} row(s) from CSV.` : "No rows imported. Check your CSV format.");
+    });
+
+    // Backdrop/Esc close
+    [selectModeModal, studentModal].forEach((m) => {
+        m.addEventListener("click", (e) => {
+            if (e.target === m) closeModal(m);
+        });
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        closeModal(selectModeModal);
+        closeModal(studentModal);
     });
 </script>
 

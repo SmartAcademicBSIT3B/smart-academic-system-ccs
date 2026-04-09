@@ -44,6 +44,63 @@
         </div>
     </div>
 
+    <!-- DOWNLOAD OPTIONS MODAL -->
+    <div id="export-modal" class="modal" style="display:none;">
+        <div class="modal-content choice-modal-content">
+            <div class="form-header">
+                <h4>DOWNLOAD REPORT</h4>
+            </div>
+            <div class="choice-actions">
+                <button type="button" class="choice-btn" id="export-csv-btn">
+                    <i data-lucide="file-text"></i>
+                    CSV
+                </button>
+                <button type="button" class="choice-btn" id="export-excel-btn">
+                    <i data-lucide="sheet"></i>
+                    Excel
+                </button>
+                <button type="button" class="choice-btn" id="export-pdf-btn">
+                    <i data-lucide="file-output"></i>
+                    PDF
+                </button>
+                <button type="button" class="choice-btn" id="export-doc-btn">
+                    <i data-lucide="file"></i>
+                    DOC
+                </button>
+            </div>
+            <div class="form-actions choice-footer">
+                <button class="cancel-btn" id="export-cancel-btn" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SELECT ADD MODE MODAL (same container as Manage Archives) -->
+    <div id="select-mode-modal" class="modal" style="display:none;">
+        <div class="modal-content choice-modal-content">
+            <div class="form-header">
+                <h4>CHOOSE AN OPTION</h4>
+            </div>
+
+            <div class="choice-actions">
+                <button type="button" class="choice-btn" id="manual-add-btn">
+                    <i data-lucide="file-plus-2"></i>
+                    Add Manually
+                </button>
+
+                <button type="button" class="choice-btn" id="csv-add-btn">
+                    <i data-lucide="upload"></i>
+                    Upload CSV File
+                </button>
+
+                <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none;">
+            </div>
+
+            <div class="form-actions choice-footer">
+                <button class="cancel-btn" id="cancel-mode-btn" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal - Add/Update External Partner Form -->
     <div id="add-externalpartner-modal" class="modal" style="display: none;">
         <div class="modal-content">
@@ -55,18 +112,18 @@
                <div class="grid-4">
                 <div class="input-group">
                     <label>NAME OF COMPANY</label>
-                    <input type="text" placeholder="Type here" class="required-field">
+                    <input id="company-name" placeholder="Company Name"  class="required-field">
                 </div>
 
                 <div class="input-group">
                     <label>CONTACT NO</label>    
-                    <input type="text" placeholder="Type here" class="required-field">
+                    <input id="company-contact" type="text" placeholder="Type here" class="required-field">
 
                 </div>
 
                 <div class="input-group">
                     <label>EMAIL ADDRESS</label>
-                    <input type="email" placeholder="Type here" class="required-field">
+                    <input id="company-email" type="email" placeholder="Type here" class="required-field">
                 </div>
 
                 <div class="input-group">
@@ -81,22 +138,22 @@
             <div class="grid-4">
                 <div class="input-group">
                     <label>Bldg./Floor No./Street No.</label>
-                    <input type="text" placeholder="Type here">
+                    <input id=bldg type="text" placeholder="Type here" class="required-field">
                 </div>
 
                 <div class="input-group">
                     <label>Street</label>
-                    <input type="text" placeholder="Type here">
+                    <input id=street type="text" placeholder="Type here" class="required-field">
                 </div>
 
                 <div class="input-group">
                     <label>Barangay</label>
-                    <input type="text" placeholder="Type here">
+                    <input id=barangay type="text" placeholder="Type here" class="required-field">
                 </div>
 
                 <div class="input-group">
                     <label>Province/City</label>
-                    <input type="text" placeholder="Type here">
+                    <input id=cityprovince   type="text" placeholder="Type here" class="required-field">
                 </div>
 
             </div>
@@ -107,22 +164,22 @@
             <div class="grid-4">
                 <div class="input-group">
                     <label>NAME OF REPRESENTATIVE</label>
-                    <input type="text" placeholder="Type here">
+                    <input id="rep-name" type="text" placeholder="Type here">
                 </div>
 
                 <div class="input-group">
                     <label>JOB DESCRIPTION</label>
-                    <input type="text" placeholder="Type here">
+                    <input id="rep-job" type="text" placeholder="Type here">
                 </div>
 
                 <div class="input-group">
                     <label>CONTACT NO.</label>
-                    <input type="text" placeholder="Type here">
+                    <input id="rep-contact" type="text" placeholder="Type here">
                 </div>
 
                 <div class="input-group">
                     <label>EMAIL ADDRESS</label>
-                    <input type="email" placeholder="Type here">
+                    <input id="rep-email" type="email" placeholder="Type here">
                 </div>
             </div>
 
@@ -130,7 +187,7 @@
 
         <div class="form-actions">
             <button class="cancel-btn" id="cancel-btn">Cancel</button>
-            <button class="save-btn">Save</button>
+            <button class="save-btn" id="save-btn">Save</button>
         </div>
 
     </div>
@@ -158,7 +215,7 @@
                 </thead>
 
                 <tbody>
-                    <tr>
+                    <tr id="row-001">
                         <td><input type="checkbox" /></td>
                         <td>001</td>
                         <td><img src="../images/company1.png" class="company-logo"></td>
@@ -210,12 +267,102 @@
         });
     });
 
+    // Export modal + downloads
+    const exportModal = document.getElementById("export-modal");
+    const exportCancelBtn = document.getElementById("export-cancel-btn");
+    const exportCsvBtn = document.getElementById("export-csv-btn");
+    const exportExcelBtn = document.getElementById("export-excel-btn");
+    const exportPdfBtn = document.getElementById("export-pdf-btn");
+    const exportDocBtn = document.getElementById("export-doc-btn");
+
+    function openModal(el) { el.style.display = "flex"; }
+    function closeModal(el) { el.style.display = "none"; }
+
+    function getReportName() {
+        const title = (document.querySelector(".page-title")?.textContent || "report")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+        const date = new Date().toISOString().slice(0, 10);
+        return `${title}_${date}`;
+    }
+
+    function getTable() {
+        return document.querySelector("table");
+    }
+
+    function escapeCsvCell(value) {
+        const s = String(value ?? "");
+        if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+        return s;
+    }
+
+    function tableToCsv(table) {
+        const rows = Array.from(table.querySelectorAll("tr"));
+        return rows.map(row => {
+            const cells = Array.from(row.querySelectorAll("th,td")).map(cell => {
+                return escapeCsvCell(cell.textContent.trim());
+            });
+            return cells.join(",");
+        }).join("\n");
+    }
+
+    function downloadBlob(content, mime, filename) {
+        const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function downloadTableAsHtmlDoc(table, filename, mime) {
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${table.outerHTML}</body></html>`;
+        downloadBlob(html, mime, filename);
+    }
+
+    document.querySelector(".generate-btn").addEventListener("click", () => {
+        openModal(exportModal);
+        lucide.createIcons();
+    });
+
+    exportCancelBtn.addEventListener("click", () => closeModal(exportModal));
+    exportModal.addEventListener("click", (e) => { if (e.target === exportModal) closeModal(exportModal); });
+
+    exportCsvBtn.addEventListener("click", () => {
+        const table = getTable();
+        if (!table) return;
+        const csv = tableToCsv(table);
+        downloadBlob(csv, "text/csv;charset=utf-8", `${getReportName()}.csv`);
+        closeModal(exportModal);
+    });
+
+    exportExcelBtn.addEventListener("click", () => {
+        const table = getTable();
+        if (!table) return;
+        downloadTableAsHtmlDoc(table, `${getReportName()}.xls`, "application/vnd.ms-excel");
+        closeModal(exportModal);
+    });
+
+    exportDocBtn.addEventListener("click", () => {
+        const table = getTable();
+        if (!table) return;
+        downloadTableAsHtmlDoc(table, `${getReportName()}.doc`, "application/msword");
+        closeModal(exportModal);
+    });
+
+    exportPdfBtn.addEventListener("click", () => {
+        closeModal(exportModal);
+        window.print();
+    });
+
     // Toggle modal visibility when the "Add" button is clicked
-    document.getElementById("add-externalpartner-btn").addEventListener("click", () => {
-        const modal = document.getElementById("add-externalpartner-modal");
-        modal.style.display = modal.style.display === "none" || modal.style.display === "" ? "flex" : "none";
+   document.getElementById("add-externalpartner-btn").addEventListener("click", () => {
+    document.getElementById("select-mode-modal").style.display = "flex";
         // Change header title when opening the Add form
-        document.getElementById("modal-title").innerText = "ADDING NEW EXTERNAL PARTNER";
     });
 
     // Close the modal when the cancel button is clicked
@@ -225,31 +372,67 @@
     });
 
     // Edit modal functionality (if needed)
-    function openEditModal(rowId) {
-        const modal = document.getElementById("add-externalpartner-modal");
-        const row = document.getElementById(`row-${rowId}`);
+   function openEditModal(rowId) {
 
-        // Change header title to "Edit External Partner"
-        document.getElementById("modal-title").innerText = "EDIT EXTERNAL PARTNER";
+    const modal = document.getElementById("add-externalpartner-modal");
+    const row = document.getElementById("row-" + rowId);
 
-        // Populate modal with data
-        document.getElementById("employee-id").value = row.cells[1].innerText;
-        document.getElementById("name").value = row.cells[2].innerText;
-        document.getElementById("username").value = row.cells[3].innerText;
+    document.getElementById("modal-title").innerText = "EDIT EXTERNAL PARTNER";
 
-        // Set the status dropdown value dynamically based on the current row's status
-        const status = row.cells[6].innerText.trim().toLowerCase();
-        document.getElementById("status").value = status.charAt(0).toUpperCase() + status.slice(1);
+    // Table cells mapping
+    document.getElementById("company-name").value = row.cells[3].innerText;
+    document.getElementById("company-email").value = row.cells[5].innerText;
+    document.getElementById("company-contact").value = row.cells[6].innerText;
 
-        modal.style.display = "flex";
-    }
+    document.getElementById("rep-name").value = row.cells[7].innerText;
+    document.getElementById("rep-job").value = row.cells[8].innerText;
+    document.getElementById("rep-email").value = row.cells[9].innerText;
+    document.getElementById("rep-contact").value = row.cells[10].innerText;
+
+    // Address (example only since your table only has 1 column)
+    document.getElementById("cityprovince").value = row.cells[4].innerText;
+
+    modal.style.display = "flex";
+}
 
     // Close modal after saving
     document.getElementById("save-btn").addEventListener("click", () => {
         const modal = document.getElementById("add-externalpartner-modal");
         modal.style.display = "none";
     });
+
+    // SELECT MODE BUTTONS
+
+// Add Manually
+document.getElementById("manual-add-btn").addEventListener("click", () => {
+    document.getElementById("select-mode-modal").style.display = "none";
+    document.getElementById("add-externalpartner-modal").style.display = "flex";
+});
+
+// Upload CSV
+document.getElementById("csv-add-btn").addEventListener("click", () => {
+    document.getElementById("csv-file-input").click();
+});
+
+// When file selected
+document.getElementById("csv-file-input").addEventListener("change", function () {
+    const file = this.files[0];
+
+    if (file) {
+        alert("CSV File Selected: " + file.name);
+
+        // later you will send this to PHP using AJAX / FormData
+    }
+});
+
+// Cancel Select Mode Modal
+document.getElementById("cancel-mode-btn").addEventListener("click", () => {
+    document.getElementById("select-mode-modal").style.display = "none";
+});
 </script>
 
 </body>
 </html>
+
+
+

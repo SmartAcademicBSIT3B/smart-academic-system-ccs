@@ -1,0 +1,291 @@
+:root {
+    --bg-gradient-start: #0B0D10;
+    --bg-gradient-end: #12151A;
+    --app-bg: #0B0D10;
+    --secondary-bg: #12151A;
+    --accent-blue: #9DC6FF;
+    --panel-bg: #181C22;
+    --primary-text: #C9CCD1;
+    --secondary-text: #9AA0A6;
+    --border-color: #3A3F46;
+}
+
+/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background: linear-gradient(to bottom, var(--bg-gradient-start), var(--bg-gradient-end));
+    color: var(--primary-text);
+    padding: 40px;
+}
+
+/* TITLE */
+.title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 25px;
+}
+
+/* INPUTS */
+input,
+select {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  color: var(--primary-text);
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+/* FILTER BUTTON */
+.filter-btn {
+  background: var(--border-color);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+}
+
+.filter-btn:hover {
+  background: #50565f;
+}
+
+/* FILTER CONTROLS */
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.left-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+/* SEARCH */
+.search-box {
+    position: relative;
+}
+
+.search-box input {
+    padding: 10px 40px 10px 15px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--panel-bg);
+    color: var(--primary-text);
+}
+
+/* FILTER TOGGLE BUTTON */
+.filter-group {
+    position: relative;
+}
+
+.filter-toggle {
+    background: linear-gradient(to bottom, var(--panel-bg), var(--secondary-bg));
+    border: 1px solid var(--border-color);
+    padding: 10px 35px 10px 15px;
+    border-radius: 12px;
+    color: var(--primary-text);
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* ARROW */
+.filter-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%) rotate(0deg);
+    width: 16px;
+    height: 16px;
+    color: var(--secondary-text);
+    transition: transform 0.3s ease;
+}
+
+/* ROTATE ARROW ON EXPAND */
+.filter-toggle.active .filter-arrow {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+/* DROPDOWN */
+.filter-dropdown {
+    position: absolute;
+    top: 50px;
+    background: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    width: 180px;
+    z-index: 100;
+}
+
+.filter-dropdown.show {
+    display: flex;
+}
+
+.filter-dropdown label {
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--primary-text);
+}
+
+/* ACTIVE STATE FOR OPTION */
+.filter-dropdown label:hover {
+    color: var(--accent-blue);
+}
+
+/* MAIN CONTENT */
+.content {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 25px;
+}
+
+/* CARDS */
+.archive-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.archive-card {
+    background: var(--panel-bg);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.archive-card:hover {
+    background: var(--secondary-bg);
+}
+
+.archive-card.active {
+    border-left: 4px solid var(--accent-blue);
+}
+
+/* PREVIEW */
+.preview {
+    background: var(--panel-bg);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+
+    
+}
+
+.preview-box {
+    height: 300px;
+    background: var(--secondary-bg);
+    border-radius: 10px;
+    min-height: 400px;
+}
+
+/* Pagination */
+.preview-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 15px;
+    gap: 10px; /* Reduced the gap to make the alignment tighter */
+}
+
+.preview-pagination input {
+    width: 50px;
+    padding: 5px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    color: var(--primary-text);
+    border-radius: 5px;
+    margin: 0 5px;
+}
+
+.preview-pagination button {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    color: var(--primary-text);
+    cursor: pointer;
+    padding: 5px 20px;
+    margin-left: 30px;
+    border-radius: 8px;
+}
+
+.preview-pagination .download {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    color: var(--primary-text);
+    cursor: pointer;
+    padding: 3px 7px;
+    border-radius: 8px;
+    margin-right: 20px;
+}
+
+.download:hover {
+    background: #232830;
+}
+
+.preview-pagination button:hover {
+    background: #232830;
+}
+
+.preview-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-right: 0; /* Adjusted margin-right to make buttons align similarly */
+    margin-top: 15px;
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #232830;
+  color: var(--primary-text);
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  border: 1px solid var(--border-color);
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+}
+
+.tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 70%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #232830 transparent transparent transparent;
+}
+
+/* Tooltip visibility on hover */
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}

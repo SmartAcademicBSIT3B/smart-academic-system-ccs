@@ -73,6 +73,44 @@
   opacity: 1;
 }
 
+/* =========================
+   EXPORT / GENERATE MODAL
+   (Download report options)
+========================= */
+#export-modal.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+#export-modal.modal[style*="flex"] {
+  display: flex !important;
+}
+
+#export-modal .modal-content {
+  background: var(--panel-bg);
+  border-radius: 12px;
+  width: min(520px, calc(100vw - 32px));
+  color: var(--primary-text);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  padding: 24px;
+}
+
+#export-modal .form-header {
+  text-align: center;
+  font-size: 30px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  color: #fff;
+}
+
 /* Modal overlay */
 .section-assign-modal.modal {
   display: none;
@@ -206,3 +244,12 @@
 .section-assign-modal .save-btn:hover {
   opacity: 0.9;
 }
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 30px 24px;
+}
+

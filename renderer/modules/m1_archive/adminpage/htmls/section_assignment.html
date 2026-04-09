@@ -52,6 +52,36 @@
 
     </div>
 
+    <!-- DOWNLOAD OPTIONS MODAL -->
+    <div id="export-modal" class="modal" style="display:none;">
+        <div class="modal-content choice-modal-content">
+            <div class="form-header">
+                <h4>DOWNLOAD REPORT</h4>
+            </div>
+            <div class="choice-actions">
+                <button type="button" class="choice-btn" id="export-csv-btn">
+                    <i data-lucide="file-text"></i>
+                    CSV
+                </button>
+                <button type="button" class="choice-btn" id="export-excel-btn">
+                    <i data-lucide="sheet"></i>
+                    Excel
+                </button>
+                <button type="button" class="choice-btn" id="export-pdf-btn">
+                    <i data-lucide="file-output"></i>
+                    PDF
+                </button>
+                <button type="button" class="choice-btn" id="export-doc-btn">
+                    <i data-lucide="file"></i>
+                    DOC
+                </button>
+            </div>
+            <div class="form-actions choice-footer">
+                <button class="cancel-btn" id="export-cancel-btn" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal - Section Assigning Form -->
     <div id="section-assign-modal" class="modal section-assign-modal" style="display: none;">
         <div class="modal-content">
@@ -169,7 +199,95 @@
         });
     });
 
+    // Export modal + downloads
+    const exportModal = document.getElementById("export-modal");
+    const exportCancelBtn = document.getElementById("export-cancel-btn");
+    const exportCsvBtn = document.getElementById("export-csv-btn");
+    const exportExcelBtn = document.getElementById("export-excel-btn");
+    const exportPdfBtn = document.getElementById("export-pdf-btn");
+    const exportDocBtn = document.getElementById("export-doc-btn");
+
+    function openModal(modalEl) { modalEl.style.display = "flex"; }
+    function closeModal(modalEl) { modalEl.style.display = "none"; }
+
+    function getReportName() {
+        const title = (document.querySelector(".page-title")?.textContent || "report")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+        const date = new Date().toISOString().slice(0, 10);
+        return `${title}_${date}`;
+    }
+
+    function getTable() {
+        return document.querySelector("table");
+    }
+
+    function escapeCsvCell(value) {
+        const s = String(value ?? "");
+        if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+        return s;
+    }
+
+    function tableToCsv(table) {
+        const rows = Array.from(table.querySelectorAll("tr"));
+        return rows.map(row => {
+            const cells = Array.from(row.querySelectorAll("th,td")).map(cell => {
+                return escapeCsvCell(cell.textContent.trim());
+            });
+            return cells.join(",");
+        }).join("\n");
+    }
+
+    function downloadBlob(content, mime, filename) {
+        const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function downloadTableAsHtmlDoc(table, filename, mime) {
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${table.outerHTML}</body></html>`;
+        downloadBlob(html, mime, filename);
+    }
+
     document.querySelector(".generate-btn").addEventListener("click", () => {
+        openModal(exportModal);
+        lucide.createIcons();
+    });
+
+    exportCancelBtn.addEventListener("click", () => closeModal(exportModal));
+    exportModal.addEventListener("click", (e) => { if (e.target === exportModal) closeModal(exportModal); });
+
+    exportCsvBtn.addEventListener("click", () => {
+        const table = getTable();
+        if (!table) return;
+        const csv = tableToCsv(table);
+        downloadBlob(csv, "text/csv;charset=utf-8", `${getReportName()}.csv`);
+        closeModal(exportModal);
+    });
+
+    exportExcelBtn.addEventListener("click", () => {
+        const table = getTable();
+        if (!table) return;
+        downloadTableAsHtmlDoc(table, `${getReportName()}.xls`, "application/vnd.ms-excel");
+        closeModal(exportModal);
+    });
+
+    exportDocBtn.addEventListener("click", () => {
+        const table = getTable();
+        if (!table) return;
+        downloadTableAsHtmlDoc(table, `${getReportName()}.doc`, "application/msword");
+        closeModal(exportModal);
+    });
+
+    exportPdfBtn.addEventListener("click", () => {
+        closeModal(exportModal);
         window.print();
     });
 
@@ -177,6 +295,7 @@
     select.addEventListener("change", () => {
         select.blur();
     });
+
 
     // Section Assign Modal - open/close
     const sectionModal = document.getElementById("section-assign-modal");

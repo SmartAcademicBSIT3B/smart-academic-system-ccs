@@ -5,7 +5,7 @@
     <title>Manage Archives</title>
 
     <link rel="stylesheet" href="../css/tables.css">
-    <link rel="stylesheet" href="../css/form_manage_archives.css">
+    <link rel="stylesheet" href="../css/manage_archives.css">
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -51,12 +51,67 @@
         </div>
     </div>
 
+    <!-- DOWNLOAD OPTIONS MODAL -->
+    <div id="export-modal" class="modal" style="display:none;">
+        <div class="modal-content choice-modal-content">
+            <div class="form-header">
+                <h4>DOWNLOAD REPORT</h4>
+            </div>
+            <div class="choice-actions">
+                <button type="button" class="choice-btn" id="export-csv-btn">
+                    <i data-lucide="file-text"></i>
+                    CSV
+                </button>
+                <button type="button" class="choice-btn" id="export-excel-btn">
+                    <i data-lucide="sheet"></i>
+                    Excel
+                </button>
+                <button type="button" class="choice-btn" id="export-pdf-btn">
+                    <i data-lucide="file-output"></i>
+                    PDF
+                </button>
+                <button type="button" class="choice-btn" id="export-doc-btn">
+                    <i data-lucide="file"></i>
+                    DOC
+                </button>
+            </div>
+            <div class="form-actions choice-footer">
+                <button class="cancel-btn" id="export-cancel-btn" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SELECT ADD MODE MODAL -->
+    <div id="select-mode-modal" class="modal" style="display:none;">
+        <div class="modal-content choice-modal-content">
+            <div class="form-header">
+                <h4>CHOOSE AN OPTION</h4>
+            </div>
+
+            <div class="choice-actions">
+                <button class="choice-btn" id="manual-add-btn" type="button">
+                    <i data-lucide="file-plus-2"></i>
+                    Add Manually
+                </button>
+                <button class="choice-btn" id="csv-add-btn" type="button">
+                    <i data-lucide="upload"></i>
+                    Upload CSV File
+                </button>
+                <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none;">
+            </div>
+
+            <div class="form-actions choice-footer">
+                <button class="cancel-btn" id="cancel-mode-btn" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL -->
-    <div id="archive-modal" class="modal">
+    <div id="archive-modal" class="modal" style="display:none;">
         <div class="modal-content">
 
             <div class="form-header">
-                <h4>ADDING NEW FILE</h4>
+                <h4 id="archive-modal-title">ADDING NEW FILE</h4>
             </div>
 
             <div class="form-body">
@@ -66,13 +121,13 @@
 
         <div class="input-group">
             <label>TITLE</label>
-            <input type="text" placeholder="Type here">
+            <input id="archive-title" type="text" placeholder="Type here">
         </div>
 
         <div class="input-group">
             <label>SECTION</label>
             <div class="select-wrapper">
-                <select>
+                <select id="archive-section">
                     <option disabled selected>Section</option>
                     <option>BSIT-3A</option>
                     <option>BSIT-3B</option>
@@ -84,7 +139,7 @@
         <div class="input-group">
             <label>PROFESSOR</label>
             <div class="select-wrapper">
-                <select>
+                <select id="archive-professor">
                     <option disabled selected>Professor</option>
                     <option>Juan Delacruz</option>
                     <option>Maria Lopez</option>
@@ -101,17 +156,17 @@
     <div class="grid-3">
         <div class="input-group">
             <label>AUTHOR 1</label>
-            <input type="text" placeholder="Type here">
+            <input id="archive-author-1" type="text" placeholder="Type here">
         </div>
 
         <div class="input-group">
             <label>AUTHOR 2</label>
-            <input type="text" placeholder="Type here">
+            <input id="archive-author-2" type="text" placeholder="Type here">
         </div>
 
         <div class="input-group">
             <label>AUTHOR 3</label>
-            <input type="text" placeholder="Type here">
+            <input id="archive-author-3" type="text" placeholder="Type here">
         </div>
     </div>
 
@@ -120,20 +175,20 @@
 
         <div class="input-group keywords-field">
             <label>KEYWORDS</label>
-            <input type="text" placeholder="e.g. Machine Learning, AI, etc.">
+            <input id="archive-keywords" type="text" placeholder="e.g. Machine Learning, AI, etc.">
         </div>
 
         <div class="input-group upload-field">
-            <input type="file" id="file-upload" hidden>
-            <label for="file-upload" class="upload-btn">
-                <i class="fa fa-upload"></i> UPLOAD FILE
+            <input type="file" id="archive-file-upload" hidden>
+            <label for="archive-file-upload" class="upload-btn">
+                <i class="fa fa-upload" aria-hidden="true"></i> UPLOAD FILE
             </label>
         </div>
     </div>
 </div>
             <div class="form-actions">
                 <button class="cancel-btn" id="close-modal">Cancel</button>
-                <button class="save-btn">Save</button>
+                <button class="save-btn" id="save-archive-btn" type="button">Save</button>
             </div>
 
         </div>
@@ -175,7 +230,7 @@
                                     <i data-lucide="more-vertical"></i>
                                 </button>
                                 <div class="dropdown-menu">
-                                    <button>Edit</button>
+                                    <button class="edit-btn" type="button">Edit</button>
                                     <button class="danger">Delete</button>
                                 </div>
                             </div>
@@ -191,24 +246,411 @@
 <script>
 lucide.createIcons();
 
-// dropdown
-document.querySelectorAll(".dots-btn").forEach(btn => {
-    btn.addEventListener("click", e => {
+// Dropdown (delegated so it works for newly added rows)
+document.addEventListener("click", (e) => {
+    const dots = e.target.closest(".dots-btn");
+    if (dots) {
         e.stopPropagation();
         document.querySelectorAll(".dropdown-menu").forEach(m => m.classList.remove("show"));
-        btn.nextElementSibling.classList.toggle("show");
-    });
-});
-
-document.addEventListener("click", () => {
+        const menu = dots.nextElementSibling;
+        if (menu) menu.classList.toggle("show");
+        return;
+    }
     document.querySelectorAll(".dropdown-menu").forEach(m => m.classList.remove("show"));
 });
 
-// modal
-const modal = document.getElementById("archive-modal");
+// Export modal + downloads
+const exportModal = document.getElementById("export-modal");
+const exportCancelBtn = document.getElementById("export-cancel-btn");
+const exportCsvBtn = document.getElementById("export-csv-btn");
+const exportExcelBtn = document.getElementById("export-excel-btn");
+const exportPdfBtn = document.getElementById("export-pdf-btn");
+const exportDocBtn = document.getElementById("export-doc-btn");
 
-document.getElementById("open-modal").onclick = () => modal.style.display = "flex";
-document.getElementById("close-modal").onclick = () => modal.style.display = "none";
+function openModal(modalEl) { modalEl.style.display = "flex"; }
+function closeModal(modalEl) { modalEl.style.display = "none"; }
+
+function getReportName() {
+    const title = (document.querySelector(".page-title")?.textContent || "report")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_");
+    const date = new Date().toISOString().slice(0, 10);
+    return `${title}_${date}`;
+}
+
+function getTable() {
+    return document.querySelector("table");
+}
+
+function escapeCsvCell(value) {
+    const s = String(value ?? "");
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+}
+
+function tableToCsv(table) {
+    const rows = Array.from(table.querySelectorAll("tr"));
+    return rows.map(row => {
+        const cells = Array.from(row.querySelectorAll("th,td")).map(cell => {
+            return escapeCsvCell(cell.textContent.trim());
+        });
+        return cells.join(",");
+    }).join("\n");
+}
+
+function downloadBlob(content, mime, filename) {
+    const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
+function downloadTableAsHtmlDoc(table, filename, mime) {
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${table.outerHTML}</body></html>`;
+    downloadBlob(html, mime, filename);
+}
+
+document.querySelector(".generate-btn").addEventListener("click", () => {
+    openModal(exportModal);
+    lucide.createIcons();
+});
+
+exportCancelBtn.addEventListener("click", () => closeModal(exportModal));
+exportModal.addEventListener("click", (e) => { if (e.target === exportModal) closeModal(exportModal); });
+
+exportCsvBtn.addEventListener("click", () => {
+    const table = getTable();
+    if (!table) return;
+    const csv = tableToCsv(table);
+    downloadBlob(csv, "text/csv;charset=utf-8", `${getReportName()}.csv`);
+    closeModal(exportModal);
+});
+
+exportExcelBtn.addEventListener("click", () => {
+    const table = getTable();
+    if (!table) return;
+    downloadTableAsHtmlDoc(table, `${getReportName()}.xls`, "application/vnd.ms-excel");
+    closeModal(exportModal);
+});
+
+exportDocBtn.addEventListener("click", () => {
+    const table = getTable();
+    if (!table) return;
+    downloadTableAsHtmlDoc(table, `${getReportName()}.doc`, "application/msword");
+    closeModal(exportModal);
+});
+
+exportPdfBtn.addEventListener("click", () => {
+    closeModal(exportModal);
+    window.print();
+});
+
+// Modals
+const selectModeModal = document.getElementById("select-mode-modal");
+const archiveModal = document.getElementById("archive-modal");
+const csvInput = document.getElementById("csv-file-input");
+
+const titleEl = document.getElementById("archive-title");
+const sectionEl = document.getElementById("archive-section");
+const professorEl = document.getElementById("archive-professor");
+const a1El = document.getElementById("archive-author-1");
+const a2El = document.getElementById("archive-author-2");
+const a3El = document.getElementById("archive-author-3");
+const keywordsEl = document.getElementById("archive-keywords");
+const fileUploadEl = document.getElementById("archive-file-upload");
+const modalTitleEl = document.getElementById("archive-modal-title");
+
+let editingRow = null;
+
+function resetForm() {
+    titleEl.value = "";
+    sectionEl.selectedIndex = 0;
+    professorEl.selectedIndex = 0;
+    a1El.value = "";
+    a2El.value = "";
+    a3El.value = "";
+    keywordsEl.value = "";
+    fileUploadEl.value = "";
+}
+
+function getNextId() {
+    const tbody = document.querySelector("table tbody");
+    const ids = Array.from(tbody.querySelectorAll("tr td:nth-child(2)"))
+        .map(td => parseInt(td.textContent, 10))
+        .filter(n => Number.isFinite(n));
+    const next = (ids.length ? Math.max(...ids) : 0) + 1;
+    return String(next).padStart(3, "0");
+}
+
+function parseAuthors(text) {
+    const raw = String(text || "").trim();
+    if (!raw) return ["", "", ""];
+    const parts = raw
+        .split(/(?:\s*&\s*|\s*,\s*|\s+and\s+)/i)
+        .map(p => p.trim())
+        .filter(Boolean);
+    return [parts[0] || raw, parts[1] || "", parts[2] || ""];
+}
+
+function formatAuthors(a1, a2, a3) {
+    const parts = [a1, a2, a3].map(s => String(s || "").trim()).filter(Boolean);
+    if (parts.length === 0) return "";
+    if (parts.length === 1) return parts[0];
+    if (parts.length === 2) return `${parts[0]} & ${parts[1]}`;
+    return `${parts[0]}, ${parts[1]} & ${parts[2]}`;
+}
+
+function parseCsvRow(line) {
+    const out = [];
+    let cur = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+                cur += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+            continue;
+        }
+        if (ch === "," && !inQuotes) {
+            out.push(cur.trim());
+            cur = "";
+            continue;
+        }
+        cur += ch;
+    }
+    out.push(cur.trim());
+    return out.map(v => v.replace(/^"|"$/g, "").trim());
+}
+
+function normalizeHeader(h) {
+    return String(h || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .replace(/[._-]/g, " ");
+}
+
+function addArchiveRow(data) {
+    const tbody = document.querySelector("table tbody");
+    const tr = document.createElement("tr");
+    const id = data.id || getNextId();
+    const fileName = data.fileName || "";
+    const fileCell = fileName ? `<a href="#">${fileName}</a>` : "";
+
+    tr.innerHTML = `
+        <td><input type="checkbox"></td>
+        <td>${id}</td>
+        <td>${data.title || ""}</td>
+        <td>${data.authors || ""}</td>
+        <td>${data.section || ""}</td>
+        <td>${data.advisor || ""}</td>
+        <td>${data.date || ""}</td>
+        <td>${data.keyword || ""}</td>
+        <td>${fileCell}</td>
+        <td class="action-cell">
+            <div class="dropdown">
+                <button class="dots-btn" type="button">
+                    <i data-lucide="more-vertical"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <button class="edit-btn" type="button">Edit</button>
+                    <button class="danger" type="button">Delete</button>
+                </div>
+            </div>
+        </td>
+    `;
+
+    tbody.appendChild(tr);
+    lucide.createIcons();
+}
+
+// Open flow: "+" shows add mode options
+document.getElementById("open-modal").addEventListener("click", () => openModal(selectModeModal));
+document.getElementById("cancel-mode-btn").addEventListener("click", () => closeModal(selectModeModal));
+
+document.getElementById("manual-add-btn").addEventListener("click", () => {
+    closeModal(selectModeModal);
+    editingRow = null;
+    modalTitleEl.textContent = "ADDING NEW FILE";
+    resetForm();
+    openModal(archiveModal);
+});
+
+document.getElementById("csv-add-btn").addEventListener("click", () => {
+    csvInput.value = "";
+    csvInput.click();
+});
+
+csvInput.addEventListener("change", async () => {
+    const file = csvInput.files && csvInput.files[0];
+    if (!file) return;
+    const isCsv = file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv");
+    if (!isCsv) {
+        alert("Please select a CSV file.");
+        return;
+    }
+
+    closeModal(selectModeModal);
+
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+        alert("CSV is empty.");
+        return;
+    }
+
+    const firstRow = parseCsvRow(lines[0]);
+    const hasHeader = firstRow.some(v => /[a-zA-Z]/.test(v));
+    let headers = [];
+    let startIdx = 0;
+    if (hasHeader) {
+        headers = firstRow.map(normalizeHeader);
+        startIdx = 1;
+    }
+
+    const headerIndex = (names) => {
+        if (!headers.length) return -1;
+        const set = new Set(names.map(normalizeHeader));
+        return headers.findIndex(h => set.has(h));
+    };
+
+    const idx = {
+        id: headerIndex(["id"]),
+        title: headerIndex(["title"]),
+        authors: headerIndex(["authors", "author(s)", "author"]),
+        section: headerIndex(["section"]),
+        advisor: headerIndex(["advisor", "professor", "adviser"]),
+        date: headerIndex(["date"]),
+        keyword: headerIndex(["keyword", "keywords"]),
+        file: headerIndex(["file", "filename"]),
+    };
+
+    let imported = 0;
+    for (let i = startIdx; i < lines.length; i++) {
+        const cols = parseCsvRow(lines[i]);
+        if (cols.every(c => !c)) continue;
+
+        // No header fallback order:
+        // Title, Authors, Section, Advisor, Date, Keyword, FileName
+        const row = headers.length
+            ? {
+                id: idx.id >= 0 ? cols[idx.id] : "",
+                title: idx.title >= 0 ? cols[idx.title] : "",
+                authors: idx.authors >= 0 ? cols[idx.authors] : "",
+                section: idx.section >= 0 ? cols[idx.section] : "",
+                advisor: idx.advisor >= 0 ? cols[idx.advisor] : "",
+                date: idx.date >= 0 ? cols[idx.date] : "",
+                keyword: idx.keyword >= 0 ? cols[idx.keyword] : "",
+                fileName: idx.file >= 0 ? cols[idx.file] : "",
+            }
+            : {
+                title: cols[0] || "",
+                authors: cols[1] || "",
+                section: cols[2] || "",
+                advisor: cols[3] || "",
+                date: cols[4] || "",
+                keyword: cols[5] || "",
+                fileName: cols[6] || "",
+            };
+
+        addArchiveRow(row);
+        imported++;
+    }
+
+    alert(imported ? `Imported ${imported} row(s) from CSV.` : "No rows imported. Check your CSV format.");
+});
+
+// Close archive modal
+document.getElementById("close-modal").addEventListener("click", () => closeModal(archiveModal));
+
+// Save (add new or update existing)
+document.getElementById("save-archive-btn").addEventListener("click", () => {
+    const title = titleEl.value.trim();
+    const section = sectionEl.value && sectionEl.selectedIndex > 0 ? sectionEl.value : "";
+    const advisor = professorEl.value && professorEl.selectedIndex > 0 ? professorEl.value : "";
+    const authors = formatAuthors(a1El.value, a2El.value, a3El.value);
+    const keyword = keywordsEl.value.trim();
+    const fileName = (fileUploadEl.files && fileUploadEl.files[0]) ? fileUploadEl.files[0].name : "";
+
+    // Date isn't in the form yet; keep existing or empty.
+    const date = editingRow ? (editingRow.cells[6]?.textContent || "") : "";
+
+    if (editingRow) {
+        editingRow.cells[2].textContent = title;
+        editingRow.cells[3].textContent = authors;
+        editingRow.cells[4].textContent = section;
+        editingRow.cells[5].textContent = advisor;
+        editingRow.cells[7].textContent = keyword;
+        if (fileName) editingRow.cells[8].innerHTML = `<a href="#">${fileName}</a>`;
+    } else {
+        addArchiveRow({
+            title,
+            authors,
+            section,
+            advisor,
+            date,
+            keyword,
+            fileName,
+        });
+    }
+
+    closeModal(archiveModal);
+});
+
+// Edit button in 3-dots menu
+document.addEventListener("click", (e) => {
+    const editBtn = e.target.closest(".edit-btn");
+    if (!editBtn) return;
+    const row = editBtn.closest("tr");
+    if (!row) return;
+
+    editingRow = row;
+    modalTitleEl.textContent = "EDIT FILE";
+
+    const title = row.cells[2]?.textContent || "";
+    const authors = row.cells[3]?.textContent || "";
+    const section = row.cells[4]?.textContent || "";
+    const advisor = row.cells[5]?.textContent || "";
+    const keyword = row.cells[7]?.textContent || "";
+
+    titleEl.value = title.trim();
+    const [aa1, aa2, aa3] = parseAuthors(authors);
+    a1El.value = aa1;
+    a2El.value = aa2;
+    a3El.value = aa3;
+    keywordsEl.value = keyword.trim();
+
+    // Set selects if value exists in options; else keep placeholder
+    sectionEl.value = sectionEl.querySelector(`option[value="${section}"]`) ? section : sectionEl.options[0].value;
+    professorEl.value = professorEl.querySelector(`option[value="${advisor}"]`) ? advisor : professorEl.options[0].value;
+
+    closeModal(selectModeModal);
+    openModal(archiveModal);
+});
+
+// Backdrop click closes modals
+[selectModeModal, archiveModal].forEach((m) => {
+    m.addEventListener("click", (e) => {
+        if (e.target === m) closeModal(m);
+    });
+});
+
+// Esc closes modals
+document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    closeModal(selectModeModal);
+    closeModal(archiveModal);
+});
 </script>
 
 </body>

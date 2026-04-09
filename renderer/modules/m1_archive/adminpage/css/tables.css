@@ -376,6 +376,48 @@ th:nth-child(2) {
 }
 
 /* =========================
+   SHARED "ADD OPTIONS" MODAL
+   (Manual / CSV buttons)
+========================= */
+.choice-modal-content {
+  width: min(520px, calc(100vw - 32px));
+  padding: 24px;
+}
+
+.choice-actions {
+  display: grid;
+  gap: 14px;
+  padding: 8px 6px 2px;
+}
+
+.choice-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: #232830;
+  color: var(--primary-text);
+  font-size: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.choice-btn:hover {
+  border-color: var(--accent-blue);
+  opacity: 0.95;
+}
+
+.choice-footer {
+  padding: 0;
+  margin-top: 18px;
+  justify-content: flex-end;
+}
+
+/* =========================
    CUSTOM SELECT (FINAL)
 ========================= */
 

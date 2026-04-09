@@ -1,0 +1,273 @@
+:root {
+    --bg-gradient-start: #0B0D10;
+    --bg-gradient-end: #12151A;
+    --app-bg: #0B0D10;
+    --secondary-bg: #12151A;
+    --accent-blue: #9DC6FF;
+    --panel-bg: #181C22;
+    --primary-text: #C9CCD1;
+    --secondary-text: #9AA0A6;
+    --border-color: #3A3F46;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  background: linear-gradient(to bottom, var(--bg-gradient-start), var(--bg-gradient-end));
+  color: var(--primary-text);
+  padding: 40px;
+  min-height: 100vh;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  letter-spacing: 0.5px;
+}
+
+/* Container */
+.ojt-container{
+    padding:40px;
+    display:flex;
+    gap:40px;
+    flex-wrap:wrap;
+}
+
+/* Student Cards */
+.student-card{
+    width:300px;
+    height:190px;
+    border-radius:10px;
+    border:2px solid var(--border-color);
+    background:transparent;
+    padding:25px;
+
+    cursor:pointer;
+    transition: all 0.25s ease;
+}
+
+/* Hover Effect */
+.student-card:hover{
+    transform: translateY(-6px);
+    border-color: var(--accent-blue);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+/* Optional: course color change on hover */
+.student-card:hover .course{
+    color: #ffffff;
+}
+
+/* Course Title */
+.course{
+    color:var(--accent-blue);
+    font-size:40px;
+    font-weight:700;
+}
+
+/* Divider */
+.divider{
+    height:1px;
+    background:white;
+    margin:20px 0;
+}
+
+/* Student Count */
+.students-count{
+    color:var(--primary-text);
+    font-size:20px;
+}
+
+/* =========================
+   OJT LIST OVERLAY
+========================= */
+
+.ojt-list-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.75);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:1000;
+}
+
+.ojt-list-overlay.show{
+    display:flex;
+}
+
+.ojt-list-panel{
+    width:100%;
+    max-width:1100px;
+    height:620px;
+    background:var(--secondary-bg);
+    border-radius:16px;
+    border:1px solid var(--border-color);
+    box-shadow:0 18px 45px rgba(0,0,0,0.6);
+    padding:24px 32px;
+    position:relative;
+    overflow:hidden;
+}
+
+.ojt-list-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:20px;
+    z-index:2;
+    position:relative;
+}
+
+.ojt-list-title{
+    font-size:20px;
+    font-weight:600;
+    letter-spacing:0.6px;
+}
+
+.ojt-list-close{
+    background:transparent;
+    border:none;
+    color:var(--secondary-text);
+    font-size:26px;
+    cursor:pointer;
+    line-height:1;
+}
+
+.ojt-list-close:hover{
+    color:#ffffff;
+}
+
+.ojt-list-layout{
+    position:relative;
+    width:100%;
+    height:100%;
+}
+
+.main-background{
+    position:absolute;
+    inset:0;
+    background:#11141a;
+}
+
+.sidebar{
+    position:absolute;
+    top:0;
+    left:0;
+    width:280px;
+    height:100%;
+    background:linear-gradient(180deg,#151924,#0b0d10);
+    border-right:1px solid #262b33;
+}
+
+.system-title{
+    position:absolute;
+    top:40px;
+    left:40px;
+    color:var(--secondary-text);
+    font-size:14px;
+    line-height:1.5;
+}
+
+.system-title .bold{
+    font-weight:700;
+    color:#ffffff;
+}
+
+.welcome{
+    position:absolute;
+    top:40px;
+    right:60px;
+    font-size:18px;
+}
+
+
+.welcome .bold{
+    font-weight:700;
+}
+
+.profile{
+    position:absolute;
+    top:80px;
+    right:60px;
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    background:#22252f;
+    border:2px solid var(--border-color);
+}
+
+.card{
+    position:absolute;
+    width:260px;
+    height:130px;
+    border-radius:12px;
+    border:1px solid var(--border-color);
+    background:#181c22;
+}
+
+.card1{
+    top:200px;
+    left:340px;
+}
+
+.card2{
+    top:200px;
+    left:640px;
+}
+
+.course-label{
+    position:absolute;
+    font-size:28px;
+    font-weight:700;
+    color:var(--accent-blue);
+}
+
+.course1{
+    top:215px;
+    left:360px;
+}
+
+.course2{
+    top:215px;
+    left:660px;
+}
+
+.student-count{
+    position:absolute;
+    font-size:16px;
+    color:var(--primary-text);
+}
+
+.count1{
+    top:270px;
+    left:360px;
+}
+
+.count2{
+    top:270px;
+    left:660px;
+}
+
+.div1,
+.div2{
+    position:absolute;
+    width:220px;
+    height:1px;
+    background:#ffffff;
+}
+
+.div1{
+    top:255px;
+    left:360px;
+}
+
+.div2{
+    top:255px;
+    left:660px;
+}
