@@ -5,7 +5,7 @@ const pool = mysql.createPool({
   port: 25442,
   user: "avnadmin",
   password: "AVNS__-yJEBgGhuiklEhCWdS",
-  database: "defaultdb",
+  database: "CTAPLP",
   ssl: {
     rejectUnauthorized: false,
   },

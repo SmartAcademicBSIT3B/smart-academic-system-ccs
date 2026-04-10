@@ -261,3 +261,13 @@ button[type="submit"]:hover {
   color: var(--primary-text);
   transform: translateY(-2px);
 }
+
+/* =============================== 
+   ERROR MESSAGE
+=================================*/
+.error {
+  color: #ff6b6b;
+  font-size: 14px;
+  margin-top: -20px;
+  margin-bottom: 20px;
+}

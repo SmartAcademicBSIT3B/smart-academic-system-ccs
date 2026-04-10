@@ -90,6 +90,8 @@
 
           <a href="#" class="forgot">forgot password?</a>
 
+          <div id="errorMessage" class="error"></div>
+
           <button type="submit">LOGIN</button>
         </form>
       </div>
@@ -101,6 +103,9 @@
         .getElementById("loginForm")
         .addEventListener("submit", async function (e) {
           e.preventDefault();
+
+          // Clear previous error message
+          document.getElementById("errorMessage").textContent = "";
 
           const email = document.getElementById("username").value; // Assuming username is email
           const password = document.getElementById("password").value;
@@ -117,10 +122,12 @@
             } else if (result.user.role === "coordinator") {
               window.location.href = "coordinator/html/1main_menu.html";
             } else {
-              alert("Role not recognized.");
+              document.getElementById("errorMessage").textContent =
+                "Role not recognized.";
             }
           } else {
-            alert(result.message);
+            document.getElementById("errorMessage").textContent =
+              result.message;
           }
         });
 

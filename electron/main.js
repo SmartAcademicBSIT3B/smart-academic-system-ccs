@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 const { query } = require("../database/dbconnect");
+const crypto = require("crypto");
 
 function createMainWindow() {
   const mainWindow = new BrowserWindow({
@@ -41,7 +42,11 @@ ipcMain.handle("login", async (event, email, password) => {
       return { success: false, message: "Invalid email or password." };
     }
     const user = users[0];
-    if (password !== user.password) {
+    const hashedPassword = crypto
+      .createHash("sha256")
+      .update(password)
+      .digest("hex");
+    if (hashedPassword !== user.password) {
       return { success: false, message: "Invalid email or password." };
     }
     return {
