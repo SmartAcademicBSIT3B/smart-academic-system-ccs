@@ -99,16 +99,28 @@
       // Login Logic
       document
         .getElementById("loginForm")
-        .addEventListener("submit", function (e) {
+        .addEventListener("submit", async function (e) {
           e.preventDefault();
 
-          const username = document.getElementById("username").value;
+          const email = document.getElementById("username").value; // Assuming username is email
           const password = document.getElementById("password").value;
 
-          if (username === "123" && password === "123") {
-            window.location.href = "adminpage/htmls/1main_menu.html";
+          const result = await window.electronAPI.login(email, password);
+
+          if (result.success) {
+            // Store user info
+            localStorage.setItem("user", JSON.stringify(result.user));
+
+            // Redirect based on role
+            if (result.user.role === "admin") {
+              window.location.href = "adminpage/htmls/1main_menu.html";
+            } else if (result.user.role === "coordinator") {
+              window.location.href = "coordinator/html/1main_menu.html";
+            } else {
+              alert("Role not recognized.");
+            }
           } else {
-            alert("Invalid username or password.");
+            alert(result.message);
           }
         });
 
