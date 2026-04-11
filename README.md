@@ -19,10 +19,10 @@ Built using **Electron.js, Node.js, and MySQL (XAMPP)**.
 
 Make sure you have the following installed:
 
-* [Node.js](https://nodejs.org/) (v18 or higher recommended)
-* npm (comes with Node.js)
-* Git
-* XAMPP (for MySQL database)
+- [Node.js](https://nodejs.org/) (v18 or higher recommended)
+- npm (comes with Node.js)
+- Git
+- XAMPP (for MySQL database)
 
 ---
 
@@ -42,6 +42,37 @@ npm install
 ```
 
 👉 This will install all required packages including Electron.
+
+---
+
+## 🔐 Environment Setup
+
+1. **Copy the environment template:**
+
+```bash
+cp .env.example .env
+```
+
+2. **Configure your environment variables in `.env`:**
+
+```env
+# Database Configuration
+DB_HOST=your_database_host
+DB_PORT=your_database_port
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
+DB_NAME=your_database_name
+DB_SSL_REJECT_UNAUTHORIZED=false
+
+# Supabase Configuration
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_PASSWORD=your_supabase_password
+```
+
+3. **Fill in your actual credentials** (database and Supabase details)
+
+⚠️ **Important:** Never commit the `.env` file to version control. It's already in `.gitignore`.
 
 ---
 
@@ -101,8 +132,8 @@ Set-ExecutionPolicy Bypass -Scope Process
 
 You can also use:
 
-* Command Prompt (cmd)
-* Git Bash
+- Command Prompt (cmd)
+- Git Bash
 
 Instead of PowerShell, then run:
 
@@ -119,7 +150,6 @@ This is safe and commonly used for development.
 It only allows locally created scripts to run.
 
 ---
-
 
 ## ▶️ Run the Application
 
@@ -165,9 +195,9 @@ git checkout -b feature/archive-module
 
 Other examples:
 
-* feature/faculty-module
-* feature/class-module
-* feature/time-module
+- feature/faculty-module
+- feature/class-module
+- feature/time-module
 
 ---
 
@@ -212,27 +242,27 @@ git merge main
 
 # ⚠️ Important Notes
 
-* ❌ Do NOT upload `node_modules/`
-* ✅ Always run `npm install` after pulling changes
-* ✅ Use meaningful commit messages (e.g., `M1: Add upload feature`)
-* ✅ Work on your assigned module only
+- ❌ Do NOT upload `node_modules/`
+- ✅ Always run `npm install` after pulling changes
+- ✅ Use meaningful commit messages (e.g., `M1: Add upload feature`)
+- ✅ Work on your assigned module only
 
 ---
 
 # 👥 Contributors
 
-* Module 1: Thesis/Capstone Archiving (Your Name)
-* Module 2: Faculty System
-* Module 3: Class & Violations
-* Module 4: Time Monitoring
+- Module 1: Thesis/Capstone Archiving (Your Name)
+- Module 2: Faculty System
+- Module 3: Class & Violations
+- Module 4: Time Monitoring
 
 ---
 
 # 📊 Future Features
 
-* Data Analytics Dashboard
-* Advanced Search & Filtering
-* Report Generation
-* Role-Based Access Control
+- Data Analytics Dashboard
+- Advanced Search & Filtering
+- Report Generation
+- Role-Based Access Control
 
 ---
