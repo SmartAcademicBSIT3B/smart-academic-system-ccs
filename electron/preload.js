@@ -6,4 +6,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   selectProfileImage: () => ipcRenderer.invoke("selectProfileImage"),
   updateProfile: (profileData) =>
     ipcRenderer.invoke("updateProfile", profileData),
+  logout: () => ipcRenderer.invoke("logout"),
 });

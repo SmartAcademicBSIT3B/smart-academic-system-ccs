@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs/promises");
 const { query } = require("../database/dbconnect");
+const { supabase } = require("../services/supabase_config");
 const crypto = require("crypto");
 
 function createMainWindow() {
@@ -99,37 +100,32 @@ ipcMain.handle("selectProfileImage", async () => {
     }
 
     const selectedPath = filePaths[0];
-    const uploadsDir = path.resolve(
-      __dirname,
-      "..",
-      "renderer",
-      "modules",
-      "m1_archive",
-      "adminpage",
-      "uploads",
-      "profile",
-    );
-    await fs.mkdir(uploadsDir, { recursive: true });
-
     const fileName = `profile_${Date.now()}_${path.basename(selectedPath)}`;
-    const destinationPath = path.join(uploadsDir, fileName);
-    await fs.copyFile(selectedPath, destinationPath);
+    const fileBuffer = await fs.readFile(selectedPath);
+    const uploadPath = `profiles/${fileName}`;
 
-    const htmlDir = path.resolve(
-      __dirname,
-      "..",
-      "renderer",
-      "modules",
-      "m1_archive",
-      "adminpage",
-      "htmls",
-    );
-    const profileImagePath = path
-      .relative(htmlDir, destinationPath)
-      .split(path.sep)
-      .join("/");
+    const { data, error: uploadError } = await supabase.storage
+      .from("cta-files")
+      .upload(uploadPath, fileBuffer, {
+        cacheControl: "3600",
+        upsert: true,
+      });
 
-    return { success: true, path: profileImagePath };
+    if (uploadError) {
+      console.error("Supabase upload error:", uploadError);
+      return { success: false, message: "Could not upload profile image." };
+    }
+
+    const { data: publicUrlData, error: publicUrlError } = supabase.storage
+      .from("cta-files")
+      .getPublicUrl(uploadPath);
+
+    if (publicUrlError) {
+      console.error("Supabase public URL error:", publicUrlError);
+      return { success: false, message: "Could not get public image URL." };
+    }
+
+    return { success: true, path: publicUrlData.publicUrl };
   } catch (error) {
     console.error("Select profile image error:", error);
     return { success: false, message: "Could not select profile image." };
@@ -163,6 +159,15 @@ ipcMain.handle(
     }
   },
 );
+
+ipcMain.handle("logout", async (event) => {
+  try {
+    return { success: true };
+  } catch (error) {
+    console.error("Logout error:", error);
+    return { success: false, message: "An error occurred during logout." };
+  }
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
