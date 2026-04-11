@@ -53,7 +53,7 @@ npm install
 cp .env.example .env
 ```
 
-2. **Configure your environment variables in `.env`:**
+1. **Configure your environment variables in `.env`:**
 
 ```env
 # Database Configuration
@@ -70,7 +70,7 @@ SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_PASSWORD=your_supabase_password
 ```
 
-3. **Fill in your actual credentials** (database and Supabase details)
+1. **Fill in your actual credentials** (database and Supabase details)
 
 ⚠️ **Important:** Never commit the `.env` file to version control. It's already in `.gitignore`.
 
@@ -97,17 +97,17 @@ This happens because PowerShell blocks script execution by default.
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-3. Type:
+1. Type:
 
 ```bash
 Y
 ```
 
-4. Restart your terminal
+1. Restart your terminal
 
 ---
 
-## ▶️ Then run again:
+## ▶️ Then run again
 
 ```bash
 npm install

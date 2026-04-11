@@ -1,0 +1,261 @@
+/* ===============================
+   ROOT COLOR SYSTEM (CCS THEME) - Same as login.css
+=================================*/
+:root {
+  --bg-gradient-start: #0b0d10;
+  --bg-gradient-end: #12151a;
+
+  --app-bg: #0b0d10;
+  --secondary-bg: #12151a;
+
+  --accent-blue: #9dc6ff;
+
+  --panel-bg: #181c22;
+
+  --primary-text: #c9ccd1;
+  --secondary-text: #9aa0a6;
+
+  --border-color: #3a3f46;
+
+  --success-color: #4ade80;
+  --error-color: #ff6b6b;
+}
+
+/* ===============================
+   GLOBAL RESET - Same as login.css
+=================================*/
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  background: linear-gradient(
+    180deg,
+    var(--bg-gradient-start) 0%,
+    var(--bg-gradient-end) 100%
+  );
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===============================
+   BACKGROUND WHITE GLOW - Same as login.css
+=================================*/
+.background-glow {
+  position: absolute;
+  width: 1200px;
+  height: 800px;
+  background: var(--primary-text);
+  filter: blur(200px);
+  opacity: 0.25;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+
+/* ===============================
+   MAIN CONTAINER - Same as login.css
+=================================*/
+.container {
+  width: 75%;
+  max-width: 1200px;
+  height: 85vh;
+  display: flex;
+  border-radius: 45px;
+  border: 6px solid var(--border-color);
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+/* ===============================
+   LEFT PANEL - Modified for forgot password
+=================================*/
+.left-panel {
+  width: 50%;
+  background: var(--panel-bg);
+  padding: 50px;
+  color: var(--primary-text);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.logo {
+  width: 105px;
+  margin-bottom: 20px;
+}
+
+.welcome-text {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 20px;
+}
+
+.description {
+  font-size: 16px;
+  color: var(--secondary-text);
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+.school,
+.college {
+  font-size: 16px;
+  color: var(--secondary-text);
+}
+
+/* ===============================
+   RIGHT PANEL - Same as login.css
+=================================*/
+.right-panel {
+  width: 50%;
+  background: var(--secondary-bg);
+  padding: 60px;
+  color: var(--primary-text);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+/* ===============================
+   BACK BUTTON - Same as login.css
+=================================*/
+.back-btn {
+  position: absolute;
+  top: 25px;
+  right: 25px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--primary-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: var(--accent-blue);
+  color: var(--app-bg);
+  transform: scale(1.08);
+}
+
+.right-panel h2 {
+  font-size: 40px;
+  margin-bottom: 40px;
+}
+
+/* ===============================
+   FORM - Same as login.css
+=================================*/
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  color: var(--secondary-text);
+  margin-bottom: 5px;
+  font-size: 18px;
+}
+
+/* ===============================
+   INPUTS - Same as login.css
+=================================*/
+input {
+  background: white;
+  border-radius: 15px;
+  height: 60px;
+  padding: 0 15px;
+  font-size: 16px;
+  outline: none;
+  width: 100%;
+  margin-bottom: 30px;
+  transition: 0.3s ease;
+}
+
+input:focus {
+  box-shadow: 0 0 10px var(--accent-blue);
+}
+
+/* ===============================
+   SUBMIT BUTTON - Same as login.css
+=================================*/
+button[type="submit"] {
+  background: var(--accent-blue);
+  border: none;
+  border-radius: 15px;
+  height: 60px;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s ease;
+  margin-top: 10px;
+}
+
+button[type="submit"]:hover {
+  background: var(--secondary-text);
+  color: var(--primary-text);
+  transform: translateY(-2px);
+}
+
+/* ===============================
+   ERROR AND SUCCESS MESSAGES
+=================================*/
+.error {
+  color: var(--error-color);
+  font-size: 14px;
+  margin-top: -20px;
+  margin-bottom: 20px;
+}
+
+.success {
+  color: var(--success-color);
+  font-size: 14px;
+  margin-top: -20px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+/* ===============================
+   BACK TO LOGIN LINK
+=================================*/
+.back-to-login {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.back-to-login a {
+  color: var(--accent-blue);
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  transition: 0.3s ease;
+}
+
+.back-to-login a:hover {
+  color: var(--primary-text);
+  text-decoration: underline;
+}

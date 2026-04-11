@@ -2,11 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-<<<<<<< HEAD
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coordinator Dashboard</title>
-=======
-    <title>Admin Dashboard</title>
->>>>>>> dff5ef643883f3da585d83d68c285a3c56408ded
     <link rel="stylesheet" href="../css/1main_menu.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -20,7 +17,7 @@
     <div class="sidebar">
 
         <div class="logo">
-            <img src="../../images/CCSLOGO.png" class="ccs-logo">
+            <img src="../../images/CCSLOGO.png" class="ccs-logo" alt="CCS Logo">
 
             <h2 class="system-title">
                 Thesis/Capstone<br>
@@ -68,7 +65,7 @@
                     </div>
                 </li>
 
-                <li class="menu-item" onclick="loadPage('help.html', this)">
+                <li class="menu-item" onclick="loadPage('system_help.html', this)">
                     <div class="menu-left">
                         <i data-lucide="help-circle"></i>
                         <span>Help</span>
@@ -100,7 +97,7 @@
 
         <!-- IFRAME CONTENT -->
         <div class="page-content">
-            <iframe id="content-frame" src="dashboard.html"></iframe>
+            <iframe id="content-frame" src="dashboard.html" title="Page content"></iframe>
         </div>
 
     </div>

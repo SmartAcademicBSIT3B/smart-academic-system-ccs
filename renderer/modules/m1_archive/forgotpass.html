@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Forgot Password - CCS System</title>
+    <link rel="stylesheet" href="forgotpass.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Background Glow -->
+    <div class="background-glow"></div>
+
+    <div class="container">
+      <!-- Left Panel -->
+      <div class="left-panel">
+        <img src="images/CCSLOGO.png" class="logo" alt="Logo" />
+
+        <p class="welcome-text">Reset Your</p>
+        <h1 class="title">
+          PASSWORD<br />
+          SECURELY
+        </h1>
+
+        <p class="description">
+          Enter your email address and we'll send you a link to reset your
+          password.
+        </p>
+
+        <p class="school">PAMANTASAN NG LUNGSOD NG PASIG</p>
+        <p class="college">College of Computer Studies</p>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="right-panel">
+        <!-- Back Button -->
+        <button class="back-btn" onclick="goBack()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M15 18L9 12L15 6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+
+        <h2>Forgot Password</h2>
+
+        <form id="forgotPasswordForm">
+          <label>E-MAIL ADDRESS</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="Enter your email address"
+            required
+          />
+
+          <div id="errorMessage" class="error"></div>
+          <div id="successMessage" class="success"></div>
+
+          <button type="submit">SEND RESET LINK</button>
+        </form>
+
+        <div class="back-to-login">
+          <a href="#" onclick="goBack()">← Back to Login</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Forgot Password Logic
+      document
+        .getElementById("forgotPasswordForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          // Clear previous messages
+          document.getElementById("errorMessage").textContent = "";
+          document.getElementById("successMessage").textContent = "";
+
+          const email = document.getElementById("email").value;
+
+          // Basic email validation
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) {
+            document.getElementById("errorMessage").textContent =
+              "Please enter a valid email address.";
+            return;
+          }
+
+          try {
+            // Here you would typically call an API to send reset email
+            // For now, we'll simulate the process
+            const result = await sendPasswordResetEmail(email);
+
+            if (result.success) {
+              document.getElementById("successMessage").textContent =
+                "Password reset link sent! Please check your email.";
+              document.getElementById("email").value = "";
+            } else {
+              document.getElementById("errorMessage").textContent =
+                result.message ||
+                "Failed to send reset email. Please try again.";
+            }
+          } catch (error) {
+            document.getElementById("errorMessage").textContent =
+              "An error occurred. Please try again.";
+          }
+        });
+
+      // Simulate password reset email sending
+      async function sendPasswordResetEmail(email) {
+        // This is a placeholder - in a real app, you'd call your backend API
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            // Simulate success for demo purposes
+            // In real implementation, check if email exists in database
+            resolve({ success: true });
+          }, 1000);
+        });
+      }
+
+      // Back Button
+      function goBack() {
+        window.location.href = "login.html";
+      }
+    </script>
+  </body>
+</html>
