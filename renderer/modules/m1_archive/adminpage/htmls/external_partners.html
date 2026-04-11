@@ -1,314 +1,375 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>External Partners</title>
-    <link rel="stylesheet" href="../css/tables.css">
-    <link rel="stylesheet" href="../css/form_external_partners.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/tables.css" />
+    <link rel="stylesheet" href="../css/form_external_partners.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"> <!-- Font Awesome -->
-</head>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    />
+    <!-- Font Awesome -->
+  </head>
 
-<body>
+  <body>
+    <div class="page">
+      <h1 class="page-title">EXTERNAL PARTNERS</h1>
 
-<div class="page">
-
-    <h1 class="page-title">EXTERNAL PARTNERS</h1>
-
-    <!-- Controls -->
-    <div class="controls">
+      <!-- Controls -->
+      <div class="controls">
         <div class="left-controls">
-            <input type="text" placeholder="Search">
-            <div class="select-wrapper">
-                <select>
-                    <option>Sort By</option>
-                    <option>Company Name</option>
-                    <option>Representative</option>
-                </select>
-                <span class="arrow"></span> <!-- Arrow Icon for Dropdown -->
-            </div>
-            <button class="filter-btn">Filter</button>
+          <input type="text" placeholder="Search" />
+          <div class="select-wrapper">
+            <select>
+              <option>Sort By</option>
+              <option>Company Name</option>
+              <option>Representative</option>
+            </select>
+            <span class="arrow"></span>
+            <!-- Arrow Icon for Dropdown -->
+          </div>
+          <button class="filter-btn">Filter</button>
         </div>
         <div class="right-controls">
-            <div class="tooltip">
-                <button class="generate-btn">
-                    <i data-lucide="printer"></i>
-                </button>
-                <span class="tooltip-text">Generate Report</span>
-            </div>
-            <div class="tooltip">
-                <button class="add-btn" id="add-externalpartner-btn">+</button>
-                <span class="tooltip-text">Add External Partner</span>
-            </div>
+          <div class="tooltip">
+            <button class="generate-btn">
+              <i data-lucide="printer"></i>
+            </button>
+            <span class="tooltip-text">Generate Report</span>
+          </div>
+          <div class="tooltip">
+            <button class="add-btn" id="add-externalpartner-btn">+</button>
+            <span class="tooltip-text">Add External Partner</span>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <!-- DOWNLOAD OPTIONS MODAL -->
-    <div id="export-modal" class="modal" style="display:none;">
+      <!-- DOWNLOAD OPTIONS MODAL -->
+      <div id="export-modal" class="modal" style="display: none">
         <div class="modal-content choice-modal-content">
-            <div class="form-header">
-                <h4>DOWNLOAD REPORT</h4>
-            </div>
-            <div class="choice-actions">
-                <button type="button" class="choice-btn" id="export-csv-btn">
-                    <i data-lucide="file-text"></i>
-                    CSV
-                </button>
-                <button type="button" class="choice-btn" id="export-excel-btn">
-                    <i data-lucide="sheet"></i>
-                    Excel
-                </button>
-                <button type="button" class="choice-btn" id="export-pdf-btn">
-                    <i data-lucide="file-output"></i>
-                    PDF
-                </button>
-                <button type="button" class="choice-btn" id="export-doc-btn">
-                    <i data-lucide="file"></i>
-                    DOC
-                </button>
-            </div>
-            <div class="form-actions choice-footer">
-                <button class="cancel-btn" id="export-cancel-btn" type="button">Cancel</button>
-            </div>
+          <div class="form-header">
+            <h4>DOWNLOAD REPORT</h4>
+          </div>
+          <div class="choice-actions">
+            <button type="button" class="choice-btn" id="export-csv-btn">
+              <i data-lucide="file-text"></i>
+              CSV
+            </button>
+            <button type="button" class="choice-btn" id="export-excel-btn">
+              <i data-lucide="sheet"></i>
+              Excel
+            </button>
+            <button type="button" class="choice-btn" id="export-pdf-btn">
+              <i data-lucide="file-output"></i>
+              PDF
+            </button>
+            <button type="button" class="choice-btn" id="export-doc-btn">
+              <i data-lucide="file"></i>
+              DOC
+            </button>
+          </div>
+          <div class="form-actions choice-footer">
+            <button class="cancel-btn" id="export-cancel-btn" type="button">
+              Cancel
+            </button>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <!-- SELECT ADD MODE MODAL (same container as Manage Archives) -->
-    <div id="select-mode-modal" class="modal" style="display:none;">
+      <!-- SELECT ADD MODE MODAL (same container as Manage Archives) -->
+      <div id="select-mode-modal" class="modal" style="display: none">
         <div class="modal-content choice-modal-content">
-            <div class="form-header">
-                <h4>CHOOSE AN OPTION</h4>
-            </div>
+          <div class="form-header">
+            <h4>CHOOSE AN OPTION</h4>
+          </div>
 
-            <div class="choice-actions">
-                <button type="button" class="choice-btn" id="manual-add-btn">
-                    <i data-lucide="file-plus-2"></i>
-                    Add Manually
-                </button>
+          <div class="choice-actions">
+            <button type="button" class="choice-btn" id="manual-add-btn">
+              <i data-lucide="file-plus-2"></i>
+              Add Manually
+            </button>
 
-                <button type="button" class="choice-btn" id="csv-add-btn">
-                    <i data-lucide="upload"></i>
-                    Upload CSV File
-                </button>
+            <button type="button" class="choice-btn" id="csv-add-btn">
+              <i data-lucide="upload"></i>
+              Upload CSV File
+            </button>
 
-                <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none;">
-            </div>
+            <input
+              type="file"
+              id="csv-file-input"
+              accept=".csv,text/csv"
+              style="display: none"
+            />
+          </div>
 
-            <div class="form-actions choice-footer">
-                <button class="cancel-btn" id="cancel-mode-btn" type="button">Cancel</button>
-            </div>
+          <div class="form-actions choice-footer">
+            <button class="cancel-btn" id="cancel-mode-btn" type="button">
+              Cancel
+            </button>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <!-- Modal - Add/Update External Partner Form -->
-    <div id="add-externalpartner-modal" class="modal" style="display: none;">
+      <!-- Modal - Add/Update External Partner Form -->
+      <div id="add-externalpartner-modal" class="modal" style="display: none">
         <div class="modal-content">
-            <div class="form-header">
-                <h4 id="modal-title">ADDING NEW EXTERNAL PARTNER</h4> <!-- Default title is "Adding New Coordinator" -->
+          <div class="form-header">
+            <h4 id="modal-title">ADDING NEW EXTERNAL PARTNER</h4>
+            <!-- Default title is "Adding New Coordinator" -->
+          </div>
+
+          <div class="form-body">
+            <div class="grid-4">
+              <div class="input-group">
+                <label>NAME OF COMPANY</label>
+                <input
+                  id="company-name"
+                  placeholder="Company Name"
+                  class="required-field"
+                />
+              </div>
+
+              <div class="input-group">
+                <label>CONTACT NO</label>
+                <input
+                  id="company-contact"
+                  type="text"
+                  placeholder="Type here"
+                  class="required-field"
+                />
+              </div>
+
+              <div class="input-group">
+                <label>EMAIL ADDRESS</label>
+                <input
+                  id="company-email"
+                  type="email"
+                  placeholder="Type here"
+                  class="required-field"
+                />
+              </div>
+
+              <div class="input-group">
+                <label for="profile">
+                  <i class="fa fa-upload" aria-hidden="true"></i> UPLOAD LOGO
+                </label>
+              </div>
             </div>
 
-            <div class="form-body">
-               <div class="grid-4">
-                <div class="input-group">
-                    <label>NAME OF COMPANY</label>
-                    <input id="company-name" placeholder="Company Name"  class="required-field">
-                </div>
-
-                <div class="input-group">
-                    <label>CONTACT NO</label>    
-                    <input id="company-contact" type="text" placeholder="Type here" class="required-field">
-
-                </div>
-
-                <div class="input-group">
-                    <label>EMAIL ADDRESS</label>
-                    <input id="company-email" type="email" placeholder="Type here" class="required-field">
-                </div>
-
-                <div class="input-group">
-                        <label for="profile">
-                            <i class="fa fa-upload" aria-hidden="true"></i> UPLOAD LOGO
-                        </label>
-                    </div>
-            </div>
-
-              <h4 class="section-title">ADDRESS</h4>
+            <h4 class="section-title">ADDRESS</h4>
 
             <div class="grid-4">
-                <div class="input-group">
-                    <label>Bldg./Floor No./Street No.</label>
-                    <input id=bldg type="text" placeholder="Type here" class="required-field">
-                </div>
+              <div class="input-group">
+                <label>Bldg./Floor No./Street No.</label>
+                <input
+                  id="bldg"
+                  type="text"
+                  placeholder="Type here"
+                  class="required-field"
+                />
+              </div>
 
-                <div class="input-group">
-                    <label>Street</label>
-                    <input id=street type="text" placeholder="Type here" class="required-field">
-                </div>
+              <div class="input-group">
+                <label>Street</label>
+                <input
+                  id="street"
+                  type="text"
+                  placeholder="Type here"
+                  class="required-field"
+                />
+              </div>
 
-                <div class="input-group">
-                    <label>Barangay</label>
-                    <input id=barangay type="text" placeholder="Type here" class="required-field">
-                </div>
+              <div class="input-group">
+                <label>Barangay</label>
+                <input
+                  id="barangay"
+                  type="text"
+                  placeholder="Type here"
+                  class="required-field"
+                />
+              </div>
 
-                <div class="input-group">
-                    <label>Province/City</label>
-                    <input id=cityprovince   type="text" placeholder="Type here" class="required-field">
-                </div>
-
+              <div class="input-group">
+                <label>Province/City</label>
+                <input
+                  id="cityprovince"
+                  type="text"
+                  placeholder="Type here"
+                  class="required-field"
+                />
+              </div>
             </div>
 
             <!-- REPRESENTATIVE -->
             <h4 class="section-title">COMPANY REPRESENTATIVE</h4>
 
             <div class="grid-4">
-                <div class="input-group">
-                    <label>NAME OF REPRESENTATIVE</label>
-                    <input id="rep-name" type="text" placeholder="Type here">
-                </div>
+              <div class="input-group">
+                <label>NAME OF REPRESENTATIVE</label>
+                <input id="rep-name" type="text" placeholder="Type here" />
+              </div>
 
-                <div class="input-group">
-                    <label>JOB DESCRIPTION</label>
-                    <input id="rep-job" type="text" placeholder="Type here">
-                </div>
+              <div class="input-group">
+                <label>JOB DESCRIPTION</label>
+                <input id="rep-job" type="text" placeholder="Type here" />
+              </div>
 
-                <div class="input-group">
-                    <label>CONTACT NO.</label>
-                    <input id="rep-contact" type="text" placeholder="Type here">
-                </div>
+              <div class="input-group">
+                <label>CONTACT NO.</label>
+                <input id="rep-contact" type="text" placeholder="Type here" />
+              </div>
 
-                <div class="input-group">
-                    <label>EMAIL ADDRESS</label>
-                    <input id="rep-email" type="email" placeholder="Type here">
-                </div>
+              <div class="input-group">
+                <label>EMAIL ADDRESS</label>
+                <input id="rep-email" type="email" placeholder="Type here" />
+              </div>
             </div>
+          </div>
 
-        </div>
-
-        <div class="form-actions">
+          <div class="form-actions">
             <button class="cancel-btn" id="cancel-btn">Cancel</button>
             <button class="save-btn" id="save-btn">Save</button>
+          </div>
         </div>
+      </div>
 
-    </div>
-</div>
-
-     <!-- Table -->
-    <div class="table-card">
+      <!-- Table -->
+      <div class="table-card">
         <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" /></th>
-                        <th>ID</th>
-                        <th>Logo</th>
-                        <th>Company Name</th>
-                        <th>Address</th>
-                        <th>Company Email</th>
-                        <th>Company Contact no.</th>
-                        <th>Representative</th>
-                        <th>Job Description</th>
-                        <th>Email Address</th>
-                        <th>Contact No.</th>
-                        <th></th>
-                    </tr>
-                </thead>
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" /></th>
+                <th>ID</th>
+                <th>Logo</th>
+                <th>Company Name</th>
+                <th>Address</th>
+                <th>Company Email</th>
+                <th>Company Contact no.</th>
+                <th>Representative</th>
+                <th>Job Description</th>
+                <th>Email Address</th>
+                <th>Contact No.</th>
+                <th></th>
+              </tr>
+            </thead>
 
-                <tbody>
-                    <tr id="row-001">
-                        <td><input type="checkbox" /></td>
-                        <td>001</td>
-                        <td><img src="../images/company1.png" class="company-logo"></td>
-                        <td>IT Res Incorporated</td>
-                        <td>Pasig City</td>
-                        <td>info@itres.com</td>
-                        <td>0912-345-6789</td>
-                        <td>Aaron Valiente</td>
-                        <td>HR</td>
-                        <td>a_valiente@gmail.com</td>
-                        <td>0998-765-4321</td>
-                        <td class="action-cell">
-                            <div class="dropdown">
-                                <button class="dots-btn">
-                                    <i data-lucide="more-vertical"></i>
-                                </button>
-                                <div class="dropdown-menu">
-                                    <button onclick="openEditModal('001')">Edit</button>
-                                    <button class="danger">Delete</button>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <tbody>
+              <tr id="row-001">
+                <td><input type="checkbox" /></td>
+                <td>001</td>
+                <td>
+                  <img src="../images/company1.png" class="company-logo" alt="Company logo" />
+                </td>
+                <td>IT Res Incorporated</td>
+                <td>Pasig City</td>
+                <td>info@itres.com</td>
+                <td>0912-345-6789</td>
+                <td>Aaron Valiente</td>
+                <td>HR</td>
+                <td>a_valiente@gmail.com</td>
+                <td>0998-765-4321</td>
+                <td class="action-cell">
+                  <div class="dropdown">
+                    <button class="dots-btn">
+                      <i data-lucide="more-vertical"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                      <button onclick="openEditModal('001')">Edit</button>
+                      <button class="danger">Delete</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
     </div>
 
-</div>
+    <script>
+      lucide.createIcons();
 
-<script>
-    lucide.createIcons();
-
-    document.querySelectorAll(".dots-btn").forEach(btn => {
+      document.querySelectorAll(".dots-btn").forEach((btn) => {
         btn.addEventListener("click", function (e) {
-            e.stopPropagation();
+          e.stopPropagation();
 
-            document.querySelectorAll(".dropdown-menu").forEach(menu => {
-                menu.classList.remove("show");
-            });
-
-            this.nextElementSibling.classList.toggle("show");
-        });
-    });
-
-    document.addEventListener("click", () => {
-        document.querySelectorAll(".dropdown-menu").forEach(menu => {
+          document.querySelectorAll(".dropdown-menu").forEach((menu) => {
             menu.classList.remove("show");
+          });
+
+          this.nextElementSibling.classList.toggle("show");
         });
-    });
+      });
 
-    // Export modal + downloads
-    const exportModal = document.getElementById("export-modal");
-    const exportCancelBtn = document.getElementById("export-cancel-btn");
-    const exportCsvBtn = document.getElementById("export-csv-btn");
-    const exportExcelBtn = document.getElementById("export-excel-btn");
-    const exportPdfBtn = document.getElementById("export-pdf-btn");
-    const exportDocBtn = document.getElementById("export-doc-btn");
+      document.addEventListener("click", () => {
+        document.querySelectorAll(".dropdown-menu").forEach((menu) => {
+          menu.classList.remove("show");
+        });
+      });
 
-    function openModal(el) { el.style.display = "flex"; }
-    function closeModal(el) { el.style.display = "none"; }
+      // Export modal + downloads
+      const exportModal = document.getElementById("export-modal");
+      const exportCancelBtn = document.getElementById("export-cancel-btn");
+      const exportCsvBtn = document.getElementById("export-csv-btn");
+      const exportExcelBtn = document.getElementById("export-excel-btn");
+      const exportPdfBtn = document.getElementById("export-pdf-btn");
+      const exportDocBtn = document.getElementById("export-doc-btn");
 
-    function getReportName() {
-        const title = (document.querySelector(".page-title")?.textContent || "report")
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, "_");
+      function openModal(el) {
+        el.style.display = "flex";
+      }
+      function closeModal(el) {
+        el.style.display = "none";
+      }
+
+      function getReportName() {
+        const title = (
+          document.querySelector(".page-title")?.textContent || "report"
+        )
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "_");
         const date = new Date().toISOString().slice(0, 10);
         return `${title}_${date}`;
-    }
+      }
 
-    function getTable() {
+      function getTable() {
         return document.querySelector("table");
-    }
+      }
 
-    function escapeCsvCell(value) {
+      function escapeCsvCell(value) {
         const s = String(value ?? "");
         if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
         return s;
-    }
+      }
 
-    function tableToCsv(table) {
+      function tableToCsv(table) {
         const rows = Array.from(table.querySelectorAll("tr"));
-        return rows.map(row => {
-            const cells = Array.from(row.querySelectorAll("th,td")).map(cell => {
+        return rows
+          .map((row) => {
+            const cells = Array.from(row.querySelectorAll("th,td")).map(
+              (cell) => {
                 return escapeCsvCell(cell.textContent.trim());
-            });
+              },
+            );
             return cells.join(",");
-        }).join("\n");
-    }
+          })
+          .join("\n");
+      }
 
-    function downloadBlob(content, mime, filename) {
-        const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+      function downloadBlob(content, mime, filename) {
+        const blob =
+          content instanceof Blob
+            ? content
+            : new Blob([content], { type: mime });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -317,122 +378,138 @@
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-    }
+      }
 
-    function downloadTableAsHtmlDoc(table, filename, mime) {
+      function downloadTableAsHtmlDoc(table, filename, mime) {
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${table.outerHTML}</body></html>`;
         downloadBlob(html, mime, filename);
-    }
+      }
 
-    document.querySelector(".generate-btn").addEventListener("click", () => {
+      document.querySelector(".generate-btn").addEventListener("click", () => {
         openModal(exportModal);
         lucide.createIcons();
-    });
+      });
 
-    exportCancelBtn.addEventListener("click", () => closeModal(exportModal));
-    exportModal.addEventListener("click", (e) => { if (e.target === exportModal) closeModal(exportModal); });
+      exportCancelBtn.addEventListener("click", () => closeModal(exportModal));
+      exportModal.addEventListener("click", (e) => {
+        if (e.target === exportModal) closeModal(exportModal);
+      });
 
-    exportCsvBtn.addEventListener("click", () => {
+      exportCsvBtn.addEventListener("click", () => {
         const table = getTable();
         if (!table) return;
         const csv = tableToCsv(table);
         downloadBlob(csv, "text/csv;charset=utf-8", `${getReportName()}.csv`);
         closeModal(exportModal);
-    });
+      });
 
-    exportExcelBtn.addEventListener("click", () => {
+      exportExcelBtn.addEventListener("click", () => {
         const table = getTable();
         if (!table) return;
-        downloadTableAsHtmlDoc(table, `${getReportName()}.xls`, "application/vnd.ms-excel");
+        downloadTableAsHtmlDoc(
+          table,
+          `${getReportName()}.xls`,
+          "application/vnd.ms-excel",
+        );
         closeModal(exportModal);
-    });
+      });
 
-    exportDocBtn.addEventListener("click", () => {
+      exportDocBtn.addEventListener("click", () => {
         const table = getTable();
         if (!table) return;
-        downloadTableAsHtmlDoc(table, `${getReportName()}.doc`, "application/msword");
+        downloadTableAsHtmlDoc(
+          table,
+          `${getReportName()}.doc`,
+          "application/msword",
+        );
         closeModal(exportModal);
-    });
+      });
 
-    exportPdfBtn.addEventListener("click", () => {
+      exportPdfBtn.addEventListener("click", () => {
         closeModal(exportModal);
         window.print();
-    });
+      });
 
-    // Toggle modal visibility when the "Add" button is clicked
-   document.getElementById("add-externalpartner-btn").addEventListener("click", () => {
-    document.getElementById("select-mode-modal").style.display = "flex";
-        // Change header title when opening the Add form
-    });
+      // Toggle modal visibility when the "Add" button is clicked
+      document
+        .getElementById("add-externalpartner-btn")
+        .addEventListener("click", () => {
+          document.getElementById("select-mode-modal").style.display = "flex";
+          // Change header title when opening the Add form
+        });
 
-    // Close the modal when the cancel button is clicked
-    document.getElementById("cancel-btn").addEventListener("click", () => {
+      // Close the modal when the cancel button is clicked
+      document.getElementById("cancel-btn").addEventListener("click", () => {
         const modal = document.getElementById("add-externalpartner-modal");
         modal.style.display = "none";
-    });
+      });
 
-    // Edit modal functionality (if needed)
-   function openEditModal(rowId) {
+      // Edit modal functionality (if needed)
+      function openEditModal(rowId) {
+        const modal = document.getElementById("add-externalpartner-modal");
+        const row = document.getElementById("row-" + rowId);
 
-    const modal = document.getElementById("add-externalpartner-modal");
-    const row = document.getElementById("row-" + rowId);
+        document.getElementById("modal-title").innerText =
+          "EDIT EXTERNAL PARTNER";
 
-    document.getElementById("modal-title").innerText = "EDIT EXTERNAL PARTNER";
+        // Table cells mapping
+        document.getElementById("company-name").value = row.cells[3].innerText;
+        document.getElementById("company-email").value = row.cells[5].innerText;
+        document.getElementById("company-contact").value =
+          row.cells[6].innerText;
 
-    // Table cells mapping
-    document.getElementById("company-name").value = row.cells[3].innerText;
-    document.getElementById("company-email").value = row.cells[5].innerText;
-    document.getElementById("company-contact").value = row.cells[6].innerText;
+        document.getElementById("rep-name").value = row.cells[7].innerText;
+        document.getElementById("rep-job").value = row.cells[8].innerText;
+        document.getElementById("rep-email").value = row.cells[9].innerText;
+        document.getElementById("rep-contact").value = row.cells[10].innerText;
 
-    document.getElementById("rep-name").value = row.cells[7].innerText;
-    document.getElementById("rep-job").value = row.cells[8].innerText;
-    document.getElementById("rep-email").value = row.cells[9].innerText;
-    document.getElementById("rep-contact").value = row.cells[10].innerText;
+        // Address (example only since your table only has 1 column)
+        document.getElementById("cityprovince").value = row.cells[4].innerText;
 
-    // Address (example only since your table only has 1 column)
-    document.getElementById("cityprovince").value = row.cells[4].innerText;
+        modal.style.display = "flex";
+      }
 
-    modal.style.display = "flex";
-}
-
-    // Close modal after saving
-    document.getElementById("save-btn").addEventListener("click", () => {
+      // Close modal after saving
+      document.getElementById("save-btn").addEventListener("click", () => {
         const modal = document.getElementById("add-externalpartner-modal");
         modal.style.display = "none";
-    });
+      });
 
-    // SELECT MODE BUTTONS
+      // SELECT MODE BUTTONS
 
-// Add Manually
-document.getElementById("manual-add-btn").addEventListener("click", () => {
-    document.getElementById("select-mode-modal").style.display = "none";
-    document.getElementById("add-externalpartner-modal").style.display = "flex";
-});
+      // Add Manually
+      document
+        .getElementById("manual-add-btn")
+        .addEventListener("click", () => {
+          document.getElementById("select-mode-modal").style.display = "none";
+          document.getElementById("add-externalpartner-modal").style.display =
+            "flex";
+        });
 
-// Upload CSV
-document.getElementById("csv-add-btn").addEventListener("click", () => {
-    document.getElementById("csv-file-input").click();
-});
+      // Upload CSV
+      document.getElementById("csv-add-btn").addEventListener("click", () => {
+        document.getElementById("csv-file-input").click();
+      });
 
-// When file selected
-document.getElementById("csv-file-input").addEventListener("change", function () {
-    const file = this.files[0];
+      // When file selected
+      document
+        .getElementById("csv-file-input")
+        .addEventListener("change", function () {
+          const file = this.files[0];
 
-    if (file) {
-        alert("CSV File Selected: " + file.name);
+          if (file) {
+            alert("CSV File Selected: " + file.name);
 
-        // later you will send this to PHP using AJAX / FormData
-    }
-});
+            // later you will send this to PHP using AJAX / FormData
+          }
+        });
 
-// Cancel Select Mode Modal
-document.getElementById("cancel-mode-btn").addEventListener("click", () => {
-    document.getElementById("select-mode-modal").style.display = "none";
-});
-</script>
-
-</body>
+      // Cancel Select Mode Modal
+      document
+        .getElementById("cancel-mode-btn")
+        .addEventListener("click", () => {
+          document.getElementById("select-mode-modal").style.display = "none";
+        });
+    </script>
+  </body>
 </html>
-
-
-
