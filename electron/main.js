@@ -64,6 +64,26 @@ ipcMain.handle("login", async (event, email, password) => {
     return { success: false, message: "An error occurred during login." };
   }
 });
+
+ipcMain.handle("getProfile", async (event, userId) => {
+  try {
+    const users = await query(
+      "SELECT id, user_id, name, email, role, profile_image FROM users WHERE id = ?",
+      [userId],
+    );
+    if (users.length === 0) {
+      return { success: false, message: "User not found." };
+    }
+    return { success: true, user: users[0] };
+  } catch (error) {
+    console.error("Get profile error:", error);
+    return {
+      success: false,
+      message: "An error occurred while fetching profile.",
+    };
+  }
+});
+
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
