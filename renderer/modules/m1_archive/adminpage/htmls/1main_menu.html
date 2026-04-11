@@ -134,9 +134,11 @@
         <div class="profile-container">
           <div class="profile-left">
             <img
-              src="https://i.pravatar.cc/120"
+              src="../../images/default_avatar.jpg"
               class="profile-avatar"
               alt="Profile Avatar"
+              onclick="chooseProfileImage()"
+              style="cursor: pointer"
             />
             <button
               type="button"
@@ -279,14 +281,19 @@
       let originalProfileValues = [];
 
       function startProfileEdit() {
-        const inputs = document.querySelectorAll("#profileModal input");
+        const nameInput = document.getElementById("profileName");
         const editBtn = document.querySelector(".edit-link");
         const actions = document.getElementById("profileActions");
 
-        originalProfileValues = Array.from(inputs).map((input) => input.value);
+        originalProfileValues = Array.from(
+          document.querySelectorAll("#profileModal input"),
+        ).map((input) => input.value);
         isEditing = true;
 
-        inputs.forEach((input) => (input.disabled = false));
+        if (nameInput) {
+          nameInput.disabled = false;
+          nameInput.focus();
+        }
         editBtn.style.display = "none";
         actions.classList.add("show");
       }
@@ -306,29 +313,49 @@
         editBtn.style.display = "inline-flex";
       }
 
-      function saveProfileEdit() {
-        const inputs = document.querySelectorAll("#profileModal input");
+      async function saveProfileEdit() {
+        const nameInput = document.getElementById("profileName");
         const editBtn = document.querySelector(".edit-link");
         const actions = document.getElementById("profileActions");
 
-        // Save the updated values
-        const updatedProfile = {
-          name: document.getElementById("profileName").value,
-          user_id: document.getElementById("profileUserId").value,
-          email: document.getElementById("profileEmail").value,
-        };
+        const name = nameInput.value.trim();
+        const userStr = localStorage.getItem("user");
 
-        // Update original values with new values
-        originalProfileValues = Array.from(inputs).map((input) => input.value);
+        if (!userStr) {
+          alert("Unable to save profile: no user is logged in.");
+          return;
+        }
 
-        inputs.forEach((input) => (input.disabled = true));
+        const user = JSON.parse(userStr);
+
+        const result = await window.electronAPI.updateProfile({
+          userId: user.id,
+          name,
+          profileImagePath: selectedProfileImagePath,
+        });
+
+        if (!result.success) {
+          alert(result.message || "Failed to save profile. Please try again.");
+          return;
+        }
+
+        user.name = name;
+        localStorage.setItem("user", JSON.stringify(user));
+
+        // Update visible UI state
+        originalProfileValues = [
+          name,
+          document.getElementById("profileUserId").value,
+          document.getElementById("profileEmail").value,
+        ];
+
+        document.querySelectorAll("#profileModal input").forEach((input) => {
+          input.disabled = true;
+        });
 
         isEditing = false;
         actions.classList.remove("show");
         editBtn.style.display = "inline-flex";
-
-        // Optional: Add logic here to save to database if needed
-        console.log("Profile saved:", updatedProfile);
       }
     </script>
   </body>

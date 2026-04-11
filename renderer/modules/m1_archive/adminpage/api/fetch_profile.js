@@ -1,3 +1,6 @@
+let selectedProfileImagePath = null;
+const DEFAULT_PROFILE_IMAGE = "../../images/default_avatar.jpg";
+
 async function fetchUserProfile(userId) {
   try {
     const result = await window.electronAPI.getProfile(userId);
@@ -16,23 +19,40 @@ async function fetchUserProfile(userId) {
 function displayProfileData(user) {
   if (!user) return;
 
-  // Populate profile fields using IDs
+  selectedProfileImagePath = user.profile_image || null;
+
   const nameInput = document.getElementById("profileName");
   const usernameInput = document.getElementById("profileUserId");
   const emailInput = document.getElementById("profileEmail");
+  const profileImg = document.querySelector(".profile-avatar");
 
   if (nameInput) nameInput.value = user.name || "";
   if (usernameInput) usernameInput.value = user.user_id || "";
   if (emailInput) emailInput.value = user.email || "";
 
-  // Update profile image with default fallback
-  const profileImg = document.querySelector(".profile-avatar");
   if (profileImg) {
     if (user.profile_image) {
       profileImg.src = user.profile_image;
     } else {
-      profileImg.src = "../../images/default_avatar.jpg";
+      profileImg.src = DEFAULT_PROFILE_IMAGE;
     }
+  }
+}
+
+async function chooseProfileImage() {
+  try {
+    const result = await window.electronAPI.selectProfileImage();
+    if (!result.success) {
+      return;
+    }
+
+    selectedProfileImagePath = result.path;
+    const profileImg = document.querySelector(".profile-avatar");
+    if (profileImg) {
+      profileImg.src = selectedProfileImagePath || DEFAULT_PROFILE_IMAGE;
+    }
+  } catch (error) {
+    console.error("Error selecting profile image:", error);
   }
 }
 
