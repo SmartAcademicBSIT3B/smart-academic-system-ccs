@@ -7,4 +7,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateProfile: (profileData) =>
     ipcRenderer.invoke("updateProfile", profileData),
   logout: () => ipcRenderer.invoke("logout"),
+  sendOTP: (email) => ipcRenderer.invoke("sendOTP", email),
+  verifyOTP: (email, otp) => ipcRenderer.invoke("verifyOTP", email, otp),
+  resetPassword: (email, newPassword) =>
+    ipcRenderer.invoke("resetPassword", email, newPassword),
 });

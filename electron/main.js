@@ -4,6 +4,17 @@ const fs = require("node:fs/promises");
 const { query } = require("../database/dbconnect");
 const { supabase } = require("../services/supabase_config");
 const crypto = require("crypto");
+const {
+  sendOTP,
+  verifyOTP,
+  resetPassword,
+  cleanupExpiredOTPs,
+} = require("../services/otp_service");
+
+const OTP_CLEANUP_INTERVAL_MS = parseInt(
+  process.env.OTP_CLEANUP_INTERVAL_MS || "900000",
+  10,
+);
 
 function createMainWindow() {
   const mainWindow = new BrowserWindow({
@@ -27,6 +38,15 @@ function createMainWindow() {
 
 app.whenReady().then(() => {
   createMainWindow();
+
+  // Periodically remove expired and old used OTP rows.
+  setInterval(async () => {
+    try {
+      await cleanupExpiredOTPs();
+    } catch (error) {
+      console.error("OTP cleanup error:", error);
+    }
+  }, OTP_CLEANUP_INTERVAL_MS);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -167,6 +187,21 @@ ipcMain.handle("logout", async (event) => {
     console.error("Logout error:", error);
     return { success: false, message: "An error occurred during logout." };
   }
+});
+
+// Send OTP handler
+ipcMain.handle("sendOTP", async (event, email) => {
+  return await sendOTP(email, "reset_password");
+});
+
+// Verify OTP handler
+ipcMain.handle("verifyOTP", async (event, email, otp) => {
+  return await verifyOTP(email, otp, "reset_password");
+});
+
+// Reset password handler
+ipcMain.handle("resetPassword", async (event, email, newPassword) => {
+  return await resetPassword(email, newPassword);
 });
 
 app.on("window-all-closed", () => {
