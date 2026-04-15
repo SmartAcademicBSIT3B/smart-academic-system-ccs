@@ -128,6 +128,25 @@
           </div>
 
           <div class="form-body">
+            <!-- PDF UPLOAD - full width, top of form -->
+            <div class="input-group">
+              <label>FILE (PDF)</label>
+              <div class="drop-zone" id="archive-drop-zone">
+                <input
+                  type="file"
+                  id="archive-file-upload"
+                  accept=".pdf,application/pdf"
+                  hidden
+                />
+                <i data-lucide="file-up" class="drop-zone-icon"></i>
+                <p class="drop-zone-text">Drag &amp; drop PDF here</p>
+                <p class="drop-zone-sub">
+                  or <span class="drop-zone-browse">browse</span>
+                </p>
+                <p class="drop-zone-filename" id="drop-zone-filename"></p>
+              </div>
+            </div>
+
             <!-- TOP ROW -->
             <div class="grid-3">
               <div class="input-group">
@@ -154,6 +173,37 @@
                     <option disabled selected>Professor</option>
                     <option>Juan Delacruz</option>
                     <option>Maria Lopez</option>
+                  </select>
+                  <span class="arrow"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- STATUS + TYPE -->
+            <div class="grid-2">
+              <div class="input-group">
+                <label>STATUS</label>
+                <div class="select-wrapper">
+                  <select id="archive-status">
+                    <option disabled selected>Status</option>
+                    <option>Pending</option>
+                    <option>Approved</option>
+                    <option>Rejected</option>
+                  </select>
+                  <span class="arrow"></span>
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label>TYPE</label>
+                <div class="select-wrapper">
+                  <select id="archive-type">
+                    <option disabled selected>Type</option>
+                    <option>Thesis</option>
+                    <option>Research</option>
+                    <option>Capstone</option>
+                    <option>Project</option>
+                    <option>Other</option>
                   </select>
                   <span class="arrow"></span>
                 </div>
@@ -192,23 +242,14 @@
               </div>
             </div>
 
-            <!-- KEYWORDS + FILE -->
-            <div class="grid-3">
-              <div class="input-group keywords-field">
-                <label>KEYWORDS</label>
-                <input
-                  id="archive-keywords"
-                  type="text"
-                  placeholder="e.g. Machine Learning, AI, etc."
-                />
-              </div>
-
-              <div class="input-group upload-field">
-                <input type="file" id="archive-file-upload" hidden />
-                <label for="archive-file-upload" class="upload-btn">
-                  <i class="fa fa-upload" aria-hidden="true"></i> UPLOAD FILE
-                </label>
-              </div>
+            <!-- KEYWORDS -->
+            <div class="input-group">
+              <label>KEYWORDS</label>
+              <input
+                id="archive-keywords"
+                type="text"
+                placeholder="e.g. Machine Learning, AI, etc."
+              />
             </div>
           </div>
           <div class="form-actions">
@@ -411,6 +452,8 @@
       const titleEl = document.getElementById("archive-title");
       const sectionEl = document.getElementById("archive-section");
       const professorEl = document.getElementById("archive-professor");
+      const statusEl = document.getElementById("archive-status");
+      const typeEl = document.getElementById("archive-type");
       const a1El = document.getElementById("archive-author-1");
       const a2El = document.getElementById("archive-author-2");
       const a3El = document.getElementById("archive-author-3");
@@ -420,15 +463,71 @@
 
       let editingRow = null;
 
+      // Drop zone
+      const dropZone = document.getElementById("archive-drop-zone");
+      const dropZoneFilename = document.getElementById("drop-zone-filename");
+
+      function setDropZoneFile(file) {
+        if (!file) return;
+        if (
+          file.type !== "application/pdf" &&
+          !file.name.toLowerCase().endsWith(".pdf")
+        ) {
+          alert("Please select a PDF file.");
+          return;
+        }
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileUploadEl.files = dt.files;
+        dropZoneFilename.textContent = file.name;
+      }
+
+      dropZone.addEventListener("click", (e) => {
+        if (
+          e.target.closest(".drop-zone-browse") ||
+          e.target === dropZone ||
+          e.target.closest(".drop-zone-icon") ||
+          e.target.closest(".drop-zone-text") ||
+          e.target.closest(".drop-zone-sub")
+        ) {
+          fileUploadEl.click();
+        }
+      });
+
+      fileUploadEl.addEventListener("change", () => {
+        const file = fileUploadEl.files && fileUploadEl.files[0];
+        if (file) dropZoneFilename.textContent = file.name;
+      });
+
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("drag-over");
+      });
+
+      dropZone.addEventListener("dragleave", (e) => {
+        if (!dropZone.contains(e.relatedTarget))
+          dropZone.classList.remove("drag-over");
+      });
+
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("drag-over");
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) setDropZoneFile(file);
+      });
+
       function resetForm() {
         titleEl.value = "";
         sectionEl.selectedIndex = 0;
         professorEl.selectedIndex = 0;
+        statusEl.selectedIndex = 0;
+        typeEl.selectedIndex = 0;
         a1El.value = "";
         a2El.value = "";
         a3El.value = "";
         keywordsEl.value = "";
         fileUploadEl.value = "";
+        dropZoneFilename.textContent = "";
       }
 
       function getNextId() {
@@ -656,6 +755,10 @@
             professorEl.value && professorEl.selectedIndex > 0
               ? professorEl.value
               : "";
+          const status =
+            statusEl.value && statusEl.selectedIndex > 0 ? statusEl.value : "";
+          const type =
+            typeEl.value && typeEl.selectedIndex > 0 ? typeEl.value : "";
           const authors = formatAuthors(a1El.value, a2El.value, a3El.value);
           const keyword = keywordsEl.value.trim();
           const fileName =
@@ -682,6 +785,8 @@
               advisor,
               date,
               keyword,
+              status,
+              type,
               fileName,
             });
           }
@@ -721,6 +826,8 @@
         )
           ? advisor
           : professorEl.options[0].value;
+        statusEl.selectedIndex = 0;
+        typeEl.selectedIndex = 0;
 
         closeModal(selectModeModal);
         openModal(archiveModal);
