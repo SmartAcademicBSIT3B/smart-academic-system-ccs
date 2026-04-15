@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>System Settings</title>
+
+  <link rel="stylesheet" href="../css/system_settings.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+<div class="main-content">
+
+  <div class="setting-header">
+    <h2>SYSTEM SETTINGS</h2>
+  </div>
+
+  <div class="settings-wrapper">
+    <div class="settings-container">
+
+      <!-- LEFT MENU -->
+      <div class="settings-menu">
+        <ul>
+          <li class="active" data-section="general"><i class="fa-solid fa-gear"></i> General</li>
+          <li data-section="notifications"><i class="fa-solid fa-bell"></i> Notification</li>
+          <li data-section="backup"><i class="fa-solid fa-database"></i> Restore & Backup</li>
+          <li data-section="about"><i class="fa-solid fa-info-circle"></i> About</li>
+        </ul>
+      </div>
+
+      <!-- RIGHT CONTENT -->
+      <div class="settings-content">
+
+        <!-- ================= GENERAL ================= -->
+        <div id="general" class="settings-section active">
+
+          <h3>General Settings</h3>
+
+          <!-- DARK MODE -->
+          <div class="setting-row">
+            <div>
+              <p class="title">Dark Mode</p>
+              <span class="desc">Enable dark theme</span>
+            </div>
+
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- ================= ABOUT ================= -->
+        <div id="about" class="settings-section">
+
+          <h3>About the System</h3>
+
+          <div class="about-content">
+            <h4>Thesis/Capstone Archiving and Host Training Establishment System</h4>
+            <p>This system is designed to manage and archive thesis and capstone projects for the College of Computer Studies (CCS). 
+              It also provides a comprehensive platform for coordinators and administrators to oversee HTE (Host Training Establishment) partnerships, manage 
+              OJT (On-the-Job Training) students, and maintain archives of academic projects.</p>
+
+            <h5>Key Features:</h5>
+            <ul>
+              <li>Dashboard for overview and analytics</li>
+              <li>Archive management for thesis and capstone projects</li>
+              <li>HTE partner management</li>
+              <li>OJT student tracking and management</li>
+              <li>User management and role assignments</li>
+              <li>System settings and configuration</li>
+            </ul>
+
+            <h5>Version:</h5>
+            <p>Version 1.0.0</p>
+
+            <h5>Developed by:</h5>
+            <p>Aaron Mark D. Valiente -- Fullstack Developer</p>
+            <p>Heaven Grace D. Salayo -- Frontend UX/UI Developer</p>
+            <p>Rashid Mendoza -- Frontend Functional Developer</p>
+            <p>John Michael E. Guevarra -- Backend Developer</p>
+            <p>Alvin A. Salva -- Quality Assurance & Documentation</p>
+
+            <h5>Contact:</h5>
+            <p>valiente_aaronmark@plp.edu.ph</p>
+          </div>
+
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="settings-actions">
+          <button class="cancel-btn" onclick="cancelChanges()">Cancel</button>
+          <button class="save-btn" onclick="openConfirm()">Save</button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal" id="confirmModal">
+  <div class="modal-content">
+    <p>Are you sure you want to save changes?</p>
+
+    <div class="modal-actions">
+      <button class="cancel-btn" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-btn" onclick="saveChanges()">Yes, Save</button>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+
+// MENU SWITCH
+document.querySelectorAll('.settings-menu li').forEach(item => {
+  item.onclick = () => {
+    document.querySelectorAll('.settings-menu li').forEach(i=>i.classList.remove('active'));
+    document.querySelectorAll('.settings-section').forEach(s=>s.classList.remove('active'));
+
+    item.classList.add('active');
+    document.getElementById(item.dataset.section).classList.add('active');
+
+    // Hide save/cancel buttons for About section
+    const actions = document.querySelector('.settings-actions');
+    if (item.dataset.section === 'about') {
+      actions.style.display = 'none';
+    } else {
+      actions.style.display = 'flex';
+    }
+  }
+});
+
+// PROGRAM CAPS + ENTER
+programInput.addEventListener("input", () => {
+  programInput.value = programInput.value.toUpperCase();
+});
+
+programInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    addProgram();
+  }
+});
+
+// ADD PROGRAM
+function addProgram(){
+  const val = programInput.value.trim().toUpperCase();
+  if(!val) return;
+
+  const li = document.createElement("li");
+  li.innerHTML = `
+    <span class="program-name" onclick="editProgram(this)">${val}</span>
+    <button class="remove-btn" onclick="this.parentElement.remove()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  `;
+  programList.appendChild(li);
+  programInput.value="";
+}
+
+// EDIT PROGRAM
+function editProgram(el){
+  const input = document.createElement("input");
+  input.value = el.textContent;
+  input.classList.add("edit-input");
+
+  el.replaceWith(input);
+  input.focus();
+
+  input.oninput = ()=> input.value = input.value.toUpperCase();
+  input.onblur = ()=> saveEdit(input);
+  input.onkeypress = e => { if(e.key==="Enter") saveEdit(input); };
+}
+
+function saveEdit(input){
+  const span = document.createElement("span");
+  span.className="program-name";
+  span.textContent=input.value || "EMPTY";
+  span.onclick=()=>editProgram(span);
+  input.replaceWith(span);
+}
+
+// ADD DOC
+function addDoc(){
+  const val = docInput.value.trim();
+  if(!val) return;
+
+  const li=document.createElement("li");
+  li.innerHTML=`
+    <span>${val}</span>
+    <button class="remove-btn" onclick="this.parentElement.remove()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>`;
+  docList.appendChild(li);
+  docInput.value="";
+}
+
+// SWITCH TAB
+function switchReqTab(tab){
+  document.querySelectorAll('.req-tab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
+
+  if(tab==='ojt'){
+    ojtTab.classList.add('active');
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+  }else{
+    partnerTab.classList.add('active');
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+  }
+}
+
+// FILE PREVIEW
+logoInput.onchange = e=>{
+  const file=e.target.files[0];
+  if(file){
+    fileName.textContent=file.name;
+    previewImage.src=URL.createObjectURL(file);
+    filePreview.style.display="block";
+  }
+}
+
+// ADD THESIS FIELD
+function addThesisField(){
+  const input = document.getElementById("thesisFieldInput");
+  const list = document.getElementById("thesisFieldList");
+
+  const val = input.value.trim();
+  if(!val) return;
+
+  const li = document.createElement("li");
+  li.innerHTML = `
+    <span>${val}</span>
+    <button class="remove-btn" onclick="this.parentElement.remove()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  `;
+
+  list.appendChild(li);
+  input.value="";
+}
+
+// REQUIRED HOURS: WHOLE NUMBERS ONLY
+document.querySelectorAll(".required-hours-input").forEach((input) => {
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\D/g, "");
+  });
+});
+
+// SAVE / CANCEL
+function openConfirm(){
+  confirmModal.style.display="flex";
+}
+
+function closeConfirm(){
+  confirmModal.style.display="none";
+}
+
+function saveChanges(){
+  alert("Settings saved!");
+  closeConfirm();
+}
+
+function cancelChanges(){
+  location.reload();
+}
+
+</script>
+
+</body>
+</html>

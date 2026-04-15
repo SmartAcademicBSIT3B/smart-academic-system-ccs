@@ -1,106 +1,114 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OJT List</title>
+<head>
+<meta charset="UTF-8">
+<title>OJT List</title>
 
-    <link rel="stylesheet" href="../css/ojt_list.css" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
-      rel="stylesheet"
-    />
-    <script src="https://unpkg.com/lucide@latest"></script>
-  </head>
+<link rel="stylesheet" href="../css/ojt_list.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
 
-  <body>
-    <div class="container">
-      <h1 class="page-title">OJT STUDENTS</h1>
+</head>
 
-      <div class="panel">
+<body>
+
+<div class="container">
+
+    <h1 class="page-title">OJT STUDENTS</h1>
+
+    <div class="panel">
         <div class="panel-body">
-          <!-- ⭐ BACK BUTTON INSIDE CARD -->
-          <a href="ojt_students.html" class="back-btn">‹</a>
 
-          <div class="cards-container">
-            <div
-              class="student-card"
-              data-section="BSIT-4B"
-              onclick="openProfile(this)"
-              data-name="Dela Cruz, Juan"
-              data-id="23-00113"
-              data-status="Deployed"
-            >
-              <div class="avatar"></div>
-              <div class="student-id">23-00113</div>
-              <div class="student-name">Dela Cruz, Juan</div>
-              <div class="status deployed">Deployed</div>
+            <!-- ⭐ BACK BUTTON INSIDE CARD -->
+            <a href="ojt_students.html" class="back-btn">‹</a>
+
+            <div class="cards-container">
+
+                <div class="student-card"
+                     data-section="BSIT-4B"
+                     onclick="openProfile(this)"
+                     data-name="Dela Cruz, Juan"
+                     data-id="23-00113"
+                     data-status="Deployed">
+
+                    <div class="avatar"></div>
+                    <div class="student-id">23-00113</div>
+                    <div class="student-name">Dela Cruz, Juan</div>
+                    <div class="status deployed">Deployed</div>
+                </div>
+
+                <div class="student-card"
+                     data-section="BSIT-4B"
+                     onclick="openProfile(this)"
+                     data-name="Reyes, Carlo"
+                     data-id="23-00115"
+                     data-status="Pending">
+
+                    <div class="avatar"></div>
+                    <div class="student-id">23-00115</div>
+                    <div class="student-name">Reyes, Carlo</div>
+                    <div class="status pending">Pending</div>
+                </div>
+
+                <div class="student-card"
+                     data-section="BSIT-4D"
+                     onclick="openProfile(this)"
+                     data-name="Santos, Maria"
+                     data-id="23-00114"
+                     data-status="Pre-Deployment">
+
+                    <div class="avatar"></div>
+                    <div class="student-id">23-00114</div>
+                    <div class="student-name">Santos, Maria</div>
+                    <div class="status pre-deployment">Pre-Deployment</div>
+                </div>
+
             </div>
 
-            <div
-              class="student-card"
-              data-section="BSIT-4B"
-              onclick="openProfile(this)"
-              data-name="Reyes, Carlo"
-              data-id="23-00115"
-              data-status="Pending"
-            >
-              <div class="avatar"></div>
-              <div class="student-id">23-00115</div>
-              <div class="student-name">Reyes, Carlo</div>
-              <div class="status pending">Pending</div>
-            </div>
-
-            <div
-              class="student-card"
-              data-section="BSIT-4D"
-              onclick="openProfile(this)"
-              data-name="Santos, Maria"
-              data-id="23-00114"
-              data-status="Pre-Deployment"
-            >
-              <div class="avatar"></div>
-              <div class="student-id">23-00114</div>
-              <div class="student-name">Santos, Maria</div>
-              <div class="status pre-deployment">Pre-Deployment</div>
-            </div>
-          </div>
         </div>
-      </div>
     </div>
 
-    <script>
-      function openProfile(card) {
-        let name = card.dataset.name;
-        let id = card.dataset.id;
-        let status = card.dataset.status;
+</div>
 
-        window.location.href =
-          "ojt_students_profile.html?name=" +
-          encodeURIComponent(name) +
-          "&id=" +
-          encodeURIComponent(id) +
-          "&status=" +
-          encodeURIComponent(status);
-      }
+<script>
 
-      (function () {
-        let params = new URLSearchParams(window.location.search);
-        let section = params.get("section");
+function openProfile(card) {
 
-        if (section) {
-          document.querySelector(".page-title").textContent =
+    let name = card.dataset.name;
+    let id = card.dataset.id;
+    let status = card.dataset.status;
+
+    window.location.href =
+        "ojt_students_profile.html?name=" + encodeURIComponent(name)
+        + "&id=" + encodeURIComponent(id)
+        + "&status=" + encodeURIComponent(status);
+}
+
+(function(){
+
+    let params = new URLSearchParams(window.location.search);
+    let section = params.get("section");
+
+    if(section){
+
+        document.querySelector(".page-title").textContent =
             "OJT STUDENTS - " + section;
 
-          document.querySelectorAll(".student-card").forEach(function (card) {
-            if (card.dataset.section !== section) {
-              card.style.display = "none";
-            }
-          });
-        }
-      })();
+        document.querySelectorAll(".student-card").forEach(function(card){
 
-      lucide.createIcons();
-    </script>
-  </body>
+            if(card.dataset.section !== section){
+                card.style.display = "none";
+            }
+
+        });
+
+    }
+
+})();
+
+lucide.createIcons();
+
+</script>
+
+</body>
 </html>

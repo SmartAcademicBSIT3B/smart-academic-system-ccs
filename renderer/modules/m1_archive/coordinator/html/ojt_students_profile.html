@@ -1,193 +1,170 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trainee Profile</title>
-    <link rel="stylesheet" href="../css/ojt_students_profile.css" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
+<head>
+<meta charset="UTF-8">
+<title>Trainee Profile</title>
+<link rel="stylesheet" href="../css/ojt_students_profile.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
 
-    <style>
-      .tab-panel {
-        display: none;
-      }
-      .tab-panel.active {
-        display: block;
-      }
-    </style>
-  </head>
+<style>
+.tab-panel{
+    display:none;
+}
+.tab-panel.active{
+    display:block;
+}
+</style>
 
-  <body>
-    <div class="profile-page">
-      <div class="profile-shell">
-        <a class="back-btn" href="ojt_students_list.html">
-          <span class="back-icon">‹</span>
-        </a>
+</head>
 
-        <section class="profile-card">
-          <header class="profile-top">
-            <div class="avatar"></div>
+<body>
 
-            <div class="profile-meta">
-              <div class="name-row">
-                <h1 class="student-name">Student Name</h1>
-                <span class="student-id">Student ID</span>
-              </div>
+<div class="profile-page">
+<div class="profile-shell">
 
-              <!-- ✅ NEW DETAILS ROW -->
-              <div class="details-row">
-                <div class="detail">
-                  <span class="detail-label">Email</span>
-                  <span class="detail-value student-email"
-                    >sample@email.com</span
-                  >
-                </div>
+<a class="back-btn" href="ojt_students_list.html">
+<span class="back-icon">‹</span>
+</a>
 
-                <div class="detail">
-                  <span class="detail-label">Contact</span>
-                  <span class="detail-value student-contact">09123456789</span>
-                </div>
-              </div>
+<section class="profile-card">
 
-              <div class="status-row">
-                <div class="status-pill">STATUS</div>
-              </div>
-            </div>
-          </header>
+<header class="profile-top">
+<div class="avatar"></div>
 
-          <nav class="tabs">
-            <button class="tab active" data-target="prePanel">
-              PRE REQUIREMENTS
-            </button>
-            <button class="tab" data-target="attendancePanel">
-              ATTENDANCE RECORD
-            </button>
-            <button class="tab" data-target="weeklyPanel">
-              WEEKLY REPORTS
-            </button>
-            <button class="tab" data-target="postPanel">
-              POST REQUIREMENTS
-            </button>
-          </nav>
+<div class="profile-meta">
 
-          <!-- PRE -->
-          <section class="panel tab-panel active" id="prePanel">
-            <h2 class="panel-title">PRE REQUIREMENTS</h2>
+<div class="name-row">
+<h1 class="student-name">Student Name</h1>
+<span class="student-id">Student ID</span>
+</div>
 
-            <div class="requirements-grid">
-              <div class="req">
-                <div class="req-label">CURRICULUM VITAE</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">RECOMMENDATION LETTER</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">TRAINING AGREEMENT</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">OJT SEMINAR CERTIFICATE</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">CERTIFICATE OF ENROLLMENT</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-            </div>
+<!-- ✅ NEW DETAILS ROW -->
+<div class="details-row">
+<div class="detail">
+<span class="detail-label">Email</span>
+<span class="detail-value student-email">sample@email.com</span>
+</div>
 
-            <div class="panel-actions">
-              <button class="deploy-btn">Deploy</button>
-            </div>
-          </section>
+<div class="detail">
+<span class="detail-label">Contact</span>
+<span class="detail-value student-contact">09123456789</span>
+</div>
+</div>
 
-          <!-- ATTENDANCE -->
-          <section class="panel tab-panel" id="attendancePanel">
-            <h2 class="panel-title">ATTENDANCE RECORD</h2>
-            <p>Attendance list here</p>
-          </section>
+<div class="status-row">
+<div class="status-pill">STATUS</div>
+</div>
 
-          <!-- WEEKLY -->
-          <section class="panel tab-panel" id="weeklyPanel">
-            <h2 class="panel-title">WEEKLY REPORTS</h2>
-            <p>Weekly reports list here</p>
+</div>
+</header>
 
-            <div class="panel-actions">
-              <button class="complete-btn">Report Complete</button>
-            </div>
-          </section>
+<nav class="tabs">
+<button class="tab active" data-target="prePanel">PRE REQUIREMENTS</button>
+<button class="tab" data-target="attendancePanel">ATTENDANCE RECORD</button>
+<button class="tab" data-target="weeklyPanel">WEEKLY REPORTS</button>
+<button class="tab" data-target="postPanel">POST REQUIREMENTS</button>
+</nav>
 
-          <!-- POST -->
-          <section class="panel tab-panel" id="postPanel">
-            <h2 class="panel-title">POST REQUIREMENTS</h2>
+<!-- PRE -->
+<section class="panel tab-panel active" id="prePanel">
+<h2 class="panel-title">PRE REQUIREMENTS</h2>
 
-            <div class="requirements-grid">
-              <div class="req">
-                <div class="req-label">NARRATIVE REPORT</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">EVALUATION SHEET</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">CERTIFICATE OF COMPLETION</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-            </div>
+<div class="requirements-grid">
+<div class="req"><div class="req-label">CURRICULUM VITAE</div><button class="upload-btn">Upload File</button></div>
+<div class="req"><div class="req-label">RECOMMENDATION LETTER</div><button class="upload-btn">Upload File</button></div>
+<div class="req"><div class="req-label">TRAINING AGREEMENT</div><button class="upload-btn">Upload File</button></div>
+<div class="req"><div class="req-label">OJT SEMINAR CERTIFICATE</div><button class="upload-btn">Upload File</button></div>
+<div class="req"><div class="req-label">CERTIFICATE OF ENROLLMENT</div><button class="upload-btn">Upload File</button></div>
+</div>
 
-            <div class="panel-actions">
-              <button class="completeojt-btn">
-                Archive the Student's Files
-              </button>
-            </div>
-          </section>
-        </section>
-      </div>
-    </div>
+<div class="panel-actions">
+<button class="deploy-btn">Deploy</button>
+</div>
+</section>
 
-    <script>
-      // TAB SWITCH
-      document.addEventListener("DOMContentLoaded", function () {
-        const tabs = document.querySelectorAll(".tab");
-        const panels = document.querySelectorAll(".tab-panel");
+<!-- ATTENDANCE -->
+<section class="panel tab-panel" id="attendancePanel">
+<h2 class="panel-title">ATTENDANCE RECORD</h2>
+<p>Attendance list here</p>
+</section>
 
-        tabs.forEach(function (tab) {
-          tab.addEventListener("click", function () {
-            tabs.forEach((t) => t.classList.remove("active"));
-            panels.forEach((p) => p.classList.remove("active"));
+<!-- WEEKLY -->
+<section class="panel tab-panel" id="weeklyPanel">
+<h2 class="panel-title">WEEKLY REPORTS</h2>
+<p>Weekly reports list here</p>
+
+<div class="panel-actions">
+<button class="complete-btn">Report Complete</button>
+</div>
+</section>
+
+<!-- POST -->
+<section class="panel tab-panel" id="postPanel">
+<h2 class="panel-title">POST REQUIREMENTS</h2>
+
+<div class="requirements-grid">
+<div class="req"><div class="req-label">NARRATIVE REPORT</div><button class="upload-btn">Upload File</button></div>
+<div class="req"><div class="req-label">EVALUATION SHEET</div><button class="upload-btn">Upload File</button></div>
+<div class="req"><div class="req-label">CERTIFICATE OF COMPLETION</div><button class="upload-btn">Upload File</button></div>
+</div>
+
+<div class="panel-actions">
+<button class="completeojt-btn">Archive the Student's Files</button>
+</div>
+
+</section>
+
+</section>
+</div>
+</div>
+
+<script>
+
+// TAB SWITCH
+document.addEventListener("DOMContentLoaded", function(){
+
+    const tabs = document.querySelectorAll(".tab");
+    const panels = document.querySelectorAll(".tab-panel");
+
+    tabs.forEach(function(tab){
+
+        tab.addEventListener("click", function(){
+
+            tabs.forEach(t => t.classList.remove("active"));
+            panels.forEach(p => p.classList.remove("active"));
 
             this.classList.add("active");
 
             const target = this.dataset.target;
             document.getElementById(target).classList.add("active");
-          });
+
         });
-      });
 
-      // RECEIVE STUDENT DATA
-      (function () {
-        let params = new URLSearchParams(window.location.search);
+    });
 
-        let name = params.get("name");
-        let id = params.get("id");
-        let status = params.get("status");
-        let email = params.get("email");
-        let contact = params.get("contact");
+});
 
-        if (name) document.querySelector(".student-name").textContent = name;
-        if (id) document.querySelector(".student-id").textContent = id;
-        if (status)
-          document.querySelector(".status-pill").textContent =
-            status.toUpperCase();
-        if (email) document.querySelector(".student-email").textContent = email;
-        if (contact)
-          document.querySelector(".student-contact").textContent = contact;
-      })();
-    </script>
-  </body>
+
+// RECEIVE STUDENT DATA
+(function(){
+
+let params = new URLSearchParams(window.location.search);
+
+let name = params.get("name");
+let id = params.get("id");
+let status = params.get("status");
+let email = params.get("email");
+let contact = params.get("contact");
+
+if(name) document.querySelector(".student-name").textContent = name;
+if(id) document.querySelector(".student-id").textContent = id;
+if(status) document.querySelector(".status-pill").textContent = status.toUpperCase();
+if(email) document.querySelector(".student-email").textContent = email;
+if(contact) document.querySelector(".student-contact").textContent = contact;
+
+})();
+
+</script>
+
+</body>
 </html>
