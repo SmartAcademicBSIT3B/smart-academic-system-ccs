@@ -17,6 +17,9 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
     />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="../api/extract_archive.js"></script>
+    <script src="../api/fetch_archive_dropdowns.js"></script>
   </head>
 
   <body>
@@ -128,6 +131,17 @@
           </div>
 
           <div class="form-body">
+            <!-- SECTION - first field to fill -->
+            <div class="input-group">
+              <label>SECTION</label>
+              <div class="select-wrapper">
+                <select id="archive-section">
+                  <option disabled selected>Section</option>
+                </select>
+                <span class="arrow"></span>
+              </div>
+            </div>
+
             <!-- PDF UPLOAD - full width, top of form -->
             <div class="input-group">
               <label>FILE (PDF)</label>
@@ -155,24 +169,10 @@
               </div>
 
               <div class="input-group">
-                <label>SECTION</label>
-                <div class="select-wrapper">
-                  <select id="archive-section">
-                    <option disabled selected>Section</option>
-                    <option>BSIT-3A</option>
-                    <option>BSIT-3B</option>
-                  </select>
-                  <span class="arrow"></span>
-                </div>
-              </div>
-
-              <div class="input-group">
                 <label>PROFESSOR</label>
                 <div class="select-wrapper">
                   <select id="archive-professor">
                     <option disabled selected>Professor</option>
-                    <option>Juan Delacruz</option>
-                    <option>Maria Lopez</option>
                   </select>
                   <span class="arrow"></span>
                 </div>
@@ -311,6 +311,10 @@
 
     <script>
       lucide.createIcons();
+
+      if (typeof window.loadArchiveDropdownOptions === "function") {
+        window.loadArchiveDropdownOptions();
+      }
 
       // Dropdown (delegated so it works for newly added rows)
       document.addEventListener("click", (e) => {
@@ -467,6 +471,46 @@
       const dropZone = document.getElementById("archive-drop-zone");
       const dropZoneFilename = document.getElementById("drop-zone-filename");
 
+      // ── PDF auto-fill (extraction logic lives in ../api/extract_archive.js) ──
+      async function autoFillFromPdf(file) {
+        if (typeof extractArchiveDataFromPdf === "undefined") {
+          dropZoneFilename.textContent = file.name;
+          return;
+        }
+        dropZoneFilename.textContent = "Extracting data from PDF...";
+        try {
+          const data = await extractArchiveDataFromPdf(file);
+
+          if (data.title) titleEl.value = data.title;
+          if (data.authors[0]) a1El.value = data.authors[0];
+          if (data.authors[1]) a2El.value = data.authors[1];
+          if (data.authors[2]) a3El.value = data.authors[2];
+          if (data.keywords.length) keywordsEl.value = data.keywords.join(", ");
+
+          if (data.advisor) {
+            let opt = Array.from(professorEl.options).find(
+              (o) =>
+                o.value.trim().toLowerCase() ===
+                data.advisor.trim().toLowerCase(),
+            );
+            if (!opt) {
+              opt = new Option(data.advisor, data.advisor);
+              professorEl.appendChild(opt);
+            }
+            professorEl.value = opt.value;
+          }
+
+          statusEl.value = "Approved";
+          typeEl.value = data.type;
+
+          dropZoneFilename.textContent = "OK " + file.name;
+        } catch (err) {
+          console.error("PDF auto-fill failed:", err);
+          dropZoneFilename.textContent = file.name;
+        }
+      }
+      // ── end PDF auto-fill ────────────────────────────────────────────
+
       function setDropZoneFile(file) {
         if (!file) return;
         if (
@@ -479,7 +523,7 @@
         const dt = new DataTransfer();
         dt.items.add(file);
         fileUploadEl.files = dt.files;
-        dropZoneFilename.textContent = file.name;
+        autoFillFromPdf(file);
       }
 
       dropZone.addEventListener("click", (e) => {
@@ -496,7 +540,7 @@
 
       fileUploadEl.addEventListener("change", () => {
         const file = fileUploadEl.files && fileUploadEl.files[0];
-        if (file) dropZoneFilename.textContent = file.name;
+        if (file) autoFillFromPdf(file);
       });
 
       dropZone.addEventListener("dragover", (e) => {
@@ -601,27 +645,27 @@
         const fileCell = fileName ? `<a href="#">${fileName}</a>` : "";
 
         tr.innerHTML = `
-        <td><input type="checkbox"></td>
-        <td>${id}</td>
-        <td>${data.title || ""}</td>
-        <td>${data.authors || ""}</td>
-        <td>${data.section || ""}</td>
-        <td>${data.advisor || ""}</td>
-        <td>${data.date || ""}</td>
-        <td>${data.keyword || ""}</td>
-        <td>${fileCell}</td>
-        <td class="action-cell">
-            <div class="dropdown">
-                <button class="dots-btn" type="button">
-                    <i data-lucide="more-vertical"></i>
-                </button>
-                <div class="dropdown-menu">
-                    <button class="edit-btn" type="button">Edit</button>
-                    <button class="danger" type="button">Delete</button>
-                </div>
-            </div>
-        </td>
-    `;
+          <td><input type="checkbox"></td>
+          <td>${id}</td>
+          <td>${data.title || ""}</td>
+          <td>${data.authors || ""}</td>
+          <td>${data.section || ""}</td>
+          <td>${data.advisor || ""}</td>
+          <td>${data.date || ""}</td>
+          <td>${data.keyword || ""}</td>
+          <td>${fileCell}</td>
+          <td class="action-cell">
+              <div class="dropdown">
+                  <button class="dots-btn" type="button">
+                      <i data-lucide="more-vertical"></i>
+                  </button>
+                  <div class="dropdown-menu">
+                      <button class="edit-btn" type="button">Edit</button>
+                      <button class="danger" type="button">Delete</button>
+                  </div>
+              </div>
+          </td>
+      `;
 
         tbody.appendChild(tr);
         lucide.createIcons();
@@ -638,6 +682,9 @@
       document
         .getElementById("manual-add-btn")
         .addEventListener("click", () => {
+          if (typeof window.loadArchiveDropdownOptions === "function") {
+            window.loadArchiveDropdownOptions();
+          }
           closeModal(selectModeModal);
           editingRow = null;
           modalTitleEl.textContent = "ADDING NEW FILE";

@@ -106,6 +106,30 @@ ipcMain.handle("getProfile", async (event, userId) => {
   }
 });
 
+ipcMain.handle("getSections", async () => {
+  try {
+    const sections = await query(
+      "SELECT id, section_name FROM sections ORDER BY section_name ASC",
+    );
+    return { success: true, sections: sections || [] };
+  } catch (error) {
+    console.error("Get sections error:", error);
+    return { success: false, message: "Failed to fetch sections." };
+  }
+});
+
+ipcMain.handle("getProfessors", async () => {
+  try {
+    const professors = await query(
+      "SELECT id, name FROM professors ORDER BY name ASC",
+    );
+    return { success: true, professors: professors || [] };
+  } catch (error) {
+    console.error("Get professors error:", error);
+    return { success: false, message: "Failed to fetch professors." };
+  }
+});
+
 ipcMain.handle("selectProfileImage", async () => {
   try {
     const focusedWindow = BrowserWindow.getFocusedWindow();
