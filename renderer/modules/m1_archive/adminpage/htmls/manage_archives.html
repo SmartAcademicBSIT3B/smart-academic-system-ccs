@@ -19,6 +19,7 @@
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="../api/extract_archive.js"></script>
+    <script src="../api/bulk_archive_summary.js"></script>
     <script src="../api/fetch_archive_dropdowns.js"></script>
   </head>
 
@@ -141,6 +142,68 @@
         </div>
       </div>
 
+      <!-- BULK SUMMARY MODAL -->
+      <div id="bulk-summary-modal" class="modal" style="display: none">
+        <div class="modal-content bulk-summary-modal-content">
+          <div class="form-header">
+            <h4>BULK UPLOAD SUMMARY</h4>
+          </div>
+          <div class="bulk-summary-note">
+            Review and edit extracted values before importing.
+          </div>
+          <div class="bulk-summary-wrap">
+            <table class="bulk-summary-table">
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Title</th>
+                  <th>Authors</th>
+                  <th>Date</th>
+                  <th>Section</th>
+                  <th>Advisor</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Keywords</th>
+                </tr>
+              </thead>
+              <tbody id="bulk-summary-body"></tbody>
+            </table>
+          </div>
+          <div class="form-actions choice-footer">
+            <button class="cancel-btn" id="bulk-summary-cancel" type="button">
+              Cancel
+            </button>
+            <button class="save-btn" id="bulk-summary-import" type="button">
+              Import Rows
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KEYWORDS EXPANDED VIEW MODAL -->
+      <div id="keywords-expanded-modal" class="modal" style="display: none">
+        <div class="modal-content keywords-expanded-modal-content">
+          <div class="form-header">
+            <h4>KEYWORDS</h4>
+          </div>
+          <div class="keywords-expanded-body">
+            <textarea id="keywords-expanded-text"></textarea>
+          </div>
+          <div class="form-actions choice-footer">
+            <button
+              class="cancel-btn"
+              id="keywords-expanded-cancel"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button class="save-btn" id="keywords-expanded-save" type="button">
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- MODAL -->
       <div id="archive-modal" class="modal" style="display: none">
         <div class="modal-content">
@@ -149,14 +212,25 @@
           </div>
 
           <div class="form-body">
-            <!-- SECTION - first field to fill -->
-            <div class="input-group">
-              <label>SECTION</label>
-              <div class="select-wrapper">
-                <select id="archive-section">
-                  <option disabled selected>Section</option>
-                </select>
-                <span class="arrow"></span>
+            <!-- SECTION & DATE - first fields to fill -->
+            <div class="grid-2">
+              <div class="input-group">
+                <label>SECTION</label>
+                <div class="select-wrapper">
+                  <select id="archive-section">
+                    <option disabled selected>Section</option>
+                  </select>
+                  <span class="arrow"></span>
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label>DATE</label>
+                <input
+                  id="archive-date"
+                  type="date"
+                  placeholder="Select date"
+                />
               </div>
             </div>
 
@@ -168,6 +242,7 @@
                   type="file"
                   id="archive-file-upload"
                   accept=".pdf,application/pdf"
+                  multiple
                   hidden
                 />
                 <i data-lucide="file-up" class="drop-zone-icon"></i>
@@ -472,10 +547,33 @@
       const sectionRequiredModal = document.getElementById(
         "section-required-modal",
       );
+      const bulkSummaryModal = document.getElementById("bulk-summary-modal");
+      const bulkSummaryBody = document.getElementById("bulk-summary-body");
+      const bulkSummaryCancelBtn = document.getElementById(
+        "bulk-summary-cancel",
+      );
+      const bulkSummaryImportBtn = document.getElementById(
+        "bulk-summary-import",
+      );
       const csvInput = document.getElementById("csv-file-input");
+      const keywordsExpandedModal = document.getElementById(
+        "keywords-expanded-modal",
+      );
+      const keywordsExpandedText = document.getElementById(
+        "keywords-expanded-text",
+      );
+      const keywordsExpandedSaveBtn = document.getElementById(
+        "keywords-expanded-save",
+      );
+      const keywordsExpandedCancelBtn = document.getElementById(
+        "keywords-expanded-cancel",
+      );
+
+      let currentKeywordsRow = null;
 
       const titleEl = document.getElementById("archive-title");
       const sectionEl = document.getElementById("archive-section");
+      const dateEl = document.getElementById("archive-date");
       const professorEl = document.getElementById("archive-professor");
       const statusEl = document.getElementById("archive-status");
       const typeEl = document.getElementById("archive-type");
@@ -507,6 +605,7 @@
         const enabled = isSectionSelected();
         [
           titleEl,
+          dateEl,
           professorEl,
           statusEl,
           typeEl,
@@ -527,6 +626,117 @@
         lucide.createIcons();
       }
 
+      function statusSelectMarkup(value) {
+        const safe = String(value || "Approved");
+        return `<select class="bulk-field-status"><option ${safe === "Pending" ? "selected" : ""}>Pending</option><option ${safe === "Approved" ? "selected" : ""}>Approved</option><option ${safe === "Rejected" ? "selected" : ""}>Rejected</option></select>`;
+      }
+
+      function typeSelectMarkup(value) {
+        const safe = String(value || "Other");
+        const values = ["Thesis", "Research", "Capstone", "Project", "Other"];
+        return `<select class="bulk-field-type">${values
+          .map((v) => `<option ${safe === v ? "selected" : ""}>${v}</option>`)
+          .join("")}</select>`;
+      }
+
+      function escapeAttr(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function openBulkSummaryModal(rows) {
+        bulkSummaryBody.innerHTML = rows
+          .map(
+            (row, idx) => `
+            <tr data-row-index="${idx}">
+              <td><input class="bulk-field-file" value="${escapeAttr(row.fileName)}" readonly /></td>
+              <td><input class="bulk-field-title" value="${escapeAttr(row.title)}" /></td>
+              <td><input class="bulk-field-authors" value="${escapeAttr(row.authors)}" /></td>
+              <td><input class="bulk-field-date" type="date" value="${escapeAttr(row.date)}" /></td>
+              <td><input class="bulk-field-section" value="${escapeAttr(row.section)}" /></td>
+              <td><input class="bulk-field-advisor" value="${escapeAttr(row.advisor)}" /></td>
+              <td>${typeSelectMarkup(row.type)}</td>
+              <td>${statusSelectMarkup(row.status)}</td>
+              <td><button class="bulk-keywords-btn" type="button" data-keywords="${escapeAttr(row.keywords)}">View</button><input class="bulk-field-keywords" value="${escapeAttr(row.keywords)}" style="display:none;" /></td>
+            </tr>`,
+          )
+          .join("");
+
+        openModal(bulkSummaryModal);
+      }
+
+      function getRowsFromBulkSummaryModal() {
+        return Array.from(bulkSummaryBody.querySelectorAll("tr")).map((tr) => {
+          const valueOf = (selector) =>
+            (tr.querySelector(selector)?.value || "").trim();
+
+          return {
+            fileName: valueOf(".bulk-field-file"),
+            title: valueOf(".bulk-field-title"),
+            authors: valueOf(".bulk-field-authors"),
+            date: valueOf(".bulk-field-date"),
+            section: valueOf(".bulk-field-section"),
+            advisor: valueOf(".bulk-field-advisor"),
+            type: valueOf(".bulk-field-type"),
+            status: valueOf(".bulk-field-status"),
+            keywords: valueOf(".bulk-field-keywords"),
+          };
+        });
+      }
+
+      async function handleSelectedPdfFiles(files) {
+        const list = Array.from(files || []);
+        if (list.length === 0) return;
+
+        if (!isSectionSelected()) {
+          showSectionRequiredModal();
+          sectionEl.focus();
+          return;
+        }
+
+        const nonPdf = list.find(
+          (file) =>
+            file.type !== "application/pdf" &&
+            !file.name.toLowerCase().endsWith(".pdf"),
+        );
+        if (nonPdf) {
+          alert("Please select PDF files only.");
+          return;
+        }
+
+        if (list.length === 1) {
+          setDropZoneFile(list[0]);
+          return;
+        }
+
+        if (typeof extractBulkArchiveRows !== "function") {
+          alert("Bulk extractor is not available.");
+          return;
+        }
+
+        dropZoneFilename.textContent = `Extracting ${list.length} PDFs...`;
+        const defaults = {
+          section: sectionEl.value,
+          status:
+            statusEl.value && statusEl.selectedIndex > 0
+              ? statusEl.value
+              : "Approved",
+        };
+
+        try {
+          const rows = await extractBulkArchiveRows(list, defaults);
+          openBulkSummaryModal(rows);
+          dropZoneFilename.textContent = `${rows.length} files ready`;
+        } catch (error) {
+          console.error("Bulk extraction error:", error);
+          dropZoneFilename.textContent = "Bulk extraction failed";
+          alert("Failed to extract some PDF files.");
+        }
+      }
+
       // ── PDF auto-fill (extraction logic lives in ../api/extract_archive.js) ──
       async function autoFillFromPdf(file) {
         if (typeof extractArchiveDataFromPdf === "undefined") {
@@ -538,6 +748,7 @@
           const data = await extractArchiveDataFromPdf(file);
 
           if (data.title) titleEl.value = data.title;
+          if (data.date) dateEl.value = data.date;
           if (data.authors[0]) a1El.value = data.authors[0];
           if (data.authors[1]) a2El.value = data.authors[1];
           if (data.authors[2]) a3El.value = data.authors[2];
@@ -605,14 +816,14 @@
       });
 
       fileUploadEl.addEventListener("change", () => {
-        const file = fileUploadEl.files && fileUploadEl.files[0];
-        if (file && !isSectionSelected()) {
+        const files = Array.from(fileUploadEl.files || []);
+        if (files.length && !isSectionSelected()) {
           fileUploadEl.value = "";
           showSectionRequiredModal();
           sectionEl.focus();
           return;
         }
-        if (file) autoFillFromPdf(file);
+        if (files.length) handleSelectedPdfFiles(files);
       });
 
       dropZone.addEventListener("dragover", (e) => {
@@ -634,8 +845,74 @@
           sectionEl.focus();
           return;
         }
-        const file = e.dataTransfer.files && e.dataTransfer.files[0];
-        if (file) setDropZoneFile(file);
+        const files = Array.from(e.dataTransfer.files || []);
+        if (files.length) handleSelectedPdfFiles(files);
+      });
+
+      bulkSummaryCancelBtn.addEventListener("click", () => {
+        closeModal(bulkSummaryModal);
+      });
+
+      bulkSummaryImportBtn.addEventListener("click", () => {
+        const rows = getRowsFromBulkSummaryModal();
+        rows.forEach((row) => {
+          addArchiveRow({
+            title: row.title,
+            authors: row.authors,
+            section: row.section,
+            advisor: row.advisor,
+            date: row.date,
+            keyword: row.keywords,
+            fileName: row.fileName,
+          });
+        });
+
+        fileUploadEl.value = "";
+        closeModal(bulkSummaryModal);
+        closeModal(archiveModal);
+      });
+
+      bulkSummaryModal.addEventListener("click", (e) => {
+        if (e.target === bulkSummaryModal) closeModal(bulkSummaryModal);
+      });
+
+      // Keywords expanded view
+      bulkSummaryBody.addEventListener("click", (e) => {
+        const btn = e.target.closest(".bulk-keywords-btn");
+        if (!btn) return;
+
+        const tr = btn.closest("tr");
+        const keywordsInput = tr.querySelector(".bulk-field-keywords");
+        const keywords = keywordsInput.value.trim();
+
+        currentKeywordsRow = tr;
+        keywordsExpandedText.value = keywords;
+        openModal(keywordsExpandedModal);
+        keywordsExpandedText.focus();
+      });
+
+      keywordsExpandedSaveBtn.addEventListener("click", () => {
+        if (!currentKeywordsRow) return;
+
+        const keywordsInput = currentKeywordsRow.querySelector(
+          ".bulk-field-keywords",
+        );
+        keywordsInput.value = keywordsExpandedText.value.trim();
+
+        currentKeywordsRow = null;
+        closeModal(keywordsExpandedModal);
+      });
+
+      keywordsExpandedCancelBtn.addEventListener("click", () => {
+        currentKeywordsRow = null;
+        closeModal(keywordsExpandedModal);
+      });
+
+      keywordsExpandedModal.addEventListener("click", (e) => {
+        if (e.target === keywordsExpandedModal) {
+          currentKeywordsRow = null;
+          closeModal(keywordsExpandedModal);
+        }
       });
 
       document
@@ -651,6 +928,7 @@
       function resetForm() {
         titleEl.value = "";
         sectionEl.selectedIndex = 0;
+        dateEl.value = "";
         professorEl.selectedIndex = 0;
         statusEl.selectedIndex = 0;
         typeEl.selectedIndex = 0;
@@ -760,10 +1038,16 @@
         lucide.createIcons();
       }
 
-      // Open flow: "+" shows add mode options
-      document
-        .getElementById("open-modal")
-        .addEventListener("click", () => openModal(selectModeModal));
+      // Open flow: "+" goes straight to add form
+      document.getElementById("open-modal").addEventListener("click", () => {
+        if (typeof window.loadArchiveDropdownOptions === "function") {
+          window.loadArchiveDropdownOptions();
+        }
+        editingRow = null;
+        modalTitleEl.textContent = "ADDING NEW FILE";
+        resetForm();
+        openModal(archiveModal);
+      });
       document
         .getElementById("cancel-mode-btn")
         .addEventListener("click", () => closeModal(selectModeModal));
@@ -887,6 +1171,7 @@
             sectionEl.value && sectionEl.selectedIndex > 0
               ? sectionEl.value
               : "";
+          const date = dateEl.value.trim();
           const advisor =
             professorEl.value && professorEl.selectedIndex > 0
               ? professorEl.value
@@ -902,14 +1187,12 @@
               ? fileUploadEl.files[0].name
               : "";
 
-          // Date isn't in the form yet; keep existing or empty.
-          const date = editingRow ? editingRow.cells[6]?.textContent || "" : "";
-
           if (editingRow) {
             editingRow.cells[2].textContent = title;
             editingRow.cells[3].textContent = authors;
             editingRow.cells[4].textContent = section;
             editingRow.cells[5].textContent = advisor;
+            editingRow.cells[6].textContent = date;
             editingRow.cells[7].textContent = keyword;
             if (fileName)
               editingRow.cells[8].innerHTML = `<a href="#">${fileName}</a>`;
@@ -918,8 +1201,8 @@
               title,
               authors,
               section,
-              advisor,
               date,
+              advisor,
               keyword,
               status,
               type,
@@ -944,9 +1227,11 @@
         const authors = row.cells[3]?.textContent || "";
         const section = row.cells[4]?.textContent || "";
         const advisor = row.cells[5]?.textContent || "";
+        const date = row.cells[6]?.textContent || "";
         const keyword = row.cells[7]?.textContent || "";
 
         titleEl.value = title.trim();
+        dateEl.value = date.trim();
         const [aa1, aa2, aa3] = parseAuthors(authors);
         a1El.value = aa1;
         a2El.value = aa2;
@@ -982,6 +1267,8 @@
         closeModal(selectModeModal);
         closeModal(archiveModal);
         closeModal(sectionRequiredModal);
+        closeModal(bulkSummaryModal);
+        closeModal(keywordsExpandedModal);
       });
     </script>
   </body>

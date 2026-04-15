@@ -133,9 +133,30 @@ function parsePdfKeywords(allText) {
   return keywords;
 }
 
+function parsePdfDate(lines) {
+  // Look for date pattern: "Month, YYYY" or "Month YYYY"
+  // Examples: "January, 2024", "December 2023", "January 2025"
+  const monthPattern =
+    /(January|February|March|April|May|June|July|August|September|October|November|December),?\s+(\d{4})/i;
+
+  // Search through the page lines (usually near the end for the date)
+  for (const line of lines) {
+    const match = line.match(monthPattern);
+    if (match) {
+      // Format as YYYY-MM-DD for HTML date input
+      const monthName = match[1];
+      const year = match[2];
+      const monthNum = new Date(`${monthName} 1, ${year}`).getMonth() + 1;
+      return `${year}-${String(monthNum).padStart(2, "0")}-01`;
+    }
+  }
+
+  return "";
+}
+
 /**
  * Extracts structured data from a PDF File object.
- * Returns { title, authors, advisor, type, keywords }.
+ * Returns { title, authors, advisor, type, keywords, date }.
  */
 async function extractArchiveDataFromPdf(file) {
   const arrayBuffer = await file.arrayBuffer();
@@ -158,5 +179,6 @@ async function extractArchiveDataFromPdf(file) {
     advisor: parsePdfAdvisor(page1Lines),
     type: parsePdfType(page1Lines),
     keywords: parsePdfKeywords(allText),
+    date: parsePdfDate(page1Lines),
   };
 }
