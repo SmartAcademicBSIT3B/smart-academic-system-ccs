@@ -123,6 +123,24 @@
         </div>
       </div>
 
+      <!-- SECTION REQUIRED ALERT MODAL -->
+      <div id="section-required-modal" class="modal" style="display: none">
+        <div class="modal-content choice-modal-content">
+          <div class="form-header">
+            <h4>SECTION REQUIRED</h4>
+          </div>
+          <div class="section-alert-body">
+            <i data-lucide="alert-triangle" class="section-alert-icon"></i>
+            <p>Please select a Section first before uploading a file.</p>
+          </div>
+          <div class="form-actions choice-footer">
+            <button class="save-btn" id="section-required-ok-btn" type="button">
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- MODAL -->
       <div id="archive-modal" class="modal" style="display: none">
         <div class="modal-content">
@@ -162,7 +180,7 @@
             </div>
 
             <!-- TOP ROW -->
-            <div class="grid-3">
+            <div class="grid-2">
               <div class="input-group">
                 <label>TITLE</label>
                 <input id="archive-title" type="text" placeholder="Type here" />
@@ -451,6 +469,9 @@
       // Modals
       const selectModeModal = document.getElementById("select-mode-modal");
       const archiveModal = document.getElementById("archive-modal");
+      const sectionRequiredModal = document.getElementById(
+        "section-required-modal",
+      );
       const csvInput = document.getElementById("csv-file-input");
 
       const titleEl = document.getElementById("archive-title");
@@ -463,6 +484,7 @@
       const a3El = document.getElementById("archive-author-3");
       const keywordsEl = document.getElementById("archive-keywords");
       const fileUploadEl = document.getElementById("archive-file-upload");
+      const saveArchiveBtn = document.getElementById("save-archive-btn");
       const modalTitleEl = document.getElementById("archive-modal-title");
 
       let editingRow = null;
@@ -470,6 +492,40 @@
       // Drop zone
       const dropZone = document.getElementById("archive-drop-zone");
       const dropZoneFilename = document.getElementById("drop-zone-filename");
+
+      function isSectionSelected() {
+        return sectionEl.selectedIndex > 0 && sectionEl.value;
+      }
+
+      function updateUploadInteractivity() {
+        const enabled = isSectionSelected();
+        dropZone.classList.toggle("disabled", !enabled);
+        dropZone.setAttribute("aria-disabled", String(!enabled));
+      }
+
+      function updateSectionDependentFieldsState() {
+        const enabled = isSectionSelected();
+        [
+          titleEl,
+          professorEl,
+          statusEl,
+          typeEl,
+          a1El,
+          a2El,
+          a3El,
+          keywordsEl,
+          fileUploadEl,
+          saveArchiveBtn,
+        ].forEach((el) => {
+          if (el) el.disabled = !enabled;
+        });
+        updateUploadInteractivity();
+      }
+
+      function showSectionRequiredModal() {
+        openModal(sectionRequiredModal);
+        lucide.createIcons();
+      }
 
       // ── PDF auto-fill (extraction logic lives in ../api/extract_archive.js) ──
       async function autoFillFromPdf(file) {
@@ -513,6 +569,11 @@
 
       function setDropZoneFile(file) {
         if (!file) return;
+        if (!isSectionSelected()) {
+          showSectionRequiredModal();
+          sectionEl.focus();
+          return;
+        }
         if (
           file.type !== "application/pdf" &&
           !file.name.toLowerCase().endsWith(".pdf")
@@ -527,6 +588,11 @@
       }
 
       dropZone.addEventListener("click", (e) => {
+        if (!isSectionSelected()) {
+          showSectionRequiredModal();
+          sectionEl.focus();
+          return;
+        }
         if (
           e.target.closest(".drop-zone-browse") ||
           e.target === dropZone ||
@@ -540,11 +606,18 @@
 
       fileUploadEl.addEventListener("change", () => {
         const file = fileUploadEl.files && fileUploadEl.files[0];
+        if (file && !isSectionSelected()) {
+          fileUploadEl.value = "";
+          showSectionRequiredModal();
+          sectionEl.focus();
+          return;
+        }
         if (file) autoFillFromPdf(file);
       });
 
       dropZone.addEventListener("dragover", (e) => {
         e.preventDefault();
+        if (!isSectionSelected()) return;
         dropZone.classList.add("drag-over");
       });
 
@@ -556,9 +629,24 @@
       dropZone.addEventListener("drop", (e) => {
         e.preventDefault();
         dropZone.classList.remove("drag-over");
+        if (!isSectionSelected()) {
+          showSectionRequiredModal();
+          sectionEl.focus();
+          return;
+        }
         const file = e.dataTransfer.files && e.dataTransfer.files[0];
         if (file) setDropZoneFile(file);
       });
+
+      document
+        .getElementById("section-required-ok-btn")
+        .addEventListener("click", () => closeModal(sectionRequiredModal));
+      sectionRequiredModal.addEventListener("click", (e) => {
+        if (e.target === sectionRequiredModal) closeModal(sectionRequiredModal);
+      });
+
+      sectionEl.addEventListener("change", updateSectionDependentFieldsState);
+      updateSectionDependentFieldsState();
 
       function resetForm() {
         titleEl.value = "";
@@ -572,6 +660,7 @@
         keywordsEl.value = "";
         fileUploadEl.value = "";
         dropZoneFilename.textContent = "";
+        updateSectionDependentFieldsState();
       }
 
       function getNextId() {
@@ -892,6 +981,7 @@
         if (e.key !== "Escape") return;
         closeModal(selectModeModal);
         closeModal(archiveModal);
+        closeModal(sectionRequiredModal);
       });
     </script>
   </body>
