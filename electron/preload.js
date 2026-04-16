@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveGoogleDriveToken: (authCode) =>
     ipcRenderer.invoke("saveGoogleDriveToken", authCode),
   openExternalUrl: (url) => ipcRenderer.invoke("openExternalUrl", url),
+  downloadArchivesToDownloads: (files) =>
+    ipcRenderer.invoke("downloadArchivesToDownloads", files),
   authorizeGoogleDriveInteractive: () =>
     ipcRenderer.invoke("authorizeGoogleDriveInteractive"),
   updateProfile: (profileData) =>

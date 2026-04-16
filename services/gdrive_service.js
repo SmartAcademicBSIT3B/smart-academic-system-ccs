@@ -196,4 +196,5 @@ module.exports = {
   listFilesInFolder,
   deleteDriveFileByUrl,
   extractGoogleDriveFileId,
+  getDriveClient,
 };

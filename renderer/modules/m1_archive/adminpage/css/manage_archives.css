@@ -780,7 +780,11 @@
 /* Column widths */
 #archives-table .col-check {
   width: 36px;
+  min-width: 36px;
+  max-width: 36px;
   text-align: center;
+  vertical-align: middle;
+  line-height: 0;
 }
 #archives-table .col-title {
   width: 160px;
@@ -1176,4 +1180,285 @@
 
 #delete-confirm-modal {
   z-index: 1230;
+}
+
+/* ====================================================
+   CUSTOM CHECKBOX
+   ==================================================== */
+.archive-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  max-width: 16px;
+  max-height: 16px;
+  padding: 0;
+  margin: 0 auto;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border, #3a3f46);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.archive-checkbox:hover {
+  border-color: var(--accent, #9dc6ff);
+}
+
+.archive-checkbox:checked {
+  background: var(--accent, #9dc6ff);
+  border-color: var(--accent, #9dc6ff);
+}
+
+.archive-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #0b0d10;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.archive-checkbox:indeterminate {
+  background: transparent;
+  border-color: var(--accent, #9dc6ff);
+}
+
+.archive-checkbox:indeterminate::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  width: 8px;
+  height: 2px;
+  background: var(--accent, #9dc6ff);
+  border-radius: 2px;
+}
+
+/* ====================================================
+   ROW SELECTION STATE
+   ==================================================== */
+#archives-table tbody tr {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+#archives-table tbody tr:hover {
+  background: rgba(157, 198, 255, 0.04);
+}
+
+#archives-table tbody tr.row-selected {
+  background: rgba(157, 198, 255, 0.09);
+}
+
+#archives-table tbody tr.row-selected:hover {
+  background: rgba(157, 198, 255, 0.13);
+}
+
+#archives-table tbody tr.row-drag-hover {
+  background: rgba(157, 198, 255, 0.12);
+  outline: 1px solid rgba(157, 198, 255, 0.3);
+  outline-offset: -1px;
+}
+
+/* ====================================================
+   DRAG-SELECT RUBBER BAND BOX
+   ==================================================== */
+#drag-select-box {
+  pointer-events: none;
+  position: fixed;
+  border: 1.5px solid var(--accent, #9dc6ff);
+  background: rgba(157, 198, 255, 0.07);
+  border-radius: 3px;
+  z-index: 9998;
+}
+
+/* ====================================================
+   BULK ACTION BAR
+   ==================================================== */
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: #1c2130;
+  border: 1px solid var(--border, #3a3f46);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  transition: opacity 0.15s;
+}
+
+.bulk-action-count {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent, #9dc6ff);
+  white-space: nowrap;
+  padding-right: 4px;
+  border-right: 1px solid var(--border, #3a3f46);
+  margin-right: 2px;
+}
+
+.bulk-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.bulk-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #3a3f46);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary, #c9ccd1);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.bulk-action-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: #52585f;
+}
+
+.bulk-action-btn.danger {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.bulk-action-btn.danger:hover {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.5);
+}
+
+.bulk-action-btn i,
+.bulk-action-btn svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.bulk-action-clear {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #9aa0a6);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  font-family: inherit;
+  transition: color 0.15s;
+}
+
+.bulk-action-clear:hover {
+  color: var(--text-primary, #c9ccd1);
+}
+
+.bulk-action-clear i,
+.bulk-action-clear svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ====================================================
+   TOAST NOTIFICATIONS
+   ==================================================== */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: 8px;
+  background: #232830;
+  border: 1px solid var(--border, #3a3f46);
+  color: var(--text-primary, #c9ccd1);
+  font-size: 13px;
+  min-width: 220px;
+  max-width: 360px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+  pointer-events: auto;
+}
+
+.toast.toast-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-success {
+  border-color: rgba(76, 175, 125, 0.4);
+}
+.toast-success i,
+.toast-success svg {
+  color: #4caf7d;
+}
+
+.toast-error {
+  border-color: rgba(224, 92, 92, 0.4);
+}
+.toast-error i,
+.toast-error svg {
+  color: #e05c5c;
+}
+
+.toast-loading {
+  border-color: rgba(157, 198, 255, 0.3);
+}
+.toast-loading i,
+.toast-loading svg {
+  color: var(--accent, #9dc6ff);
+}
+
+.toast i,
+.toast svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+@keyframes toast-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.toast-spin {
+  animation: toast-spin 0.8s linear infinite;
 }

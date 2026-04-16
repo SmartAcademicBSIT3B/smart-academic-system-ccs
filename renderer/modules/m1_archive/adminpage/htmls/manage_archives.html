@@ -23,6 +23,7 @@
     <script src="../api/fetch_archive_dropdowns.js"></script>
     <script src="../api/fetch_archives.js"></script>
     <script src="../api/delete_archive.js"></script>
+    <script src="../api/multi_select.js"></script>
   </head>
 
   <body>
@@ -197,6 +198,41 @@
               disabled
             >
               Delete
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BULK DOWNLOAD CONFIRMATION MODAL -->
+      <div id="bulk-download-confirm-modal" class="modal" style="display: none">
+        <div class="modal-content delete-confirm-modal-content">
+          <div class="form-header">
+            <h4>CONFIRM BULK DOWNLOAD</h4>
+          </div>
+          <div class="delete-confirm-body">
+            <p class="delete-confirm-message">
+              The selected archive files will be saved automatically to your
+              Downloads folder.
+            </p>
+            <p
+              class="delete-confirm-target"
+              id="bulk-download-confirm-target"
+            ></p>
+          </div>
+          <div class="form-actions choice-footer">
+            <button
+              class="cancel-btn"
+              id="bulk-download-confirm-cancel"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              class="save-btn"
+              id="bulk-download-confirm-submit"
+              type="button"
+            >
+              Download
             </button>
           </div>
         </div>
@@ -529,12 +565,57 @@
 
       <!-- TABLE -->
       <div class="table-card">
+        <!-- BULK ACTION BAR -->
+        <div
+          id="bulk-action-bar"
+          class="bulk-action-bar"
+          style="visibility: hidden; opacity: 0; pointer-events: none"
+        >
+          <span id="bulk-action-count" class="bulk-action-count"
+            >0 selected</span
+          >
+          <div class="bulk-action-btns">
+            <button class="bulk-action-btn" id="bulk-gdrive-btn" type="button">
+              <i class="fab fa-google-drive" aria-hidden="true"></i>
+              <span>View in Drive</span>
+            </button>
+            <button
+              class="bulk-action-btn"
+              id="bulk-download-btn"
+              type="button"
+            >
+              <i data-lucide="download"></i>
+              <span>Download</span>
+            </button>
+            <button
+              class="bulk-action-btn danger"
+              id="bulk-delete-btn"
+              type="button"
+            >
+              <i data-lucide="trash-2"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+          <button
+            class="bulk-action-clear"
+            id="bulk-clear-btn"
+            type="button"
+            title="Clear selection"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
         <div class="table-wrapper">
           <table id="archives-table">
             <thead>
               <tr>
                 <th class="col-check">
-                  <input type="checkbox" id="select-all-archives" />
+                  <input
+                    type="checkbox"
+                    id="select-all-archives"
+                    class="archive-checkbox"
+                  />
                 </th>
                 <th class="col-title">Title</th>
                 <th class="col-authors">Authors</th>
@@ -552,6 +633,12 @@
         </div>
       </div>
     </div>
+
+    <!-- Drag-select rubber-band box -->
+    <div id="drag-select-box" style="display: none"></div>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
 
     <script>
       lucide.createIcons();
@@ -893,6 +980,18 @@
       const deleteConfirmSubmitBtn = document.getElementById(
         "delete-confirm-submit",
       );
+      const bulkDownloadConfirmModal = document.getElementById(
+        "bulk-download-confirm-modal",
+      );
+      const bulkDownloadConfirmTarget = document.getElementById(
+        "bulk-download-confirm-target",
+      );
+      const bulkDownloadConfirmCancelBtn = document.getElementById(
+        "bulk-download-confirm-cancel",
+      );
+      const bulkDownloadConfirmSubmitBtn = document.getElementById(
+        "bulk-download-confirm-submit",
+      );
       const bulkSummaryModal = document.getElementById("bulk-summary-modal");
       const bulkSummaryBody = document.getElementById("bulk-summary-body");
       const bulkSummaryCancelBtn = document.getElementById(
@@ -919,6 +1018,8 @@
       let pendingRequiredFieldFocus = null;
       let bulkPdfFiles = [];
       let pendingDeleteRow = null;
+      let pendingDeleteRows = null;
+      let pendingDownloadRows = [];
 
       const titleEl = document.getElementById("archive-title");
       const sectionEl = document.getElementById("archive-section");
@@ -1018,10 +1119,16 @@
         }
       }
 
-      function openDeleteConfirmModal(row) {
-        pendingDeleteRow = row;
-        const title = row?.dataset?.title || "this archive";
-        deleteConfirmTarget.textContent = `Target: ${title}`;
+      function openDeleteConfirmModal(rowOrRows) {
+        const isBulk = Array.isArray(rowOrRows);
+        pendingDeleteRow = isBulk ? null : rowOrRows;
+        pendingDeleteRows = isBulk ? rowOrRows : null;
+        if (isBulk && rowOrRows.length > 1) {
+          deleteConfirmTarget.textContent = `${rowOrRows.length} archives will be permanently deleted.`;
+        } else {
+          const r = isBulk ? rowOrRows[0] : rowOrRows;
+          deleteConfirmTarget.textContent = `Target: ${r?.dataset?.title || "this archive"}`;
+        }
         deleteConfirmInput.value = "";
         deleteConfirmSubmitBtn.disabled = true;
         openModal(deleteConfirmModal);
@@ -1030,9 +1137,24 @@
 
       function closeDeleteConfirmModal() {
         pendingDeleteRow = null;
+        pendingDeleteRows = null;
         deleteConfirmInput.value = "";
         deleteConfirmSubmitBtn.disabled = true;
         closeModal(deleteConfirmModal);
+      }
+
+      function openBulkDownloadConfirmModal(rows) {
+        pendingDownloadRows = Array.isArray(rows) ? rows : [];
+        const count = pendingDownloadRows.length;
+        bulkDownloadConfirmTarget.textContent = `${count} archive${count === 1 ? "" : "s"} will be saved to Downloads.`;
+        bulkDownloadConfirmSubmitBtn.disabled = false;
+        openModal(bulkDownloadConfirmModal);
+      }
+
+      function closeBulkDownloadConfirmModal() {
+        pendingDownloadRows = [];
+        bulkDownloadConfirmSubmitBtn.disabled = false;
+        closeModal(bulkDownloadConfirmModal);
       }
 
       function statusSelectMarkup(value) {
@@ -1491,8 +1613,17 @@
       deleteConfirmModal.addEventListener("click", (e) => {
         if (e.target === deleteConfirmModal) closeDeleteConfirmModal();
       });
+      bulkDownloadConfirmModal.addEventListener("click", (e) => {
+        if (e.target === bulkDownloadConfirmModal) {
+          closeBulkDownloadConfirmModal();
+        }
+      });
 
       deleteConfirmCancelBtn.addEventListener("click", closeDeleteConfirmModal);
+      bulkDownloadConfirmCancelBtn.addEventListener(
+        "click",
+        closeBulkDownloadConfirmModal,
+      );
 
       deleteConfirmInput.addEventListener("input", () => {
         const canConfirm =
@@ -1503,59 +1634,187 @@
       });
 
       deleteConfirmSubmitBtn.addEventListener("click", async () => {
-        if (!pendingDeleteRow) return;
-
-        const archiveId = pendingDeleteRow.dataset.id;
-        if (!archiveId) {
-          alert("Archive ID is missing. Deletion cancelled.");
-          closeDeleteConfirmModal();
-          return;
-        }
+        const isBulk = Array.isArray(pendingDeleteRows);
+        const rowsToDelete = isBulk
+          ? pendingDeleteRows
+          : pendingDeleteRow
+            ? [pendingDeleteRow]
+            : [];
+        if (!rowsToDelete.length) return;
 
         deleteConfirmSubmitBtn.disabled = true;
 
-        try {
-          if (typeof window.deleteArchiveRecord !== "function") {
-            alert("Delete API is unavailable. Please reload the app.");
-            return;
+        const loadingToast = showToast(
+          `Deleting ${rowsToDelete.length} archive${rowsToDelete.length > 1 ? "s" : ""}…`,
+          "loading",
+          0,
+        );
+
+        closeDeleteConfirmModal();
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const row of rowsToDelete) {
+          const archiveId = row?.dataset?.id;
+          if (!archiveId) {
+            failCount++;
+            continue;
           }
-
-          let result = await window.deleteArchiveRecord(archiveId);
-
-          if (result && result.requiresAuth) {
-            const electronAPI = getElectronAPI();
-            if (!electronAPI) {
-              alert(
-                "Google authorization is required, but electronAPI is unavailable.",
-              );
-              return;
+          try {
+            if (typeof window.deleteArchiveRecord !== "function") {
+              failCount++;
+              continue;
             }
 
+            let result = await window.deleteArchiveRecord(archiveId);
+
+            if (result && result.requiresAuth) {
+              const electronAPI = getElectronAPI();
+              if (!electronAPI) {
+                failCount++;
+                continue;
+              }
+              const authorized = await runGoogleDriveOAuth(electronAPI);
+              if (!authorized) {
+                failCount++;
+                continue;
+              }
+              result = await window.deleteArchiveRecord(archiveId);
+            }
+
+            if (result && result.success) {
+              _setRowSelected(row, false);
+              row.remove();
+              successCount++;
+            } else {
+              failCount++;
+            }
+          } catch (err) {
+            console.error("Delete archive error:", err);
+            failCount++;
+          }
+        }
+
+        dismissToast(loadingToast);
+        updateSelectionUI();
+
+        if (successCount > 0 && failCount === 0) {
+          showToast(
+            `${successCount} archive${successCount > 1 ? "s" : ""} deleted.`,
+            "success",
+          );
+        } else if (successCount > 0 && failCount > 0) {
+          showToast(`${successCount} deleted, ${failCount} failed.`, "error");
+        } else {
+          showToast("Failed to delete the selected archive(s).", "error");
+          deleteConfirmSubmitBtn.disabled = false;
+        }
+      });
+
+      bulkDownloadConfirmSubmitBtn.addEventListener("click", async () => {
+        const rowsToDownload = pendingDownloadRows.filter(
+          (row) => row?.dataset?.filePath || row?.dataset?.localFilePath,
+        );
+        if (!rowsToDownload.length) {
+          closeBulkDownloadConfirmModal();
+          showToast("No downloadable files in the selection.", "error");
+          return;
+        }
+
+        const electronAPI = getElectronAPI();
+        if (
+          !electronAPI ||
+          typeof electronAPI.downloadArchivesToDownloads !== "function"
+        ) {
+          showToast(
+            "Download API is unavailable. Please reload the app.",
+            "error",
+          );
+          return;
+        }
+
+        bulkDownloadConfirmSubmitBtn.disabled = true;
+
+        const payload = rowsToDownload.map((row) => ({
+          sourceUrl: row.dataset.filePath || "",
+          localFilePath: row.dataset.localFilePath || "",
+          fileName: row.dataset.fileName || "",
+        }));
+
+        closeBulkDownloadConfirmModal();
+        const loadingToast = showToast(
+          `Downloading ${payload.length} file${payload.length === 1 ? "" : "s"} to Downloads…`,
+          "loading",
+          0,
+        );
+
+        try {
+          let result = await electronAPI.downloadArchivesToDownloads(payload);
+
+          if (result?.requiresAuth) {
             const authorized = await runGoogleDriveOAuth(electronAPI);
             if (!authorized) {
-              alert(
-                "Deletion cancelled. Google Drive authorization was not completed.",
+              dismissToast(loadingToast);
+              showToast(
+                "Download cancelled. Google Drive authorization was not completed.",
+                "error",
               );
               return;
             }
 
-            result = await window.deleteArchiveRecord(archiveId);
+            result = await electronAPI.downloadArchivesToDownloads(payload);
           }
 
-          if (!result || !result.success) {
-            alert(result?.message || "Failed to delete archive.");
+          dismissToast(loadingToast);
+
+          const downloadedCount = Array.isArray(result?.downloaded)
+            ? result.downloaded.length
+            : 0;
+          const failedCount = Array.isArray(result?.failed)
+            ? result.failed.length
+            : 0;
+
+          if (downloadedCount > 0 && failedCount === 0) {
+            showToast(
+              `${downloadedCount} file${downloadedCount === 1 ? "" : "s"} downloaded to Downloads.`,
+              "success",
+            );
             return;
           }
 
-          pendingDeleteRow.remove();
-          closeDeleteConfirmModal();
-        } catch (error) {
-          console.error("Delete archive error:", error);
-          alert(error?.message || "Unexpected delete error.");
-        } finally {
-          if (deleteConfirmModal.style.display !== "none") {
-            deleteConfirmSubmitBtn.disabled = false;
+          if (downloadedCount > 0 && failedCount > 0) {
+            showToast(
+              `${downloadedCount} downloaded to Downloads, ${failedCount} failed.`,
+              "error",
+              4500,
+            );
+            return;
           }
+
+          showToast(
+            result?.message || "Failed to download the selected archives.",
+            "error",
+            4500,
+          );
+        } catch (error) {
+          dismissToast(loadingToast);
+
+          if (isMissingIpcHandlerError(error, "downloadArchivesToDownloads")) {
+            showToast(
+              "The app needs a restart to enable bulk downloads. Close and reopen the Electron app, then try again.",
+              "error",
+              5500,
+            );
+            return;
+          }
+
+          console.error("Bulk download error:", error);
+          showToast(
+            error?.message || "Unexpected bulk download error.",
+            "error",
+            4500,
+          );
         }
       });
 
@@ -1715,7 +1974,7 @@
         tr.dataset.createdAt = data.created_at || data.createdAt || "";
 
         tr.innerHTML = `
-          <td class="col-check"><input type="checkbox"></td>
+          <td class="col-check"><input type="checkbox" class="archive-checkbox"></td>
           <td class="col-title" title="${escapeAttr(data.title || "")}">${escapeAttr(data.title || "")}</td>
           <td class="col-authors">${escapeAttr(data.authors || "")}</td>
           <td class="col-section">${escapeAttr(data.section || "")}</td>
@@ -2178,9 +2437,10 @@
       if (selectAllCb) {
         selectAllCb.addEventListener("change", () => {
           const tbody = document.getElementById("archives-table-body");
-          tbody.querySelectorAll("tr input[type='checkbox']").forEach((cb) => {
-            cb.checked = selectAllCb.checked;
+          tbody.querySelectorAll("tr").forEach((tr) => {
+            _setRowSelected(tr, selectAllCb.checked);
           });
+          updateSelectionUI();
         });
       }
 
@@ -2219,6 +2479,7 @@
         closeModal(archiveModal);
         closeModal(document.getElementById("view-archive-modal"));
         closeDeleteConfirmModal();
+        closeBulkDownloadConfirmModal();
         closeModal(sectionRequiredModal);
         closeModal(requiredFieldsModal);
         closeModal(bulkSummaryModal);
@@ -2245,6 +2506,185 @@
         const driveUrl = toGoogleDriveFileViewUrl(driveBtn.dataset.driveUrl);
         openGoogleDriveUrl(driveUrl);
       });
+
+      // ── Selection system ──────────────────────────────────────────────────
+      const _selectedRows = new Set();
+      const _bulkActionBar = document.getElementById("bulk-action-bar");
+      const _bulkActionCount = document.getElementById("bulk-action-count");
+
+      function updateSelectionUI() {
+        const count = _selectedRows.size;
+        const _barVisible = count > 0;
+        _bulkActionBar.style.visibility = _barVisible ? "visible" : "hidden";
+        _bulkActionBar.style.opacity = _barVisible ? "1" : "0";
+        _bulkActionBar.style.pointerEvents = _barVisible ? "auto" : "none";
+        _bulkActionCount.textContent = `${count} selected`;
+        // Mirror select-all state
+        const tbody = document.getElementById("archives-table-body");
+        const allRows = Array.from(tbody.querySelectorAll("tr"));
+        const saEl = document.getElementById("select-all-archives");
+        if (!saEl) return;
+        if (allRows.length === 0) {
+          saEl.checked = false;
+          saEl.indeterminate = false;
+        } else if (count === allRows.length) {
+          saEl.checked = true;
+          saEl.indeterminate = false;
+        } else if (count > 0) {
+          saEl.checked = false;
+          saEl.indeterminate = true;
+        } else {
+          saEl.checked = false;
+          saEl.indeterminate = false;
+        }
+        lucide.createIcons({ nodes: [_bulkActionBar] });
+      }
+
+      function _setRowSelected(row, value) {
+        const cb = row.querySelector("input.archive-checkbox");
+        if (!cb) return;
+        cb.checked = value;
+        row.classList.toggle("row-selected", value);
+        if (value) _selectedRows.add(row);
+        else _selectedRows.delete(row);
+      }
+
+      function _toggleRowSelected(row) {
+        _setRowSelected(row, !_selectedRows.has(row));
+        updateSelectionUI();
+      }
+
+      // Row click → toggle selection (skip dots-btn and direct checkbox clicks)
+      document
+        .getElementById("archives-table-body")
+        .addEventListener("click", (e) => {
+          if (e.target.closest(".dots-btn")) return;
+          if (e.target.closest("input.archive-checkbox")) return;
+          const tr = e.target.closest("tr");
+          if (!tr) return;
+          _toggleRowSelected(tr);
+        });
+
+      // Direct checkbox click
+      document
+        .getElementById("archives-table-body")
+        .addEventListener("change", (e) => {
+          if (!e.target.matches("input.archive-checkbox")) return;
+          const tr = e.target.closest("tr");
+          if (!tr) return;
+          if (e.target.checked) _selectedRows.add(tr);
+          else _selectedRows.delete(tr);
+          tr.classList.toggle("row-selected", e.target.checked);
+          updateSelectionUI();
+        });
+
+      // ── Toast ─────────────────────────────────────────────────────────────
+      const _toastContainer = document.getElementById("toast-container");
+
+      function showToast(message, type = "info", duration = 3000) {
+        const t = document.createElement("div");
+        t.className = `toast toast-${type}`;
+        const iconName =
+          type === "success"
+            ? "check-circle"
+            : type === "error"
+              ? "alert-circle"
+              : type === "loading"
+                ? "loader"
+                : "info";
+        t.innerHTML = `<i data-lucide="${iconName}"></i><span>${escapeAttr(message)}</span>`;
+        _toastContainer.appendChild(t);
+        lucide.createIcons({ nodes: [t] });
+        if (type === "loading") {
+          const svg = t.querySelector("svg");
+          if (svg) svg.classList.add("toast-spin");
+        }
+        requestAnimationFrame(() => t.classList.add("toast-show"));
+        if (duration > 0) setTimeout(() => dismissToast(t), duration);
+        return t;
+      }
+
+      function dismissToast(t) {
+        if (!t || !t.parentNode) return;
+        t.classList.remove("toast-show");
+        t.addEventListener("transitionend", () => t.remove(), { once: true });
+      }
+
+      function isMissingIpcHandlerError(error, channelName) {
+        const message = String(error?.message || error || "");
+        return (
+          message.includes(`No handler registered for '${channelName}'`) ||
+          message.includes(`No handler registered for \"${channelName}\"`)
+        );
+      }
+
+      // ── Bulk action bar buttons ───────────────────────────────────────────
+      document
+        .getElementById("bulk-clear-btn")
+        .addEventListener("click", () => {
+          const tbody = document.getElementById("archives-table-body");
+          tbody.querySelectorAll("tr.row-selected").forEach((tr) => {
+            _setRowSelected(tr, false);
+          });
+          updateSelectionUI();
+        });
+
+      document
+        .getElementById("bulk-gdrive-btn")
+        .addEventListener("click", () => {
+          const rows = Array.from(_selectedRows);
+          const urls = rows
+            .map((r) => toGoogleDriveFileViewUrl(r.dataset.filePath))
+            .filter(Boolean);
+          if (!urls.length) {
+            showToast(
+              "No Google Drive links available for the selected archives.",
+              "error",
+            );
+            return;
+          }
+          urls.forEach((url, i) =>
+            setTimeout(() => openGoogleDriveUrl(url), i * 120),
+          );
+          showToast(
+            `Opening ${urls.length} Drive link${urls.length > 1 ? "s" : ""}…`,
+            "info",
+            2500,
+          );
+        });
+
+      document
+        .getElementById("bulk-download-btn")
+        .addEventListener("click", () => {
+          const rows = Array.from(_selectedRows).filter(
+            (r) => r.dataset.filePath || r.dataset.localFilePath,
+          );
+          if (!rows.length) {
+            showToast("No downloadable files in the selection.", "error");
+            return;
+          }
+          openBulkDownloadConfirmModal(rows);
+        });
+
+      document
+        .getElementById("bulk-delete-btn")
+        .addEventListener("click", () => {
+          const rows = Array.from(_selectedRows);
+          if (!rows.length) return;
+          openDeleteConfirmModal(rows);
+        });
+
+      // ── Drag-to-select init ───────────────────────────────────────────────
+      if (typeof window.initArchiveDragSelect === "function") {
+        window.initArchiveDragSelect({
+          tableBodyId: "archives-table-body",
+          dragBoxId: "drag-select-box",
+          onSelectionChange: (row, selected) => {
+            _setRowSelected(row, selected);
+            updateSelectionUI();
+          },
+        });
+      }
     </script>
   </body>
 </html>

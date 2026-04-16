@@ -1,13 +1,17 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("node:path");
 const http = require("node:http");
+const fsSync = require("node:fs");
 const fs = require("node:fs/promises");
+const { pipeline } = require("node:stream/promises");
+const { fileURLToPath } = require("node:url");
 const { query } = require("../database/dbconnect");
 const { supabase } = require("../services/supabase_config");
 const {
   uploadProfileImage,
   deleteDriveFileByUrl,
   extractGoogleDriveFileId,
+  getDriveClient,
 } = require("../services/gdrive_service");
 const {
   getAuthUrl,
@@ -37,6 +41,158 @@ const ARCHIVE_UPLOAD_DIR = path.join(
   "uploads",
   "documents",
 );
+
+function getDownloadsDirectory() {
+  return app.getPath("downloads");
+}
+
+function sanitizeDownloadFileName(fileName) {
+  const cleaned = String(fileName || "")
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_")
+    .replace(/^\.+/, "")
+    .replace(/\s+/g, " ");
+
+  return cleaned || "archive.pdf";
+}
+
+async function buildUniqueDownloadPath(downloadsDir, preferredFileName) {
+  const parsed = path.parse(sanitizeDownloadFileName(preferredFileName));
+  const baseName = parsed.name || "archive";
+  const extension = parsed.ext || ".pdf";
+
+  let attempt = 0;
+  while (true) {
+    const candidateName =
+      attempt === 0
+        ? `${baseName}${extension}`
+        : `${baseName} (${attempt})${extension}`;
+    const candidatePath = path.join(downloadsDir, candidateName);
+
+    try {
+      await fs.access(candidatePath);
+      attempt += 1;
+    } catch (_error) {
+      return candidatePath;
+    }
+  }
+}
+
+function resolveLocalPath(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  if (raw.startsWith("file://")) {
+    try {
+      return fileURLToPath(raw);
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  return raw;
+}
+
+async function copyLocalArchiveToDownloads(localFilePath, preferredFileName) {
+  const sourcePath = resolveLocalPath(localFilePath);
+  if (!sourcePath) {
+    return { success: false, message: "No local file path was provided." };
+  }
+
+  await fs.access(sourcePath);
+
+  const downloadsDir = getDownloadsDirectory();
+  await fs.mkdir(downloadsDir, { recursive: true });
+
+  const resolvedName =
+    preferredFileName || path.basename(sourcePath) || "archive.pdf";
+  const destinationPath = await buildUniqueDownloadPath(
+    downloadsDir,
+    resolvedName,
+  );
+
+  await fs.copyFile(sourcePath, destinationPath);
+
+  return {
+    success: true,
+    fileName: path.basename(destinationPath),
+    savedPath: destinationPath,
+  };
+}
+
+async function downloadDriveArchiveToDownloads(fileUrl, preferredFileName) {
+  const fileId = extractGoogleDriveFileId(fileUrl);
+  if (!fileId) {
+    return { success: false, message: "No Google Drive file ID found." };
+  }
+
+  let drive;
+  try {
+    drive = getDriveClient();
+  } catch (error) {
+    if (error?.code === "AUTH_REQUIRED") {
+      return {
+        success: false,
+        requiresAuth: true,
+        message: "Google Drive authorization is required before downloading.",
+      };
+    }
+    throw error;
+  }
+
+  const downloadsDir = getDownloadsDirectory();
+  await fs.mkdir(downloadsDir, { recursive: true });
+
+  const metadataResponse = await drive.files.get({
+    fileId,
+    fields: "name",
+    supportsAllDrives: true,
+  });
+  const resolvedName =
+    preferredFileName || metadataResponse.data?.name || `archive-${fileId}.pdf`;
+  const destinationPath = await buildUniqueDownloadPath(
+    downloadsDir,
+    resolvedName,
+  );
+
+  const response = await drive.files.get(
+    {
+      fileId,
+      alt: "media",
+      supportsAllDrives: true,
+    },
+    {
+      responseType: "stream",
+    },
+  );
+
+  await pipeline(response.data, fsSync.createWriteStream(destinationPath));
+
+  return {
+    success: true,
+    fileName: path.basename(destinationPath),
+    savedPath: destinationPath,
+  };
+}
+
+async function downloadArchiveToDownloads(file = {}) {
+  const sourceUrl = String(file.sourceUrl || "").trim();
+  const localFilePath = String(file.localFilePath || "").trim();
+  const preferredFileName = String(file.fileName || "").trim();
+
+  if (extractGoogleDriveFileId(sourceUrl)) {
+    return downloadDriveArchiveToDownloads(sourceUrl, preferredFileName);
+  }
+
+  if (localFilePath || sourceUrl) {
+    return copyLocalArchiveToDownloads(
+      localFilePath || sourceUrl,
+      preferredFileName,
+    );
+  }
+
+  return { success: false, message: "No downloadable file source found." };
+}
 
 function normalizeArchiveType(type) {
   const normalized = String(type || "")
@@ -766,6 +922,77 @@ ipcMain.handle("openExternalUrl", async (event, url) => {
     return {
       success: false,
       message: error.message || "Failed to open external URL.",
+    };
+  }
+});
+
+ipcMain.handle("downloadArchivesToDownloads", async (event, files = []) => {
+  try {
+    const requestedFiles = Array.isArray(files) ? files : [];
+    if (!requestedFiles.length) {
+      return {
+        success: false,
+        message: "No files were selected for download.",
+      };
+    }
+
+    const requiresDriveAuth = requestedFiles.some((file) =>
+      extractGoogleDriveFileId(file?.sourceUrl),
+    );
+    if (requiresDriveAuth && !hasValidToken()) {
+      return {
+        success: false,
+        requiresAuth: true,
+        message: "Google Drive authorization is required before downloading.",
+      };
+    }
+
+    const downloaded = [];
+    const failed = [];
+
+    for (const file of requestedFiles) {
+      try {
+        const result = await downloadArchiveToDownloads(file);
+        if (result?.requiresAuth) {
+          return {
+            success: false,
+            requiresAuth: true,
+            message:
+              result.message ||
+              "Google Drive authorization is required before downloading.",
+          };
+        }
+
+        if (result?.success) {
+          downloaded.push({
+            fileName: result.fileName,
+            savedPath: result.savedPath,
+          });
+        } else {
+          failed.push({
+            fileName: file?.fileName || "archive.pdf",
+            message: result?.message || "Download failed.",
+          });
+        }
+      } catch (error) {
+        failed.push({
+          fileName: file?.fileName || "archive.pdf",
+          message: error.message || "Download failed.",
+        });
+      }
+    }
+
+    return {
+      success: downloaded.length > 0 && failed.length === 0,
+      downloaded,
+      failed,
+      downloadDirectory: getDownloadsDirectory(),
+      totalRequested: requestedFiles.length,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to download selected archives.",
     };
   }
 });
