@@ -39,20 +39,71 @@ function displayProfileData(user) {
   }
 }
 
-async function chooseProfileImage() {
-  try {
-    const result = await window.electronAPI.selectProfileImage();
-    if (!result.success) {
-      return;
-    }
+function showAvatarLoading(visible) {
+  const overlay = document.getElementById("avatarUploadOverlay");
+  const avatar = document.querySelector(".profile-avatar");
+  if (overlay) overlay.style.display = visible ? "flex" : "none";
+  if (avatar) avatar.style.pointerEvents = visible ? "none" : "";
+}
 
-    selectedProfileImagePath = result.path;
-    const profileImg = document.querySelector(".profile-avatar");
-    if (profileImg) {
-      profileImg.src = selectedProfileImagePath || DEFAULT_PROFILE_IMAGE;
-    }
+function showAvatarError(message) {
+  const el = document.getElementById("avatarUploadError");
+  if (!el) return;
+  if (message) {
+    el.textContent = message;
+    el.style.display = "block";
+  } else {
+    el.textContent = "";
+    el.style.display = "none";
+  }
+}
+
+async function chooseProfileImage() {
+  showAvatarError(null);
+
+  // Step 1: Open file picker (fast — no loader needed yet)
+  let pickerResult;
+  try {
+    pickerResult = await window.electronAPI.selectProfileImage();
   } catch (error) {
-    console.error("Error selecting profile image:", error);
+    console.error("Error opening file picker:", error);
+    showAvatarError("Could not open file picker.");
+    return;
+  }
+
+  if (!pickerResult || pickerResult.canceled || !pickerResult.success) {
+    // User dismissed the dialog — silent exit
+    return;
+  }
+
+  // Step 2: Show loader then upload to Google Drive
+  showAvatarLoading(true);
+  let uploadResult;
+  try {
+    uploadResult = await window.electronAPI.uploadProfileImage({
+      localPath: pickerResult.localPath,
+      fileName: pickerResult.fileName,
+      mimeType: pickerResult.mimeType,
+    });
+  } catch (error) {
+    console.error("Upload error:", error);
+    showAvatarLoading(false);
+    showAvatarError("Upload failed. Please try again.");
+    return;
+  }
+
+  showAvatarLoading(false);
+
+  if (!uploadResult.success) {
+    console.error("Profile upload failed:", uploadResult.message);
+    showAvatarError(uploadResult.message || "Upload failed. Please try again.");
+    return;
+  }
+
+  selectedProfileImagePath = uploadResult.path;
+  const profileImg = document.querySelector(".profile-avatar");
+  if (profileImg) {
+    profileImg.src = selectedProfileImagePath || DEFAULT_PROFILE_IMAGE;
   }
 }
 

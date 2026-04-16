@@ -140,41 +140,62 @@ ipcMain.handle("selectProfileImage", async () => {
     });
 
     if (canceled || filePaths.length === 0) {
-      return { success: false };
+      return { success: false, canceled: true };
     }
 
     const selectedPath = filePaths[0];
+    const ext = path.extname(selectedPath).toLowerCase();
+    const mimeMap = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+    };
+    const mimeType = mimeMap[ext] || "image/jpeg";
     const fileName = `profile_${Date.now()}_${path.basename(selectedPath)}`;
-    const fileBuffer = await fs.readFile(selectedPath);
-    const uploadPath = `profiles/${fileName}`;
 
-    const { data, error: uploadError } = await supabase.storage
-      .from("cta-files")
-      .upload(uploadPath, fileBuffer, {
-        cacheControl: "3600",
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error("Supabase upload error:", uploadError);
-      return { success: false, message: "Could not upload profile image." };
-    }
-
-    const { data: publicUrlData, error: publicUrlError } = supabase.storage
-      .from("cta-files")
-      .getPublicUrl(uploadPath);
-
-    if (publicUrlError) {
-      console.error("Supabase public URL error:", publicUrlError);
-      return { success: false, message: "Could not get public image URL." };
-    }
-
-    return { success: true, path: publicUrlData.publicUrl };
+    // Return the local path so the renderer can show the loader before uploading
+    return { success: true, localPath: selectedPath, fileName, mimeType };
   } catch (error) {
     console.error("Select profile image error:", error);
-    return { success: false, message: "Could not select profile image." };
+    return { success: false, message: "Could not open file picker." };
   }
 });
+
+ipcMain.handle(
+  "uploadProfileImage",
+  async (event, { localPath, fileName, mimeType }) => {
+    try {
+      const fileBuffer = await fs.readFile(localPath);
+
+      const uploadPath = `profiles/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("cta-files")
+        .upload(uploadPath, fileBuffer, {
+          contentType: mimeType,
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error("Supabase upload error:", uploadError);
+        return { success: false, message: "Could not upload profile image." };
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("cta-files")
+        .getPublicUrl(uploadPath);
+
+      return { success: true, path: publicUrlData.publicUrl };
+    } catch (error) {
+      console.error("Supabase profile upload error:", error);
+      return {
+        success: false,
+        message: error.message || "Upload failed. Please try again.",
+      };
+    }
+  },
+);
 
 ipcMain.handle(
   "updateProfile",
