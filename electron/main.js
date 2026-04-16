@@ -601,6 +601,24 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
   }
 });
 
+ipcMain.handle("getArchives", async () => {
+  try {
+    const rows = await query(
+      `SELECT id, title, authors, section, advisor, date_published, keywords, type,
+              file_path, local_file_path, status, created_at
+       FROM archives
+       ORDER BY created_at DESC`,
+    );
+    return { success: true, archives: rows };
+  } catch (error) {
+    console.error("getArchives error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to fetch archives.",
+    };
+  }
+});
+
 ipcMain.handle("checkGoogleDriveAuth", async () => {
   try {
     return { success: true, isAuthorized: hasValidToken() };

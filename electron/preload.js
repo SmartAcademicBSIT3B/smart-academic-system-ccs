@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("uploadProfileImage", fileInfo),
   createArchive: (archiveData) =>
     ipcRenderer.invoke("createArchive", archiveData),
+  getArchives: () => ipcRenderer.invoke("getArchives"),
   checkGoogleDriveAuth: () => ipcRenderer.invoke("checkGoogleDriveAuth"),
   getGoogleDriveAuthUrl: () => ipcRenderer.invoke("getGoogleDriveAuthUrl"),
   saveGoogleDriveToken: (authCode) =>

@@ -21,6 +21,7 @@
     <script src="../api/extract_archive.js"></script>
     <script src="../api/bulk_archive_summary.js"></script>
     <script src="../api/fetch_archive_dropdowns.js"></script>
+    <script src="../api/fetch_archives.js"></script>
   </head>
 
   <body>
@@ -186,6 +187,16 @@
               </thead>
               <tbody id="bulk-summary-body"></tbody>
             </table>
+          </div>
+          <div
+            id="bulk-loading-overlay"
+            class="bulk-loading-overlay"
+            style="display: none"
+          >
+            <div class="bulk-loading-content">
+              <div class="bulk-spinner"></div>
+              <p id="bulk-loading-text">Uploading...</p>
+            </div>
           </div>
           <div class="form-actions choice-footer">
             <button class="cancel-btn" id="bulk-summary-cancel" type="button">
@@ -372,57 +383,52 @@
         </div>
       </div>
 
+      <!-- Floating archive action menu — fixed-position, outside all overflow containers -->
+      <div
+        id="archive-action-menu"
+        class="archive-actions-menu"
+        style="display: none"
+        role="menu"
+      >
+        <button class="menu-action view-btn" type="button">
+          <i data-lucide="eye"></i><span>View</span>
+        </button>
+        <button class="menu-action gdrive-btn" type="button">
+          <i class="fab fa-google-drive" aria-hidden="true"></i
+          ><span>View in Google Drive</span>
+        </button>
+        <button class="menu-action download-btn" type="button">
+          <i data-lucide="download"></i><span>Download</span>
+        </button>
+        <button class="menu-action edit-btn" type="button">
+          <i data-lucide="pencil"></i><span>Edit</span>
+        </button>
+        <button class="menu-action delete-btn danger" type="button">
+          <i data-lucide="trash-2"></i><span>Delete</span>
+        </button>
+      </div>
+
       <!-- TABLE -->
       <div class="table-card">
         <div class="table-wrapper">
-          <table>
+          <table id="archives-table">
             <thead>
               <tr>
-                <th><input type="checkbox" /></th>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Authors</th>
-                <th>Section</th>
-                <th>Advisor</th>
-                <th>Date Published</th>
-                <th>Keywords</th>
-                <th>Type</th>
-                <th>File Path</th>
-                <th>Local File Path</th>
-                <th>Status</th>
-                <th>Created At</th>
-                <th></th>
+                <th class="col-check">
+                  <input type="checkbox" id="select-all-archives" />
+                </th>
+                <th class="col-title">Title</th>
+                <th class="col-authors">Authors</th>
+                <th class="col-section">Section</th>
+                <th class="col-advisor">Advisor</th>
+                <th class="col-date">Date Published</th>
+                <th class="col-type">Type</th>
+                <th class="col-status">Status</th>
+                <th class="col-actions">Actions</th>
               </tr>
             </thead>
 
-            <tbody>
-              <tr>
-                <td><input type="checkbox" /></td>
-                <td>001</td>
-                <td>Archiving System</td>
-                <td>Acosta & Sanchez</td>
-                <td>BSIT-4A</td>
-                <td>Dela Cruz</td>
-                <td>Feb 2025</td>
-                <td>Machine Learning, AI</td>
-                <td>Thesis</td>
-                <td><a href="#">https://drive.google.com/file/d/sample</a></td>
-                <td>uploads/documents/file.pdf</td>
-                <td>Pending</td>
-                <td>2026-04-16 10:00:00</td>
-                <td class="action-cell">
-                  <div class="dropdown">
-                    <button class="dots-btn">
-                      <i data-lucide="more-vertical"></i>
-                    </button>
-                    <div class="dropdown-menu">
-                      <button class="edit-btn" type="button">Edit</button>
-                      <button class="danger">Delete</button>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
+            <tbody id="archives-table-body"></tbody>
           </table>
         </div>
       </div>
@@ -435,21 +441,78 @@
         window.loadArchiveDropdownOptions();
       }
 
-      // Dropdown (delegated so it works for newly added rows)
+      // ── Archive action floating menu ──────────────────────────────────────
+      const archiveActionMenu = document.getElementById("archive-action-menu");
+      let _activeActionRow = null;
+
+      function closeArchiveActionMenu() {
+        archiveActionMenu.style.display = "none";
+        _activeActionRow = null;
+      }
+
+      function openArchiveActionMenu(dotsBtn, row) {
+        _activeActionRow = row;
+        lucide.createIcons({ nodes: [archiveActionMenu] });
+
+        // Position the menu using viewport coords so it never clips inside container
+        const rect = dotsBtn.getBoundingClientRect();
+        const menuW = 210;
+        const menuH = archiveActionMenu.offsetHeight || 210; // approximate before paint
+
+        // Prefer opening below; flip above if not enough room
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        let top, left;
+
+        if (spaceBelow >= menuH || spaceBelow >= spaceAbove) {
+          top = rect.bottom + 4;
+        } else {
+          // Flip upward — will be corrected after the menu renders
+          top = rect.top - 4;
+          archiveActionMenu.style.transform = "translateY(-100%)";
+        }
+
+        // Align right edge with right edge of button; clamp to viewport
+        left = rect.right - menuW;
+        if (left < 8) left = 8;
+        if (left + menuW > window.innerWidth - 8)
+          left = window.innerWidth - menuW - 8;
+
+        archiveActionMenu.style.transform = "";
+        archiveActionMenu.style.left = left + "px";
+        archiveActionMenu.style.top = top + "px";
+        archiveActionMenu.style.display = "flex";
+
+        // After it paints, correct vertical flip if needed
+        requestAnimationFrame(() => {
+          const mh = archiveActionMenu.offsetHeight;
+          const spB = window.innerHeight - rect.bottom;
+          if (spB < mh && rect.top >= mh) {
+            archiveActionMenu.style.top = rect.top - mh - 4 + "px";
+          }
+        });
+      }
+
+      // Delegated dots-btn click — toggle menu
       document.addEventListener("click", (e) => {
         const dots = e.target.closest(".dots-btn");
-        if (dots) {
+        if (dots && dots.closest("#archives-table")) {
           e.stopPropagation();
-          document
-            .querySelectorAll(".dropdown-menu")
-            .forEach((m) => m.classList.remove("show"));
-          const menu = dots.nextElementSibling;
-          if (menu) menu.classList.toggle("show");
+          const row = dots.closest("tr");
+          if (
+            _activeActionRow === row &&
+            archiveActionMenu.style.display !== "none"
+          ) {
+            closeArchiveActionMenu();
+          } else {
+            openArchiveActionMenu(dots, row);
+          }
           return;
         }
-        document
-          .querySelectorAll(".dropdown-menu")
-          .forEach((m) => m.classList.remove("show"));
+        // Close on any outside click
+        if (!e.target.closest("#archive-action-menu")) {
+          closeArchiveActionMenu();
+        }
       });
 
       // Export modal + downloads
@@ -587,7 +650,7 @@
       }
 
       function getTable() {
-        return document.querySelector("table");
+        return document.getElementById("archives-table");
       }
 
       function escapeCsvCell(value) {
@@ -720,6 +783,7 @@
 
       let currentKeywordsRow = null;
       let pendingRequiredFieldFocus = null;
+      let bulkPdfFiles = [];
 
       const titleEl = document.getElementById("archive-title");
       const sectionEl = document.getElementById("archive-section");
@@ -921,6 +985,7 @@
 
         try {
           const rows = await extractBulkArchiveRows(list, defaults);
+          bulkPdfFiles = list;
           openBulkSummaryModal(rows);
           dropZoneFilename.textContent = `${rows.length} files ready`;
         } catch (error) {
@@ -1049,10 +1114,51 @@
         closeModal(bulkSummaryModal);
       });
 
-      bulkSummaryImportBtn.addEventListener("click", () => {
+      const bulkLoadingOverlay = document.getElementById(
+        "bulk-loading-overlay",
+      );
+      const bulkLoadingText = document.getElementById("bulk-loading-text");
+
+      bulkSummaryImportBtn.addEventListener("click", async () => {
+        const electronAPI = getElectronAPI();
+        if (!electronAPI || typeof electronAPI.createArchive !== "function") {
+          alert(
+            "Archive API is not available in this view. Please reload the app and try again.",
+          );
+          return;
+        }
+
         const rows = getRowsFromBulkSummaryModal();
-        rows.forEach((row) => {
-          addArchiveRow({
+        if (rows.length === 0) return;
+
+        // Show loading overlay and disable cancel during upload
+        bulkLoadingOverlay.style.display = "flex";
+        bulkSummaryCancelBtn.disabled = true;
+        bulkSummaryImportBtn.disabled = true;
+
+        let authHandled = false;
+        let failedCount = 0;
+        const pendingRows = [];
+
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          bulkLoadingText.textContent = `Uploading ${i + 1} of ${rows.length}...`;
+
+          // Find matching File object by name
+          const fileObj =
+            bulkPdfFiles.find((f) => f.name === row.fileName) || null;
+          const localSourcePath = fileObj && fileObj.path ? fileObj.path : "";
+          let fileContentBase64 = "";
+          if (fileObj && !localSourcePath) {
+            try {
+              const buffer = await fileObj.arrayBuffer();
+              fileContentBase64 = arrayBufferToBase64(buffer);
+            } catch (_e) {
+              console.error("Could not read file buffer for", row.fileName);
+            }
+          }
+
+          const archivePayload = {
             title: row.title,
             authors: row.authors,
             section: row.section,
@@ -1062,12 +1168,64 @@
             type: row.type,
             status: row.status,
             fileName: row.fileName,
-          });
-        });
+            localSourcePath,
+            fileContentBase64,
+            mimeType: "application/pdf",
+          };
 
+          let result = await electronAPI.createArchive(archivePayload);
+
+          if (result && result.requiresAuth && !authHandled) {
+            // Hide overlay while OAuth dialog is shown
+            bulkLoadingOverlay.style.display = "none";
+            const authorized = await runGoogleDriveOAuth(electronAPI);
+            bulkLoadingOverlay.style.display = "flex";
+
+            if (!authorized) {
+              alert(
+                "Google Drive upload was cancelled. Authorize OAuth to upload to My Drive/CTA Files/Documents.",
+              );
+              bulkLoadingOverlay.style.display = "none";
+              bulkSummaryCancelBtn.disabled = false;
+              bulkSummaryImportBtn.disabled = false;
+              return;
+            }
+            authHandled = true;
+            result = await electronAPI.createArchive(archivePayload);
+          }
+
+          if (!result || !result.success) {
+            console.error(
+              "Bulk import failed for row:",
+              row.fileName,
+              result?.message,
+            );
+            failedCount++;
+            continue;
+          }
+
+          // Buffer rows — don't add to table while modal is still visible
+          pendingRows.push(result.archive || {});
+        }
+
+        bulkLoadingOverlay.style.display = "none";
+        bulkSummaryCancelBtn.disabled = false;
+        bulkSummaryImportBtn.disabled = false;
+        bulkPdfFiles = [];
         fileUploadEl.value = "";
+
+        // Close modals first so the table is never visible during row insertion
         closeModal(bulkSummaryModal);
         closeModal(archiveModal);
+
+        // Now safely add rows to the table
+        pendingRows.forEach((rowData) => addArchiveRow(rowData));
+
+        if (failedCount > 0) {
+          alert(
+            `${rows.length - failedCount} of ${rows.length} files imported. ${failedCount} failed — check the console for details.`,
+          );
+        }
       });
 
       bulkSummaryModal.addEventListener("click", (e) => {
@@ -1147,10 +1305,24 @@
         updateRequiredTextIndicators();
       }
 
+      function formatMonthYear(dateStr) {
+        if (!dateStr) return "";
+        // Try direct parse (handles YYYY-MM-DD, YYYY-MM, ISO, etc.)
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString("en-US", {
+            month: "short",
+            year: "numeric",
+          });
+        }
+        // Fallback: return raw if unparseable
+        return String(dateStr);
+      }
+
       function getNextId() {
-        const tbody = document.querySelector("table tbody");
-        const ids = Array.from(tbody.querySelectorAll("tr td:nth-child(2)"))
-          .map((td) => parseInt(td.textContent, 10))
+        const tbody = document.getElementById("archives-table-body");
+        const ids = Array.from(tbody.querySelectorAll("tr[data-id]"))
+          .map((tr) => parseInt(tr.dataset.id, 10))
           .filter((n) => Number.isFinite(n));
         const next = (ids.length ? Math.max(...ids) : 0) + 1;
         return String(next).padStart(3, "0");
@@ -1211,61 +1383,86 @@
       }
 
       function addArchiveRow(data) {
-        const tbody = document.querySelector("table tbody");
+        const tbody = document.getElementById("archives-table-body");
+        // Remove the loading/empty placeholder if present
+        const placeholder = tbody.querySelector(
+          ".archives-loading-row, tr[data-placeholder]",
+        );
+        if (placeholder) placeholder.remove();
+
         const tr = document.createElement("tr");
         const id = data.id || getNextId();
-        const fileName = data.fileName || "";
-        const filePath =
+
+        // Resolve file path (Drive preferred, local fallback)
+        const driveUrl =
           data.file_path ||
           data.filePath ||
-          (fileName ? `https://drive.google.com/file/d/${fileName}` : "");
-        const localFilePath =
           data.local_file_path ||
           data.localFilePath ||
-          (fileName ? `uploads/documents/${fileName}` : "");
-        const createdAt =
-          data.created_at ||
-          data.createdAt ||
-          new Date().toISOString().slice(0, 19).replace("T", " ");
-        const statusRaw = (data.status || "pending").trim() || "pending";
+          "";
+
+        // Derive the stored filename from the URL or field
+        // Prefer explicit fileName fields; Google Drive URLs don't embed the filename
+        const storedFileName = data.fileName || data.file_name || "";
+
+        // Strip internal prefix: archive_<timestamp>_ → original name
+        const displayFileName =
+          storedFileName.replace(/^archive_\d+_/, "") || storedFileName || "";
+
+        const statusRaw =
+          (data.status || "pending").trim().toLowerCase() || "pending";
+        const statusLabel =
+          statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1);
+        const statusDotClass =
+          statusRaw === "approved"
+            ? "dot-approved"
+            : statusRaw === "rejected"
+              ? "dot-rejected"
+              : "dot-pending";
+
         const typeRaw = (data.type || "thesis").trim() || "thesis";
-        const status =
-          statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase();
         const type =
           typeRaw.charAt(0).toUpperCase() + typeRaw.slice(1).toLowerCase();
-        const fileCell = filePath
-          ? `<a href="${filePath}" target="_blank" rel="noopener noreferrer" title="${filePath}">${filePath}</a>`
-          : "";
+
+        // Store all values on the row for the edit form to read
+        tr.dataset.id = id;
+        tr.dataset.title = data.title || "";
+        tr.dataset.authors = data.authors || "";
+        tr.dataset.section = data.section || "";
+        tr.dataset.advisor = data.advisor || "";
+        tr.dataset.datePublished = data.date_published || "";
+        tr.dataset.keywords = data.keywords || "";
+        tr.dataset.type = type;
+        tr.dataset.status = statusLabel;
+        tr.dataset.filePath = driveUrl;
+        tr.dataset.fileName = displayFileName;
 
         tr.innerHTML = `
-          <td><input type="checkbox"></td>
-          <td>${id}</td>
-          <td>${data.title || ""}</td>
-          <td>${data.authors || ""}</td>
-          <td>${data.section || ""}</td>
-          <td>${data.advisor || ""}</td>
-          <td>${data.date_published || ""}</td>
-          <td>${data.keywords || ""}</td>
-          <td>${type}</td>
-          <td>${fileCell}</td>
-          <td title="${localFilePath}">${localFilePath}</td>
-          <td>${status}</td>
-          <td>${createdAt}</td>
-          <td class="action-cell">
-              <div class="dropdown">
-                  <button class="dots-btn" type="button">
-                      <i data-lucide="more-vertical"></i>
-                  </button>
-                  <div class="dropdown-menu">
-                      <button class="edit-btn" type="button">Edit</button>
-                      <button class="danger" type="button">Delete</button>
-                  </div>
-              </div>
+          <td class="col-check"><input type="checkbox"></td>
+          <td class="col-title">${escapeAttr(data.title || "")}</td>
+          <td class="col-authors">${escapeAttr(data.authors || "")}</td>
+          <td class="col-section">${escapeAttr(data.section || "")}</td>
+          <td class="col-advisor">${escapeAttr(data.advisor || "")}</td>
+          <td class="col-date">${escapeAttr(formatMonthYear(data.date_published))}</td>
+          <td class="col-type">${escapeAttr(type)}</td>
+          <td class="col-status">
+            <span class="status-dot ${statusDotClass}"></span>${statusLabel}
           </td>
-      `;
+          <td class="action-cell col-actions">
+            <button class="dots-btn" type="button" title="Actions">
+              <i data-lucide="more-vertical"></i>
+            </button>
+          </td>
+        `;
 
         tbody.appendChild(tr);
         lucide.createIcons();
+      }
+
+      window.addArchiveRow = addArchiveRow;
+
+      if (typeof window.loadArchives === "function") {
+        window.loadArchives();
       }
 
       // Open flow: "+" goes straight to add form
@@ -1451,18 +1648,39 @@
           }
 
           if (editingRow) {
-            editingRow.cells[2].textContent = title;
-            editingRow.cells[3].textContent = authors;
-            editingRow.cells[4].textContent = section;
-            editingRow.cells[5].textContent = advisor;
-            editingRow.cells[6].textContent = date_published;
-            editingRow.cells[7].textContent = keywords;
-            editingRow.cells[8].textContent = type;
-            editingRow.cells[11].textContent = status;
+            // Update visible cells (new column order: check|title|authors|section|advisor|date|type|status|actions)
+            editingRow.cells[1].textContent = title;
+            editingRow.cells[2].textContent = authors;
+            editingRow.cells[3].textContent = section;
+            editingRow.cells[4].textContent = advisor;
+            editingRow.cells[5].textContent = formatMonthYear(date_published);
+            editingRow.cells[6].textContent = type;
+            // Update status dot + label
+            const statusRaw = status.trim().toLowerCase() || "pending";
+            const statusDotClass =
+              statusRaw === "approved"
+                ? "dot-approved"
+                : statusRaw === "rejected"
+                  ? "dot-rejected"
+                  : "dot-pending";
+            editingRow.cells[7].innerHTML = `<span class="status-dot ${statusDotClass}"></span>${status}`;
+            // Update file metadata if a new file was uploaded
             if (fileName) {
-              editingRow.cells[9].innerHTML = `<a href="#" title="https://drive.google.com/file/d/${fileName}">https://drive.google.com/file/d/${fileName}</a>`;
-              editingRow.cells[10].textContent = `uploads/documents/${fileName}`;
+              const newDriveUrl = `https://drive.google.com/file/d/${fileName}`;
+              const displayName =
+                fileName.replace(/^archive_\d+_/, "") || fileName;
+              editingRow.dataset.filePath = newDriveUrl;
+              editingRow.dataset.fileName = displayName;
             }
+            // Sync data-* attributes
+            editingRow.dataset.title = title;
+            editingRow.dataset.authors = authors;
+            editingRow.dataset.section = section;
+            editingRow.dataset.advisor = advisor;
+            editingRow.dataset.datePublished = date_published;
+            editingRow.dataset.keywords = keywords;
+            editingRow.dataset.type = type;
+            editingRow.dataset.status = status;
           } else {
             const electronAPI = getElectronAPI();
             if (
@@ -1520,54 +1738,135 @@
           updateRequiredTextIndicators();
         });
 
-      // Edit button in 3-dots menu
-      document.addEventListener("click", (e) => {
-        const editBtn = e.target.closest(".edit-btn");
-        if (!editBtn) return;
-        const row = editBtn.closest("tr");
+      // ── Archive action menu button handlers ───────────────────────────
+      // All five handlers read the active row from _activeActionRow (set when
+      // the menu is opened) so they work with the shared fixed-position menu.
+
+      archiveActionMenu.addEventListener("click", (e) => {
+        const btn = e.target.closest(".menu-action");
+        if (!btn) return;
+        const row = _activeActionRow;
+        closeArchiveActionMenu();
         if (!row) return;
 
-        editingRow = row;
-        modalTitleEl.textContent = "EDIT FILE";
+        // VIEW
+        if (btn.classList.contains("view-btn")) {
+          const url = row.dataset.filePath;
+          if (!url) {
+            alert("No file link available for this record.");
+            return;
+          }
+          const api = getElectronAPI();
+          if (api && typeof api.openExternalUrl === "function") {
+            api.openExternalUrl(url);
+          } else {
+            window.open(url, "_blank", "noopener,noreferrer");
+          }
+          return;
+        }
 
-        const title = row.cells[2]?.textContent || "";
-        const authors = row.cells[3]?.textContent || "";
-        const section = row.cells[4]?.textContent || "";
-        const advisor = row.cells[5]?.textContent || "";
-        const date_published = row.cells[6]?.textContent || "";
-        const keywords = row.cells[7]?.textContent || "";
-        const type = row.cells[8]?.textContent || "";
-        const status = row.cells[11]?.textContent || "";
+        // VIEW IN GOOGLE DRIVE
+        if (btn.classList.contains("gdrive-btn")) {
+          const url = row.dataset.filePath;
+          if (!url) {
+            alert("No Google Drive link available for this record.");
+            return;
+          }
+          const api = getElectronAPI();
+          if (api && typeof api.openExternalUrl === "function") {
+            api.openExternalUrl(url);
+          } else {
+            window.open(url, "_blank", "noopener,noreferrer");
+          }
+          return;
+        }
 
-        titleEl.value = title.trim();
-        datePublishedEl.value = date_published.trim();
-        const [aa1, aa2, aa3] = parseAuthors(authors);
-        a1El.value = aa1;
-        a2El.value = aa2;
-        a3El.value = aa3;
-        keywordsEl.value = keywords.trim();
+        // DOWNLOAD
+        if (btn.classList.contains("download-btn")) {
+          const url = row.dataset.filePath;
+          if (!url) {
+            alert("No file link available for this record.");
+            return;
+          }
+          const a = document.createElement("a");
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          a.download = row.dataset.fileName || "archive.pdf";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          return;
+        }
 
-        // Set selects if value exists in options; else keep placeholder
-        sectionEl.value = sectionEl.querySelector(`option[value="${section}"]`)
-          ? section
-          : sectionEl.options[0].value;
-        professorEl.value = professorEl.querySelector(
-          `option[value="${advisor}"]`,
-        )
-          ? advisor
-          : professorEl.options[0].value;
-        statusEl.value = statusEl.querySelector(`option[value="${status}"]`)
-          ? status
-          : statusEl.options[0].value;
-        typeEl.value = typeEl.querySelector(`option[value="${type}"]`)
-          ? type
-          : typeEl.options[0].value;
+        // EDIT
+        if (btn.classList.contains("edit-btn")) {
+          editingRow = row;
+          modalTitleEl.textContent = "EDIT FILE";
 
-        updateRequiredTextIndicators();
+          const title = row.dataset.title || "";
+          const authors = row.dataset.authors || "";
+          const section = row.dataset.section || "";
+          const advisor = row.dataset.advisor || "";
+          const date_published = row.dataset.datePublished || "";
+          const keywords = row.dataset.keywords || "";
+          const type = row.dataset.type || "";
+          const status = row.dataset.status || "";
 
-        closeModal(selectModeModal);
-        openModal(archiveModal);
+          titleEl.value = title.trim();
+          datePublishedEl.value = date_published.trim();
+          const [aa1, aa2, aa3] = parseAuthors(authors);
+          a1El.value = aa1;
+          a2El.value = aa2;
+          a3El.value = aa3;
+          keywordsEl.value = keywords.trim();
+
+          sectionEl.value = sectionEl.querySelector(
+            `option[value="${section}"]`,
+          )
+            ? section
+            : sectionEl.options[0].value;
+          professorEl.value = professorEl.querySelector(
+            `option[value="${advisor}"]`,
+          )
+            ? advisor
+            : professorEl.options[0].value;
+          statusEl.value = statusEl.querySelector(`option[value="${status}"]`)
+            ? status
+            : statusEl.options[0].value;
+          typeEl.value = typeEl.querySelector(`option[value="${type}"]`)
+            ? type
+            : typeEl.options[0].value;
+
+          if (typeof window.loadArchiveDropdownOptions === "function") {
+            window.loadArchiveDropdownOptions();
+          }
+          updateRequiredTextIndicators();
+          closeModal(selectModeModal);
+          openModal(archiveModal);
+          return;
+        }
+
+        // DELETE
+        if (btn.classList.contains("delete-btn")) {
+          const title = row.dataset.title || "this record";
+          if (confirm(`Delete "${title}"?`)) {
+            row.remove();
+          }
+          return;
+        }
       });
+
+      // Select-all checkbox
+      const selectAllCb = document.getElementById("select-all-archives");
+      if (selectAllCb) {
+        selectAllCb.addEventListener("change", () => {
+          const tbody = document.getElementById("archives-table-body");
+          tbody.querySelectorAll("tr input[type='checkbox']").forEach((cb) => {
+            cb.checked = selectAllCb.checked;
+          });
+        });
+      }
 
       requiredTextInputs.forEach((inputEl) => {
         inputEl.addEventListener("input", updateRequiredTextIndicators);
@@ -1581,9 +1880,25 @@
         });
       });
 
+      // Close action menu on scroll (position would be stale)
+      document.querySelector(".table-wrapper")?.addEventListener(
+        "scroll",
+        () => {
+          closeArchiveActionMenu();
+        },
+        { passive: true },
+      );
+      window.addEventListener("scroll", () => closeArchiveActionMenu(), {
+        passive: true,
+      });
+      window.addEventListener("resize", () => closeArchiveActionMenu(), {
+        passive: true,
+      });
+
       // Esc closes modals
       document.addEventListener("keydown", (e) => {
         if (e.key !== "Escape") return;
+        closeArchiveActionMenu();
         closeModal(selectModeModal);
         closeModal(archiveModal);
         closeModal(sectionRequiredModal);

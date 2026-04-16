@@ -528,6 +528,52 @@
   transition: background 0.2s;
 }
 
+/* Bulk upload loading overlay */
+.bulk-loading-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(10, 13, 18, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(2px);
+}
+
+.bulk-summary-modal-content {
+  position: relative;
+}
+
+.bulk-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.bulk-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: bulk-spin 0.75s linear infinite;
+}
+
+@keyframes bulk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#bulk-loading-text {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
 .bulk-keywords-btn:hover {
   background: #1a1f27;
 }
@@ -682,4 +728,150 @@
   word-break: break-all;
   max-width: 100%;
   margin: 0;
+}
+
+/* =============================================
+   ARCHIVES TABLE — new column layout styles
+   ============================================= */
+
+/* Keep table constrained inside its container */
+.table-card {
+  overflow: hidden;
+}
+
+.table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+#archives-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Override td:nth-child(2) center/width from tables.css
+   (ID column removed; Title is now the 2nd child) */
+#archives-table td:nth-child(2),
+#archives-table th:nth-child(2) {
+  text-align: left;
+  width: auto;
+}
+
+/* Column widths */
+#archives-table .col-check {
+  width: 36px;
+  text-align: center;
+}
+#archives-table .col-title {
+  min-width: 180px;
+}
+#archives-table .col-authors {
+  min-width: 140px;
+}
+#archives-table .col-section {
+  width: 100px;
+}
+#archives-table .col-advisor {
+  min-width: 120px;
+}
+#archives-table .col-date {
+  width: 120px;
+  white-space: nowrap;
+}
+#archives-table .col-type {
+  width: 90px;
+}
+#archives-table .col-status {
+  width: 110px;
+  white-space: nowrap;
+}
+#archives-table .col-actions {
+  width: 72px;
+}
+
+/* Status dot */
+.status-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 7px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.dot-pending {
+  background-color: #f7a84b;
+}
+.dot-approved {
+  background-color: #4caf7d;
+}
+.dot-rejected {
+  background-color: #e05c5c;
+}
+
+/* Status cell — align dot + text */
+#archives-table .col-status {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+/* Floating archive action menu — fixed position, never clipped by containers */
+#archive-action-menu {
+  position: fixed;
+  flex-direction: column;
+  width: 210px;
+  background: #232830;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 9999;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+/* Action cell — just the dots button centered */
+#archives-table td.action-cell {
+  text-align: center;
+  vertical-align: middle;
+  padding: 6px 8px;
+}
+
+#archives-table .archive-actions-menu .menu-action,
+#archive-action-menu .menu-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text-primary, #c9ccd1);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#archive-action-menu .menu-action:hover {
+  background: var(--border, #3a3f46);
+}
+
+#archive-action-menu .menu-action i,
+#archive-action-menu .menu-action svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+#archive-action-menu .menu-action span {
+  flex: 1;
+  white-space: nowrap;
+}
+
+#archive-action-menu .menu-action.danger {
+  color: #ff6b6b;
+}
+
+/* Ensure all archive table cells align middle vertically */
+#archives-table tbody td {
+  vertical-align: middle;
 }
