@@ -238,6 +238,24 @@ input:focus {
   font-size: 14px;
 }
 
+.remember-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--secondary-text);
+  font-size: 14px;
+  margin: 0 0 12px;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.remember-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent-blue);
+}
+
 .forgot:hover {
   color: var(--accent-blue);
 }

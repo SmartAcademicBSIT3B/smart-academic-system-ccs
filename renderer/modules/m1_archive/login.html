@@ -88,6 +88,11 @@
             </button>
           </div>
 
+          <label class="remember-row" for="rememberMe">
+            <input type="checkbox" id="rememberMe" />
+            <span>Remember me</span>
+          </label>
+
           <a href="forgotpass.html" class="forgot">forgot password?</a>
 
           <div id="errorMessage" class="error"></div>
@@ -98,6 +103,22 @@
     </div>
 
     <script>
+      const REMEMBER_EMAIL_KEY = "rememberedEmail";
+      const REMEMBER_ME_KEY = "rememberMeEnabled";
+
+      function loadRememberedLogin() {
+        const rememberMeEl = document.getElementById("rememberMe");
+        const usernameEl = document.getElementById("username");
+        const rememberedEnabled =
+          localStorage.getItem(REMEMBER_ME_KEY) === "true";
+        const rememberedEmail = localStorage.getItem(REMEMBER_EMAIL_KEY) || "";
+
+        rememberMeEl.checked = rememberedEnabled;
+        if (rememberedEnabled && rememberedEmail) {
+          usernameEl.value = rememberedEmail;
+        }
+      }
+
       // Login Logic
       document
         .getElementById("loginForm")
@@ -107,12 +128,21 @@
           // Clear previous error message
           document.getElementById("errorMessage").textContent = "";
 
-          const email = document.getElementById("username").value; // Assuming username is email
+          const email = document.getElementById("username").value.trim(); // Assuming username is email
           const password = document.getElementById("password").value;
+          const rememberMe = document.getElementById("rememberMe").checked;
 
           const result = await window.electronAPI.login(email, password);
 
           if (result.success) {
+            if (rememberMe) {
+              localStorage.setItem(REMEMBER_ME_KEY, "true");
+              localStorage.setItem(REMEMBER_EMAIL_KEY, email);
+            } else {
+              localStorage.removeItem(REMEMBER_ME_KEY);
+              localStorage.removeItem(REMEMBER_EMAIL_KEY);
+            }
+
             // Store user info
             localStorage.setItem("user", JSON.stringify(result.user));
 
@@ -130,6 +160,8 @@
               result.message;
           }
         });
+
+      loadRememberedLogin();
 
       // Back Button
       function goBack() {

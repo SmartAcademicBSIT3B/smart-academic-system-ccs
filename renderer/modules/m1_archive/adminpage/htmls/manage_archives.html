@@ -23,6 +23,7 @@
     <script src="../api/fetch_archive_dropdowns.js"></script>
     <script src="../api/fetch_archives.js"></script>
     <script src="../api/delete_archive.js"></script>
+    <script src="../api/update_archive.js"></script>
     <script src="../api/multi_select.js"></script>
   </head>
 
@@ -1075,8 +1076,12 @@
         return sectionEl.selectedIndex > 0 && sectionEl.value;
       }
 
+      function isEditMode() {
+        return Boolean(editingRow);
+      }
+
       function updateUploadInteractivity() {
-        const enabled = isSectionSelected();
+        const enabled = !isEditMode() && isSectionSelected();
         dropZone.classList.toggle("disabled", !enabled);
         dropZone.setAttribute("aria-disabled", String(!enabled));
       }
@@ -1110,7 +1115,7 @@
       }
 
       function updateSectionDependentFieldsState() {
-        const enabled = isSectionSelected();
+        const enabled = isEditMode() || isSectionSelected();
         [
           titleEl,
           datePublishedEl,
@@ -1121,13 +1126,109 @@
           a2El,
           a3El,
           keywordsEl,
-          fileUploadEl,
           saveArchiveBtn,
         ].forEach((el) => {
           if (el) el.disabled = !enabled;
         });
+        if (fileUploadEl) {
+          fileUploadEl.disabled = isEditMode() ? true : !enabled;
+        }
         updateUploadInteractivity();
         updateRequiredTextIndicators();
+      }
+
+      function normalizeDateForDateInput(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        const directMatch = raw.match(/^\d{4}-\d{2}-\d{2}/);
+        if (directMatch) return directMatch[0];
+        const d = new Date(raw);
+        if (!isNaN(d.getTime())) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          return `${yyyy}-${mm}-${dd}`;
+        }
+        return "";
+      }
+
+      function setSelectToValue(selectEl, value) {
+        const normalized = String(value || "").trim();
+        if (!selectEl) return;
+        if (!normalized) {
+          selectEl.selectedIndex = 0;
+          return;
+        }
+        const existing = Array.from(selectEl.options).find(
+          (opt) => String(opt.value || "").trim() === normalized,
+        );
+        if (existing) {
+          selectEl.value = existing.value;
+          return;
+        }
+        const appended = new Option(normalized, normalized);
+        selectEl.appendChild(appended);
+        selectEl.value = appended.value;
+      }
+
+      function renderEditModeFileInfo(row) {
+        const driveUrl = toGoogleDriveFileViewUrl(row?.dataset?.filePath || "");
+        const fileName = String(row?.dataset?.fileName || "").trim();
+        const localPath = String(row?.dataset?.localFilePath || "").trim();
+
+        if (driveUrl) {
+          const linkLabel = fileName || "Open current file in Google Drive";
+          const localText = localPath
+            ? `<span class="drop-zone-file-meta"> | ${escapeAttr(localPath)}</span>`
+            : "";
+          dropZoneFilename.innerHTML = `<a class="drop-zone-file-link" href="#" data-drive-url="${escapeAttr(driveUrl)}">${escapeAttr(linkLabel)}</a>${localText}`;
+          return;
+        }
+
+        if (fileName || localPath) {
+          dropZoneFilename.textContent = fileName || localPath;
+          return;
+        }
+
+        dropZoneFilename.textContent = "Current file is attached";
+      }
+
+      async function openEditModalForRow(row) {
+        editingRow = row;
+        modalTitleEl.textContent = "EDIT FILE";
+
+        const title = row.dataset.title || "";
+        const authors = row.dataset.authors || "";
+        const section = row.dataset.section || "";
+        const advisor = row.dataset.advisor || "";
+        const date_published = row.dataset.datePublished || "";
+        const keywords = row.dataset.keywords || "";
+        const type = row.dataset.type || "";
+        const status = row.dataset.status || "";
+
+        if (typeof window.loadArchiveDropdownOptions === "function") {
+          await window.loadArchiveDropdownOptions();
+        }
+
+        titleEl.value = title.trim();
+        datePublishedEl.value = normalizeDateForDateInput(date_published);
+        const [aa1, aa2, aa3] = parseAuthors(authors);
+        a1El.value = aa1;
+        a2El.value = aa2;
+        a3El.value = aa3;
+        keywordsEl.value = keywords.trim();
+
+        setSelectToValue(sectionEl, section);
+        setSelectToValue(professorEl, advisor);
+        setSelectToValue(statusEl, status);
+        setSelectToValue(typeEl, type);
+
+        fileUploadEl.value = "";
+        renderEditModeFileInfo(row);
+        updateSectionDependentFieldsState();
+        updateRequiredTextIndicators();
+        closeModal(selectModeModal);
+        openModal(archiveModal);
       }
 
       function showSectionRequiredModal() {
@@ -1414,6 +1515,9 @@
       // ── end PDF auto-fill ────────────────────────────────────────────
 
       function setDropZoneFile(file) {
+        if (isEditMode()) {
+          return;
+        }
         if (!file) return;
         if (!isSectionSelected()) {
           showSectionRequiredModal();
@@ -1434,6 +1538,9 @@
       }
 
       dropZone.addEventListener("click", (e) => {
+        if (isEditMode()) {
+          return;
+        }
         if (!isSectionSelected()) {
           showSectionRequiredModal();
           sectionEl.focus();
@@ -1451,6 +1558,10 @@
       });
 
       fileUploadEl.addEventListener("change", () => {
+        if (isEditMode()) {
+          fileUploadEl.value = "";
+          return;
+        }
         const files = Array.from(fileUploadEl.files || []);
         if (files.length && !isSectionSelected()) {
           fileUploadEl.value = "";
@@ -1463,6 +1574,7 @@
 
       dropZone.addEventListener("dragover", (e) => {
         e.preventDefault();
+        if (isEditMode()) return;
         if (!isSectionSelected()) return;
         dropZone.classList.add("drag-over");
       });
@@ -1475,6 +1587,9 @@
       dropZone.addEventListener("drop", (e) => {
         e.preventDefault();
         dropZone.classList.remove("drag-over");
+        if (isEditMode()) {
+          return;
+        }
         if (!isSectionSelected()) {
           showSectionRequiredModal();
           sectionEl.focus();
@@ -1893,6 +2008,7 @@
       updateSectionDependentFieldsState();
 
       function resetForm() {
+        editingRow = null;
         titleEl.value = "";
         sectionEl.selectedIndex = 0;
         datePublishedEl.value = "";
@@ -2323,42 +2439,69 @@
               fileContentBase64 = arrayBufferToBase64(buffer);
             }
 
+            const electronAPI = getElectronAPI();
+
             if (editingRow) {
-              // Update visible cells (new column order: check|title|authors|section|advisor|date|type|status|actions)
-              editingRow.cells[1].textContent = title;
-              editingRow.cells[2].textContent = authors;
-              editingRow.cells[3].textContent = section;
-              editingRow.cells[4].textContent = advisor;
-              editingRow.cells[5].textContent = formatMonthYear(date_published);
-              editingRow.cells[6].textContent = type;
-              // Update status dot + label
-              const statusRaw = status.trim().toLowerCase() || "pending";
-              const statusDotClass =
-                statusRaw === "approved"
-                  ? "dot-approved"
-                  : statusRaw === "rejected"
-                    ? "dot-rejected"
-                    : "dot-pending";
-              editingRow.cells[7].innerHTML = `<span class="status-dot ${statusDotClass}"></span>${status}`;
-              // Update file metadata if a new file was uploaded
-              if (fileName) {
-                const newDriveUrl = `https://drive.google.com/file/d/${fileName}`;
-                const displayName =
-                  fileName.replace(/^archive_\d+_/, "") || fileName;
-                editingRow.dataset.filePath = newDriveUrl;
-                editingRow.dataset.fileName = displayName;
+              if (typeof window.updateArchiveRecord !== "function") {
+                showArchiveAlert(
+                  "API Error",
+                  "Archive update API is not available in this view. Please reload the app and try again.",
+                );
+                return;
               }
-              // Sync data-* attributes
-              editingRow.dataset.title = title;
-              editingRow.dataset.authors = authors;
-              editingRow.dataset.section = section;
-              editingRow.dataset.advisor = advisor;
-              editingRow.dataset.datePublished = date_published;
-              editingRow.dataset.keywords = keywords;
-              editingRow.dataset.type = type;
-              editingRow.dataset.status = status;
+
+              const archiveId = Number.parseInt(editingRow.dataset.id, 10);
+              if (!Number.isInteger(archiveId) || archiveId <= 0) {
+                showArchiveAlert(
+                  "Edit Error",
+                  "This row has an invalid archive ID and cannot be updated.",
+                );
+                return;
+              }
+
+              const updatePayload = {
+                id: archiveId,
+                title,
+                authors,
+                section,
+                advisor,
+                date_published,
+                keywords,
+                type,
+                status,
+              };
+
+              const result = await window.updateArchiveRecord(updatePayload);
+
+              if (!result || !result.success) {
+                showArchiveAlert(
+                  "Update Failed",
+                  result?.message || "Failed to update archive.",
+                );
+                return;
+              }
+
+              const savedArchive = result.archive || {};
+              if (typeof window.applyArchiveRowUpdate === "function") {
+                window.applyArchiveRowUpdate(
+                  editingRow,
+                  savedArchive,
+                  {
+                    title,
+                    authors,
+                    section,
+                    advisor,
+                    date_published,
+                    keywords,
+                    type,
+                    status,
+                  },
+                  formatMonthYear,
+                );
+              }
+
+              showToast("Archive updated successfully.", "success", 3000);
             } else {
-              const electronAPI = getElectronAPI();
               if (
                 !electronAPI ||
                 typeof electronAPI.createArchive !== "function"
@@ -2532,49 +2675,13 @@
 
         // EDIT
         if (btn.classList.contains("edit-btn")) {
-          editingRow = row;
-          modalTitleEl.textContent = "EDIT FILE";
-
-          const title = row.dataset.title || "";
-          const authors = row.dataset.authors || "";
-          const section = row.dataset.section || "";
-          const advisor = row.dataset.advisor || "";
-          const date_published = row.dataset.datePublished || "";
-          const keywords = row.dataset.keywords || "";
-          const type = row.dataset.type || "";
-          const status = row.dataset.status || "";
-
-          titleEl.value = title.trim();
-          datePublishedEl.value = date_published.trim();
-          const [aa1, aa2, aa3] = parseAuthors(authors);
-          a1El.value = aa1;
-          a2El.value = aa2;
-          a3El.value = aa3;
-          keywordsEl.value = keywords.trim();
-
-          sectionEl.value = sectionEl.querySelector(
-            `option[value="${section}"]`,
-          )
-            ? section
-            : sectionEl.options[0].value;
-          professorEl.value = professorEl.querySelector(
-            `option[value="${advisor}"]`,
-          )
-            ? advisor
-            : professorEl.options[0].value;
-          statusEl.value = statusEl.querySelector(`option[value="${status}"]`)
-            ? status
-            : statusEl.options[0].value;
-          typeEl.value = typeEl.querySelector(`option[value="${type}"]`)
-            ? type
-            : typeEl.options[0].value;
-
-          if (typeof window.loadArchiveDropdownOptions === "function") {
-            window.loadArchiveDropdownOptions();
-          }
-          updateRequiredTextIndicators();
-          closeModal(selectModeModal);
-          openModal(archiveModal);
+          openEditModalForRow(row).catch((error) => {
+            console.error("Failed to open edit modal:", error);
+            showArchiveAlert(
+              "Edit Error",
+              error?.message || "Failed to open archive edit mode.",
+            );
+          });
           return;
         }
 
@@ -2658,6 +2765,13 @@
 
         const driveUrl = toGoogleDriveFileViewUrl(driveBtn.dataset.driveUrl);
         openGoogleDriveUrl(driveUrl);
+      });
+
+      dropZoneFilename.addEventListener("click", (e) => {
+        const link = e.target.closest(".drop-zone-file-link");
+        if (!link) return;
+        e.preventDefault();
+        openGoogleDriveUrl(link.dataset.driveUrl);
       });
 
       // ── Selection system ──────────────────────────────────────────────────

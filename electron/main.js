@@ -790,6 +790,99 @@ ipcMain.handle("getArchives", async () => {
   }
 });
 
+ipcMain.handle("updateArchive", async (event, payload = {}) => {
+  try {
+    const id = Number.parseInt(payload.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return { success: false, message: "A valid archive ID is required." };
+    }
+
+    const title = String(payload.title || "").trim();
+    const authors = String(payload.authors || "").trim();
+    const section = String(payload.section || "").trim();
+    const advisor = String(payload.advisor || "").trim();
+    const datePublished = String(payload.date_published || "").trim();
+    const keywords = String(payload.keywords || "").trim();
+    const type = normalizeArchiveType(payload.type);
+    const status = normalizeArchiveStatus(payload.status || "Pending");
+
+    if (!title || !authors || !keywords) {
+      return {
+        success: false,
+        message: "Title, Authors, and Keywords are required.",
+      };
+    }
+
+    if (!type) {
+      return {
+        success: false,
+        message: "Type must be either thesis or capstone.",
+      };
+    }
+
+    if (!status) {
+      return {
+        success: false,
+        message: "Status must be pending, approved, or rejected.",
+      };
+    }
+
+    const existing = await query(
+      `SELECT id FROM archives WHERE id = ? LIMIT 1`,
+      [id],
+    );
+
+    if (!existing || existing.length === 0) {
+      return { success: false, message: "Archive not found." };
+    }
+
+    await query(
+      `UPDATE archives
+       SET title = ?,
+           authors = ?,
+           section = ?,
+           advisor = ?,
+           date_published = ?,
+           keywords = ?,
+           type = ?,
+           status = ?
+       WHERE id = ?`,
+      [
+        title,
+        authors,
+        section,
+        advisor,
+        datePublished || null,
+        keywords,
+        type,
+        status,
+        id,
+      ],
+    );
+
+    const rows = await query(
+      `SELECT id, title, authors, section, advisor, date_published, keywords, type,
+              file_path, local_file_path, status, created_at
+       FROM archives
+       WHERE id = ?
+       LIMIT 1`,
+      [id],
+    );
+
+    return {
+      success: true,
+      archive: rows[0],
+      message: "Archive updated successfully.",
+    };
+  } catch (error) {
+    console.error("Update archive error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to update archive.",
+    };
+  }
+});
+
 ipcMain.handle("deleteArchive", async (event, archiveId) => {
   try {
     const id = Number.parseInt(archiveId, 10);

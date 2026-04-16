@@ -777,6 +777,15 @@
   margin: 0;
 }
 
+.drop-zone-file-link {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.drop-zone-file-meta {
+  color: var(--text-secondary);
+}
+
 /* =============================================
    ARCHIVES TABLE — new column layout styles
    ============================================= */
