@@ -33,19 +33,27 @@ function escapeArchiveMessage(value) {
     .replace(/'/g, "&#39;");
 }
 
-function renderArchiveTableMessage(tbody, title, detail, showRetry = false) {
+function renderArchiveTableMessage(
+  tbody,
+  title,
+  detail,
+  showRetry = false,
+  isLoading = false,
+) {
   if (!tbody) return;
 
   const safeTitle = escapeArchiveMessage(title);
   const safeDetail = escapeArchiveMessage(detail);
   const retryButton = showRetry
-    ? '<button type="button" id="archive-load-retry-btn" style="margin-top:12px;padding:8px 14px;border:1px solid var(--border);border-radius:6px;background:#12151a;color:var(--accent);cursor:pointer;">Retry</button>'
+    ? '<button type="button" id="archive-load-retry-btn" style="margin-top:12px;padding:8px 14px;border:1px solid var(--border);border-radius:6px;background:#12151a;color:var(--accent);cursor:pointer;font-size:13px;">Retry</button>'
     : "";
+  const spinner = isLoading ? '<div class="table-loading-spinner"></div>' : "";
 
   tbody.innerHTML = `
     <tr data-placeholder="archive-status">
-      <td colspan="14" style="text-align:center; padding: 24px; color: var(--text-secondary); font-size: 14px;">
-        <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <td colspan="14" style="text-align:center; padding: 48px 24px; color: var(--text-secondary); font-size: 14px;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+          ${spinner}
           <strong style="color: var(--text-primary);">${safeTitle}</strong>
           ${safeDetail ? `<span>${safeDetail}</span>` : ""}
           ${retryButton}
@@ -103,12 +111,7 @@ async function loadArchives() {
   const tbody = document.getElementById("archives-table-body");
   if (!tbody) return;
 
-  renderArchiveTableMessage(
-    tbody,
-    "Loading archives...",
-    "Fetching records from the database.",
-    false,
-  );
+  renderArchiveTableMessage(tbody, "Loading archives...", "", false, true);
 
   try {
     const result = await electronAPI.getArchives();

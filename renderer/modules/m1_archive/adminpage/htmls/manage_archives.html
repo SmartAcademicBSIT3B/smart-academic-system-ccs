@@ -163,6 +163,28 @@
         </div>
       </div>
 
+      <!-- ARCHIVE ALERT MODAL -->
+      <div id="archive-alert-modal" class="modal" style="display: none">
+        <div class="modal-content choice-modal-content">
+          <div class="form-header">
+            <h4 id="archive-alert-title">NOTICE</h4>
+          </div>
+          <div class="section-alert-body">
+            <i
+              data-lucide="alert-circle"
+              class="section-alert-icon"
+              id="archive-alert-icon"
+            ></i>
+            <p id="archive-alert-message"></p>
+          </div>
+          <div class="form-actions choice-footer">
+            <button class="save-btn" id="archive-alert-ok" type="button">
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- DELETE CONFIRMATION MODAL -->
       <div id="delete-confirm-modal" class="modal" style="display: none">
         <div class="modal-content delete-confirm-modal-content">
@@ -441,9 +463,11 @@
             <!-- TOP ROW -->
             <div class="grid-2">
               <div class="input-group required-input-group">
-                <label>TITLE</label>
+                <div class="required-label-row">
+                  <label>TITLE</label>
+                  <span class="required-indicator">*</span>
+                </div>
                 <input id="archive-title" type="text" placeholder="Type here" />
-                <span class="required-indicator">*</span>
               </div>
 
               <div class="input-group">
@@ -490,13 +514,15 @@
 
             <div class="grid-3">
               <div class="input-group required-input-group">
-                <label>AUTHOR 1</label>
+                <div class="required-label-row">
+                  <label>AUTHOR 1</label>
+                  <span class="required-indicator">*</span>
+                </div>
                 <input
                   id="archive-author-1"
                   type="text"
                   placeholder="Type here"
                 />
-                <span class="required-indicator">*</span>
               </div>
 
               <div class="input-group">
@@ -520,13 +546,15 @@
 
             <!-- KEYWORDS -->
             <div class="input-group required-input-group">
-              <label>KEYWORDS</label>
+              <div class="required-label-row">
+                <label>KEYWORDS</label>
+                <span class="required-indicator">*</span>
+              </div>
               <input
                 id="archive-keywords"
                 type="text"
                 placeholder="e.g. Machine Learning, AI, etc."
               />
-              <span class="required-indicator">*</span>
             </div>
           </div>
           <div class="form-actions">
@@ -959,6 +987,7 @@
       // Modals
       const selectModeModal = document.getElementById("select-mode-modal");
       const archiveModal = document.getElementById("archive-modal");
+      const archiveAlertModal = document.getElementById("archive-alert-modal");
       const sectionRequiredModal = document.getElementById(
         "section-required-modal",
       );
@@ -1117,6 +1146,25 @@
         if (pendingRequiredFieldFocus) {
           pendingRequiredFieldFocus.focus();
         }
+      }
+
+      function showArchiveAlert(title, message, isError) {
+        document.getElementById("archive-alert-title").textContent = String(
+          title || "Notice",
+        ).toUpperCase();
+        document.getElementById("archive-alert-message").textContent =
+          message || "";
+        const icon = document.getElementById("archive-alert-icon");
+        icon.setAttribute(
+          "data-lucide",
+          isError === false ? "info" : "alert-circle",
+        );
+        openModal(archiveAlertModal);
+        lucide.createIcons();
+      }
+
+      function closeArchiveAlertModal() {
+        closeModal(archiveAlertModal);
       }
 
       function openDeleteConfirmModal(rowOrRows) {
@@ -1306,7 +1354,7 @@
           status:
             statusEl.value && statusEl.selectedIndex > 0
               ? statusEl.value
-              : "Pending",
+              : "Approved",
         };
 
         try {
@@ -1448,8 +1496,9 @@
       bulkSummaryImportBtn.addEventListener("click", async () => {
         const electronAPI = getElectronAPI();
         if (!electronAPI || typeof electronAPI.createArchive !== "function") {
-          alert(
-            "Archive API is not available in this view. Please reload the app and try again.",
+          showToast(
+            "Archive API is not available. Please reload the app and try again.",
+            "error",
           );
           return;
         }
@@ -1508,8 +1557,9 @@
             bulkLoadingOverlay.style.display = "flex";
 
             if (!authorized) {
-              alert(
-                "Google Drive upload was cancelled. Authorize OAuth to upload to My Drive/CTA Files/Documents.",
+              showToast(
+                "Google Drive upload was cancelled. Authorize OAuth to continue.",
+                "error",
               );
               bulkLoadingOverlay.style.display = "none";
               bulkSummaryCancelBtn.disabled = false;
@@ -1547,9 +1597,24 @@
         // Now safely add rows to the table
         pendingRows.forEach((rowData) => addArchiveRow(rowData));
 
-        if (failedCount > 0) {
-          alert(
-            `${rows.length - failedCount} of ${rows.length} files imported. ${failedCount} failed — check the console for details.`,
+        const successCount = rows.length - failedCount;
+        if (failedCount === 0) {
+          showToast(
+            `${successCount} archive${successCount !== 1 ? "s" : ""} imported successfully.`,
+            "success",
+            4000,
+          );
+        } else if (successCount > 0) {
+          showToast(
+            `${successCount} of ${rows.length} imported. ${failedCount} failed.`,
+            "error",
+            5000,
+          );
+        } else {
+          showToast(
+            "All uploads failed. Check the console for details.",
+            "error",
+            5000,
           );
         }
       });
@@ -1603,12 +1668,18 @@
       document
         .getElementById("required-fields-ok-btn")
         .addEventListener("click", closeRequiredFieldsModal);
+      document
+        .getElementById("archive-alert-ok")
+        .addEventListener("click", closeArchiveAlertModal);
 
       sectionRequiredModal.addEventListener("click", (e) => {
         if (e.target === sectionRequiredModal) closeModal(sectionRequiredModal);
       });
       requiredFieldsModal.addEventListener("click", (e) => {
         if (e.target === requiredFieldsModal) closeRequiredFieldsModal();
+      });
+      archiveAlertModal.addEventListener("click", (e) => {
+        if (e.target === archiveAlertModal) closeArchiveAlertModal();
       });
       deleteConfirmModal.addEventListener("click", (e) => {
         if (e.target === deleteConfirmModal) closeDeleteConfirmModal();
@@ -1881,6 +1952,55 @@
         return `${parts[0]}, ${parts[1]} & ${parts[2]}`;
       }
 
+      function toTitleCaseAuthorPart(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/\b([a-z])/g, (m) => m.toUpperCase());
+      }
+
+      function normalizeAuthorName(value) {
+        const raw = String(value || "")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!raw) return "";
+
+        if (!raw.includes(",")) {
+          return toTitleCaseAuthorPart(raw);
+        }
+
+        const parts = raw.split(",");
+        const surname = toTitleCaseAuthorPart(parts[0] || "");
+        const given = String(parts.slice(1).join(",") || "")
+          .replace(/\s+/g, " ")
+          .trim();
+        const tokens = given.split(" ").filter(Boolean);
+        if (!tokens.length) return surname;
+
+        const firstName = toTitleCaseAuthorPart(tokens[0]);
+        const middleToken = tokens.length > 1 ? tokens[1] : "";
+        const middleInitial = middleToken
+          ? `${String(middleToken).charAt(0).toUpperCase()}.`
+          : "";
+
+        return [firstName, middleInitial, surname].filter(Boolean).join(" ");
+      }
+
+      function normalizeAuthorsText(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+
+        const parts = raw
+          .split(/\s*&\s*|\s+and\s+/i)
+          .map((s) => normalizeAuthorName(s))
+          .filter(Boolean);
+
+        if (parts.length === 0) return "";
+        if (parts.length === 1) return parts[0];
+        if (parts.length === 2) return `${parts[0]} & ${parts[1]}`;
+        return `${parts[0]}, ${parts[1]} & ${parts[2]}`;
+      }
+
       function parseCsvRow(line) {
         const out = [];
         let cur = "";
@@ -2140,6 +2260,17 @@
             return;
           }
 
+          const saveBtn = document.getElementById("save-archive-btn");
+          function setSaving(saving) {
+            if (saving) {
+              saveBtn.classList.add("is-saving");
+              saveBtn.innerHTML = '<span class="btn-spinner"></span>Saving...';
+            } else {
+              saveBtn.classList.remove("is-saving");
+              saveBtn.innerHTML = "Save";
+            }
+          }
+
           const title = titleEl.value.trim();
           const section =
             sectionEl.value && sectionEl.selectedIndex > 0
@@ -2156,7 +2287,14 @@
               : "Pending";
           const type =
             typeEl.value && typeEl.selectedIndex > 0 ? typeEl.value : "Thesis";
-          const authors = formatAuthors(a1El.value, a2El.value, a3El.value);
+          const normalizedA1 = normalizeAuthorName(a1El.value);
+          const normalizedA2 = normalizeAuthorName(a2El.value);
+          const normalizedA3 = normalizeAuthorName(a3El.value);
+          const authors = formatAuthors(
+            normalizedA1,
+            normalizedA2,
+            normalizedA3,
+          );
           const keywords = keywordsEl.value.trim();
           const fileName =
             fileUploadEl.files && fileUploadEl.files[0]
@@ -2178,100 +2316,115 @@
               : null;
           let fileContentBase64 = "";
 
-          if (selectedFile && !localSourcePath) {
-            const buffer = await selectedFile.arrayBuffer();
-            fileContentBase64 = arrayBufferToBase64(buffer);
-          }
-
-          if (editingRow) {
-            // Update visible cells (new column order: check|title|authors|section|advisor|date|type|status|actions)
-            editingRow.cells[1].textContent = title;
-            editingRow.cells[2].textContent = authors;
-            editingRow.cells[3].textContent = section;
-            editingRow.cells[4].textContent = advisor;
-            editingRow.cells[5].textContent = formatMonthYear(date_published);
-            editingRow.cells[6].textContent = type;
-            // Update status dot + label
-            const statusRaw = status.trim().toLowerCase() || "pending";
-            const statusDotClass =
-              statusRaw === "approved"
-                ? "dot-approved"
-                : statusRaw === "rejected"
-                  ? "dot-rejected"
-                  : "dot-pending";
-            editingRow.cells[7].innerHTML = `<span class="status-dot ${statusDotClass}"></span>${status}`;
-            // Update file metadata if a new file was uploaded
-            if (fileName) {
-              const newDriveUrl = `https://drive.google.com/file/d/${fileName}`;
-              const displayName =
-                fileName.replace(/^archive_\d+_/, "") || fileName;
-              editingRow.dataset.filePath = newDriveUrl;
-              editingRow.dataset.fileName = displayName;
-            }
-            // Sync data-* attributes
-            editingRow.dataset.title = title;
-            editingRow.dataset.authors = authors;
-            editingRow.dataset.section = section;
-            editingRow.dataset.advisor = advisor;
-            editingRow.dataset.datePublished = date_published;
-            editingRow.dataset.keywords = keywords;
-            editingRow.dataset.type = type;
-            editingRow.dataset.status = status;
-          } else {
-            const electronAPI = getElectronAPI();
-            if (
-              !electronAPI ||
-              typeof electronAPI.createArchive !== "function"
-            ) {
-              alert(
-                "Archive API is not available in this view. Please reload the app and try again.",
-              );
-              return;
+          setSaving(true);
+          try {
+            if (selectedFile && !localSourcePath) {
+              const buffer = await selectedFile.arrayBuffer();
+              fileContentBase64 = arrayBufferToBase64(buffer);
             }
 
-            const archivePayload = {
-              title,
-              authors,
-              section,
-              advisor,
-              date_published,
-              keywords,
-              type,
-              status,
-              fileName,
-              localSourcePath,
-              fileContentBase64,
-              mimeType,
-            };
-
-            let result = await electronAPI.createArchive(archivePayload);
-
-            if (result && result.requiresAuth) {
-              const authorized = await runGoogleDriveOAuth(electronAPI);
-              if (!authorized) {
-                alert(
-                  "Google Drive upload was cancelled. Authorize OAuth to upload to My Drive/CTA Files/Documents.",
+            if (editingRow) {
+              // Update visible cells (new column order: check|title|authors|section|advisor|date|type|status|actions)
+              editingRow.cells[1].textContent = title;
+              editingRow.cells[2].textContent = authors;
+              editingRow.cells[3].textContent = section;
+              editingRow.cells[4].textContent = advisor;
+              editingRow.cells[5].textContent = formatMonthYear(date_published);
+              editingRow.cells[6].textContent = type;
+              // Update status dot + label
+              const statusRaw = status.trim().toLowerCase() || "pending";
+              const statusDotClass =
+                statusRaw === "approved"
+                  ? "dot-approved"
+                  : statusRaw === "rejected"
+                    ? "dot-rejected"
+                    : "dot-pending";
+              editingRow.cells[7].innerHTML = `<span class="status-dot ${statusDotClass}"></span>${status}`;
+              // Update file metadata if a new file was uploaded
+              if (fileName) {
+                const newDriveUrl = `https://drive.google.com/file/d/${fileName}`;
+                const displayName =
+                  fileName.replace(/^archive_\d+_/, "") || fileName;
+                editingRow.dataset.filePath = newDriveUrl;
+                editingRow.dataset.fileName = displayName;
+              }
+              // Sync data-* attributes
+              editingRow.dataset.title = title;
+              editingRow.dataset.authors = authors;
+              editingRow.dataset.section = section;
+              editingRow.dataset.advisor = advisor;
+              editingRow.dataset.datePublished = date_published;
+              editingRow.dataset.keywords = keywords;
+              editingRow.dataset.type = type;
+              editingRow.dataset.status = status;
+            } else {
+              const electronAPI = getElectronAPI();
+              if (
+                !electronAPI ||
+                typeof electronAPI.createArchive !== "function"
+              ) {
+                showArchiveAlert(
+                  "API Error",
+                  "Archive API is not available in this view. Please reload the app and try again.",
                 );
                 return;
               }
 
-              result = await electronAPI.createArchive(archivePayload);
+              const archivePayload = {
+                title,
+                authors,
+                section,
+                advisor,
+                date_published,
+                keywords,
+                type,
+                status,
+                fileName,
+                localSourcePath,
+                fileContentBase64,
+                mimeType,
+              };
+
+              let result = await electronAPI.createArchive(archivePayload);
+
+              if (result && result.requiresAuth) {
+                const authorized = await runGoogleDriveOAuth(electronAPI);
+                if (!authorized) {
+                  showArchiveAlert(
+                    "Upload Cancelled",
+                    "Google Drive upload was cancelled. Authorize OAuth to upload to My Drive/CTA Files/Documents.",
+                  );
+                  return;
+                }
+
+                result = await electronAPI.createArchive(archivePayload);
+              }
+
+              if (!result || !result.success) {
+                showArchiveAlert(
+                  "Save Failed",
+                  result?.message || "Failed to save archive.",
+                );
+                return;
+              }
+
+              addArchiveRow(result.archive || {});
+              showToast("Archive uploaded successfully.", "success", 4000);
+
+              if (result.usedFallback) {
+                showArchiveAlert(
+                  "Notice",
+                  result.message || "Archive saved with local fallback.",
+                  false,
+                );
+              }
             }
 
-            if (!result || !result.success) {
-              alert(result?.message || "Failed to save archive.");
-              return;
-            }
-
-            addArchiveRow(result.archive || {});
-
-            if (result.usedFallback) {
-              alert(result.message || "Archive saved with local fallback.");
-            }
+            closeModal(archiveModal);
+            updateRequiredTextIndicators();
+          } finally {
+            setSaving(false);
           }
-
-          closeModal(archiveModal);
-          updateRequiredTextIndicators();
         });
 
       // ── Archive action menu button handlers ───────────────────────────

@@ -63,11 +63,45 @@ function parsePdfAuthors(lines) {
     if (/^Advis[eo]r/i.test(line)) break;
     if (i + 1 < lines.length && /^Advis[eo]r/i.test(lines[i + 1].trim())) break;
     if (/^[A-Z][a-záéíóúñ]+[,\s]+[A-Z]/i.test(line) && authors.length < 3) {
-      authors.push(line.trim());
+      authors.push(normalizeExtractedAuthorName(line.trim()));
     }
     if (authors.length >= 3) break;
   }
   return authors;
+}
+
+function toTitleCaseNamePart(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (m) => m.toUpperCase());
+}
+
+function normalizeExtractedAuthorName(value) {
+  const raw = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!raw) return "";
+
+  if (!raw.includes(",")) {
+    return toTitleCaseNamePart(raw);
+  }
+
+  const parts = raw.split(",");
+  const surname = toTitleCaseNamePart(parts[0] || "");
+  const given = String(parts.slice(1).join(",") || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const tokens = given.split(" ").filter(Boolean);
+  if (!tokens.length) return surname;
+
+  const firstName = toTitleCaseNamePart(tokens[0]);
+  const middleToken = tokens.length > 1 ? tokens[1] : "";
+  const middleInitial = middleToken
+    ? `${String(middleToken).charAt(0).toUpperCase()}.`
+    : "";
+
+  return [firstName, middleInitial, surname].filter(Boolean).join(" ");
 }
 
 function parsePdfAdvisor(lines) {
