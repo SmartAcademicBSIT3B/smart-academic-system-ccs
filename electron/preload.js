@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   createArchive: (archiveData) =>
     ipcRenderer.invoke("createArchive", archiveData),
   getArchives: () => ipcRenderer.invoke("getArchives"),
+  deleteArchive: (archiveId) => ipcRenderer.invoke("deleteArchive", archiveId),
   checkGoogleDriveAuth: () => ipcRenderer.invoke("checkGoogleDriveAuth"),
   getGoogleDriveAuthUrl: () => ipcRenderer.invoke("getGoogleDriveAuthUrl"),
   saveGoogleDriveToken: (authCode) =>

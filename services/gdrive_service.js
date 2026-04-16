@@ -140,4 +140,60 @@ async function listFilesInFolder(folderId = DRIVE_FOLDER_ID) {
   return res.data.files || [];
 }
 
-module.exports = { uploadProfileImage, listFilesInFolder };
+function extractGoogleDriveFileId(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  // Already a raw Drive file ID
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(raw) && !raw.includes("/")) {
+    return raw;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    const idParam = parsed.searchParams.get("id");
+    if (idParam) return idParam;
+
+    const pathMatch = parsed.pathname.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (pathMatch && pathMatch[1]) return pathMatch[1];
+  } catch (_error) {
+    const fallbackMatch = raw.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (fallbackMatch && fallbackMatch[1]) return fallbackMatch[1];
+
+    const queryMatch = raw.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (queryMatch && queryMatch[1]) return queryMatch[1];
+  }
+
+  return "";
+}
+
+async function deleteDriveFileByUrl(fileUrl) {
+  const fileId = extractGoogleDriveFileId(fileUrl);
+  if (!fileId) {
+    return { success: false, message: "No Google Drive file ID found." };
+  }
+
+  const drive = getDriveClient();
+  try {
+    await drive.files.delete({
+      fileId,
+      supportsAllDrives: true,
+    });
+
+    return { success: true, fileId };
+  } catch (error) {
+    if (error?.code === 404) {
+      // File already removed in Drive; treat as success for idempotency.
+      return { success: true, fileId, alreadyDeleted: true };
+    }
+
+    throw error;
+  }
+}
+
+module.exports = {
+  uploadProfileImage,
+  listFilesInFolder,
+  deleteDriveFileByUrl,
+  extractGoogleDriveFileId,
+};

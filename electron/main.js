@@ -4,7 +4,11 @@ const http = require("node:http");
 const fs = require("node:fs/promises");
 const { query } = require("../database/dbconnect");
 const { supabase } = require("../services/supabase_config");
-const { uploadProfileImage } = require("../services/gdrive_service");
+const {
+  uploadProfileImage,
+  deleteDriveFileByUrl,
+  extractGoogleDriveFileId,
+} = require("../services/gdrive_service");
 const {
   getAuthUrl,
   saveTokenFromCode,
@@ -63,6 +67,17 @@ function normalizeArchiveStatus(status) {
 
 function toSqlDateTime(date = new Date()) {
   return new Date(date).toISOString().slice(0, 19).replace("T", " ");
+}
+
+function resolveArchiveLocalFileAbsolutePath(storedPath) {
+  const raw = String(storedPath || "").trim();
+  if (!raw) return "";
+
+  const normalized = raw.replace(/\\/g, "/");
+  const fileName = path.basename(normalized);
+  if (!fileName) return "";
+
+  return path.join(ARCHIVE_UPLOAD_DIR, fileName);
 }
 
 async function authorizeGoogleDriveInteractive() {
@@ -615,6 +630,90 @@ ipcMain.handle("getArchives", async () => {
     return {
       success: false,
       message: error.message || "Failed to fetch archives.",
+    };
+  }
+});
+
+ipcMain.handle("deleteArchive", async (event, archiveId) => {
+  try {
+    const id = Number.parseInt(archiveId, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return { success: false, message: "A valid archive ID is required." };
+    }
+
+    const rows = await query(
+      `SELECT id, file_path, local_file_path
+       FROM archives
+       WHERE id = ?
+       LIMIT 1`,
+      [id],
+    );
+
+    if (!rows || rows.length === 0) {
+      return {
+        success: false,
+        message: "Archive not found or already deleted.",
+      };
+    }
+
+    const archive = rows[0];
+    const driveFileId = extractGoogleDriveFileId(archive.file_path);
+
+    // Delete Drive file first (if present), so DB only deletes when remote cleanup succeeds.
+    if (driveFileId) {
+      try {
+        await deleteDriveFileByUrl(archive.file_path);
+      } catch (driveError) {
+        if (driveError && driveError.code === "AUTH_REQUIRED") {
+          return {
+            success: false,
+            requiresAuth: true,
+            message:
+              "Google Drive authorization is required before deleting this archive.",
+          };
+        }
+
+        console.error("Google Drive delete failed:", driveError);
+        return {
+          success: false,
+          message:
+            driveError?.message ||
+            "Failed to delete file from Google Drive. Archive was not removed.",
+        };
+      }
+    }
+
+    // Delete local file copy if present.
+    const localAbsolutePath = resolveArchiveLocalFileAbsolutePath(
+      archive.local_file_path || archive.file_path,
+    );
+    if (localAbsolutePath) {
+      try {
+        await fs.unlink(localAbsolutePath);
+      } catch (fileError) {
+        if (fileError?.code !== "ENOENT") {
+          console.error("Local archive file delete failed:", fileError);
+          return {
+            success: false,
+            message:
+              fileError?.message ||
+              "Failed to delete local archive file. Archive was not removed.",
+          };
+        }
+      }
+    }
+
+    await query("DELETE FROM archives WHERE id = ?", [id]);
+
+    return {
+      success: true,
+      message: "Archive deleted successfully.",
+    };
+  } catch (error) {
+    console.error("Delete archive error:", error);
+    return {
+      success: false,
+      message: error?.message || "Failed to delete archive.",
     };
   }
 });

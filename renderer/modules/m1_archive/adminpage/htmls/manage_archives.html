@@ -22,6 +22,7 @@
     <script src="../api/bulk_archive_summary.js"></script>
     <script src="../api/fetch_archive_dropdowns.js"></script>
     <script src="../api/fetch_archives.js"></script>
+    <script src="../api/delete_archive.js"></script>
   </head>
 
   <body>
@@ -161,6 +162,46 @@
         </div>
       </div>
 
+      <!-- DELETE CONFIRMATION MODAL -->
+      <div id="delete-confirm-modal" class="modal" style="display: none">
+        <div class="modal-content delete-confirm-modal-content">
+          <div class="form-header">
+            <h4>CONFIRM ARCHIVE DELETION</h4>
+          </div>
+          <div class="delete-confirm-body">
+            <p class="delete-confirm-message">
+              This will permanently delete the selected archive from the
+              database and Google Drive.
+            </p>
+            <p class="delete-confirm-target" id="delete-confirm-target"></p>
+
+            <label class="delete-confirm-label" for="delete-confirm-input"
+              >Type <strong>Confirm</strong> to continue</label
+            >
+            <input
+              id="delete-confirm-input"
+              class="delete-confirm-input"
+              type="text"
+              autocomplete="off"
+              placeholder="Confirm"
+            />
+          </div>
+          <div class="form-actions choice-footer">
+            <button class="cancel-btn" id="delete-confirm-cancel" type="button">
+              Cancel
+            </button>
+            <button
+              class="save-btn"
+              id="delete-confirm-submit"
+              type="button"
+              disabled
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- BULK SUMMARY MODAL -->
       <div id="bulk-summary-modal" class="modal" style="display: none">
         <div class="modal-content bulk-summary-modal-content">
@@ -204,6 +245,84 @@
             </button>
             <button class="save-btn" id="bulk-summary-import" type="button">
               Import Rows
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW ARCHIVE MODAL -->
+      <div id="view-archive-modal" class="modal" style="display: none">
+        <div class="modal-content view-archive-modal-content">
+          <div
+            class="form-header"
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding-right: 20px;
+            "
+          >
+            <h4>ARCHIVE DETAILS</h4>
+            <button
+              class="view-archive-close-btn"
+              type="button"
+              id="view-archive-close"
+              aria-label="Close"
+            >
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+          <div class="view-archive-body">
+            <!-- Badge row -->
+            <div class="view-archive-badges" id="va-badges"></div>
+
+            <!-- Title block -->
+            <h2 class="view-archive-title" id="va-title"></h2>
+            <p class="view-archive-authors" id="va-authors"></p>
+
+            <!-- Meta grid -->
+            <div class="view-archive-meta-grid">
+              <div class="view-meta-item">
+                <span class="view-meta-label">Section</span>
+                <span class="view-meta-value" id="va-section"></span>
+              </div>
+              <div class="view-meta-item">
+                <span class="view-meta-label">Adviser</span>
+                <span class="view-meta-value" id="va-advisor"></span>
+              </div>
+              <div class="view-meta-item">
+                <span class="view-meta-label">Date Published</span>
+                <span class="view-meta-value" id="va-date"></span>
+              </div>
+              <div class="view-meta-item">
+                <span class="view-meta-label">Type</span>
+                <span class="view-meta-value" id="va-type"></span>
+              </div>
+              <div class="view-meta-item">
+                <span class="view-meta-label">Status</span>
+                <span class="view-meta-value" id="va-status-cell"></span>
+              </div>
+              <div class="view-meta-item">
+                <span class="view-meta-label">Uploaded</span>
+                <span class="view-meta-value" id="va-created"></span>
+              </div>
+            </div>
+
+            <!-- Keywords -->
+            <div class="view-meta-section">
+              <span class="view-meta-label">Keywords</span>
+              <div class="view-archive-keywords" id="va-keywords"></div>
+            </div>
+
+            <!-- File links -->
+            <div class="view-meta-section">
+              <span class="view-meta-label">Files</span>
+              <div class="view-archive-files" id="va-files"></div>
+            </div>
+          </div>
+          <div class="form-actions choice-footer">
+            <button class="cancel-btn" id="view-archive-cancel" type="button">
+              Close
             </button>
           </div>
         </div>
@@ -424,7 +543,7 @@
                 <th class="col-date">Date Published</th>
                 <th class="col-type">Type</th>
                 <th class="col-status">Status</th>
-                <th class="col-actions">Actions</th>
+                <th class="col-actions"></th>
               </tr>
             </thead>
 
@@ -759,6 +878,21 @@
       const requiredFieldsModal = document.getElementById(
         "required-fields-modal",
       );
+      const deleteConfirmModal = document.getElementById(
+        "delete-confirm-modal",
+      );
+      const deleteConfirmTarget = document.getElementById(
+        "delete-confirm-target",
+      );
+      const deleteConfirmInput = document.getElementById(
+        "delete-confirm-input",
+      );
+      const deleteConfirmCancelBtn = document.getElementById(
+        "delete-confirm-cancel",
+      );
+      const deleteConfirmSubmitBtn = document.getElementById(
+        "delete-confirm-submit",
+      );
       const bulkSummaryModal = document.getElementById("bulk-summary-modal");
       const bulkSummaryBody = document.getElementById("bulk-summary-body");
       const bulkSummaryCancelBtn = document.getElementById(
@@ -784,6 +918,7 @@
       let currentKeywordsRow = null;
       let pendingRequiredFieldFocus = null;
       let bulkPdfFiles = [];
+      let pendingDeleteRow = null;
 
       const titleEl = document.getElementById("archive-title");
       const sectionEl = document.getElementById("archive-section");
@@ -883,6 +1018,23 @@
         }
       }
 
+      function openDeleteConfirmModal(row) {
+        pendingDeleteRow = row;
+        const title = row?.dataset?.title || "this archive";
+        deleteConfirmTarget.textContent = `Target: ${title}`;
+        deleteConfirmInput.value = "";
+        deleteConfirmSubmitBtn.disabled = true;
+        openModal(deleteConfirmModal);
+        window.setTimeout(() => deleteConfirmInput.focus(), 0);
+      }
+
+      function closeDeleteConfirmModal() {
+        pendingDeleteRow = null;
+        deleteConfirmInput.value = "";
+        deleteConfirmSubmitBtn.disabled = true;
+        closeModal(deleteConfirmModal);
+      }
+
       function statusSelectMarkup(value) {
         const safe = String(value || "Approved");
         return `<select class="bulk-field-status"><option ${safe === "Pending" ? "selected" : ""}>Pending</option><option ${safe === "Approved" ? "selected" : ""}>Approved</option><option ${safe === "Rejected" ? "selected" : ""}>Rejected</option></select>`;
@@ -902,6 +1054,58 @@
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;");
+      }
+
+      function extractGoogleDriveFileIdFromUrl(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+
+        // Raw Drive file ID
+        if (/^[a-zA-Z0-9_-]{10,}$/.test(raw) && !raw.includes("/")) {
+          return raw;
+        }
+
+        try {
+          const parsed = new URL(raw);
+          const idParam = parsed.searchParams.get("id");
+          if (idParam) return idParam;
+
+          const pathMatch = parsed.pathname.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (pathMatch && pathMatch[1]) return pathMatch[1];
+        } catch (_error) {
+          const fallbackPathMatch = raw.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (fallbackPathMatch && fallbackPathMatch[1]) {
+            return fallbackPathMatch[1];
+          }
+
+          const fallbackQueryMatch = raw.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+          if (fallbackQueryMatch && fallbackQueryMatch[1]) {
+            return fallbackQueryMatch[1];
+          }
+        }
+
+        return "";
+      }
+
+      function toGoogleDriveFileViewUrl(value) {
+        const fileId = extractGoogleDriveFileIdFromUrl(value);
+        if (!fileId) return "";
+        return `https://drive.google.com/file/d/${fileId}/view`;
+      }
+
+      function openGoogleDriveUrl(driveUrl) {
+        const url = String(driveUrl || "").trim();
+        if (!url) {
+          alert("No Google Drive link available for this record.");
+          return;
+        }
+
+        const api = getElectronAPI();
+        if (api && typeof api.openExternalUrl === "function") {
+          api.openExternalUrl(url);
+        } else {
+          window.open(url, "_blank", "noopener,noreferrer");
+        }
       }
 
       function openBulkSummaryModal(rows) {
@@ -1284,6 +1488,76 @@
       requiredFieldsModal.addEventListener("click", (e) => {
         if (e.target === requiredFieldsModal) closeRequiredFieldsModal();
       });
+      deleteConfirmModal.addEventListener("click", (e) => {
+        if (e.target === deleteConfirmModal) closeDeleteConfirmModal();
+      });
+
+      deleteConfirmCancelBtn.addEventListener("click", closeDeleteConfirmModal);
+
+      deleteConfirmInput.addEventListener("input", () => {
+        const canConfirm =
+          typeof window.canConfirmArchiveDelete === "function"
+            ? window.canConfirmArchiveDelete(deleteConfirmInput.value)
+            : deleteConfirmInput.value.trim() === "Confirm";
+        deleteConfirmSubmitBtn.disabled = !canConfirm;
+      });
+
+      deleteConfirmSubmitBtn.addEventListener("click", async () => {
+        if (!pendingDeleteRow) return;
+
+        const archiveId = pendingDeleteRow.dataset.id;
+        if (!archiveId) {
+          alert("Archive ID is missing. Deletion cancelled.");
+          closeDeleteConfirmModal();
+          return;
+        }
+
+        deleteConfirmSubmitBtn.disabled = true;
+
+        try {
+          if (typeof window.deleteArchiveRecord !== "function") {
+            alert("Delete API is unavailable. Please reload the app.");
+            return;
+          }
+
+          let result = await window.deleteArchiveRecord(archiveId);
+
+          if (result && result.requiresAuth) {
+            const electronAPI = getElectronAPI();
+            if (!electronAPI) {
+              alert(
+                "Google authorization is required, but electronAPI is unavailable.",
+              );
+              return;
+            }
+
+            const authorized = await runGoogleDriveOAuth(electronAPI);
+            if (!authorized) {
+              alert(
+                "Deletion cancelled. Google Drive authorization was not completed.",
+              );
+              return;
+            }
+
+            result = await window.deleteArchiveRecord(archiveId);
+          }
+
+          if (!result || !result.success) {
+            alert(result?.message || "Failed to delete archive.");
+            return;
+          }
+
+          pendingDeleteRow.remove();
+          closeDeleteConfirmModal();
+        } catch (error) {
+          console.error("Delete archive error:", error);
+          alert(error?.message || "Unexpected delete error.");
+        } finally {
+          if (deleteConfirmModal.style.display !== "none") {
+            deleteConfirmSubmitBtn.disabled = false;
+          }
+        }
+      });
 
       sectionEl.addEventListener("change", updateSectionDependentFieldsState);
       updateSectionDependentFieldsState();
@@ -1436,10 +1710,13 @@
         tr.dataset.status = statusLabel;
         tr.dataset.filePath = driveUrl;
         tr.dataset.fileName = displayFileName;
+        tr.dataset.localFilePath =
+          data.local_file_path || data.localFilePath || "";
+        tr.dataset.createdAt = data.created_at || data.createdAt || "";
 
         tr.innerHTML = `
           <td class="col-check"><input type="checkbox"></td>
-          <td class="col-title">${escapeAttr(data.title || "")}</td>
+          <td class="col-title" title="${escapeAttr(data.title || "")}">${escapeAttr(data.title || "")}</td>
           <td class="col-authors">${escapeAttr(data.authors || "")}</td>
           <td class="col-section">${escapeAttr(data.section || "")}</td>
           <td class="col-advisor">${escapeAttr(data.advisor || "")}</td>
@@ -1749,35 +2026,77 @@
         closeArchiveActionMenu();
         if (!row) return;
 
-        // VIEW
+        // VIEW — open View Archive modal
         if (btn.classList.contains("view-btn")) {
-          const url = row.dataset.filePath;
-          if (!url) {
-            alert("No file link available for this record.");
-            return;
+          const d = row.dataset;
+          // Badges
+          const statusRawV = (d.status || "pending").toLowerCase();
+          const dotClassV =
+            statusRawV === "approved"
+              ? "dot-approved"
+              : statusRawV === "rejected"
+                ? "dot-rejected"
+                : "dot-pending";
+          document.getElementById("va-badges").innerHTML =
+            `<span class="view-badge view-badge-type">${escapeAttr(d.type || "")}</span>` +
+            `<span class="view-badge view-badge-status"><span class="status-dot ${dotClassV}"></span>${escapeAttr(d.status || "")}</span>`;
+          // Core fields
+          document.getElementById("va-title").textContent = d.title || "—";
+          document.getElementById("va-authors").textContent = d.authors || "—";
+          document.getElementById("va-section").textContent = d.section || "—";
+          document.getElementById("va-advisor").textContent = d.advisor || "—";
+          document.getElementById("va-date").textContent =
+            formatMonthYear(d.datePublished) || "—";
+          document.getElementById("va-type").textContent = d.type || "—";
+          document.getElementById("va-status-cell").innerHTML =
+            `<span class="status-dot ${dotClassV}"></span>${escapeAttr(d.status || "")}`;
+          // Created at
+          const createdRaw = d.createdAt || "";
+          document.getElementById("va-created").textContent = createdRaw
+            ? new Date(createdRaw).toLocaleString("en-US", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })
+            : "—";
+          // Keywords
+          const kwEl = document.getElementById("va-keywords");
+          const kws = (d.keywords || "")
+            .split(/[,;]+/)
+            .map((k) => k.trim())
+            .filter(Boolean);
+          kwEl.innerHTML = kws.length
+            ? kws
+                .map(
+                  (k) =>
+                    `<span class="view-keyword-tag">${escapeAttr(k)}</span>`,
+                )
+                .join("")
+            : `<span class="view-meta-empty">—</span>`;
+          // Files
+          const filesEl = document.getElementById("va-files");
+          let filesHtml = "";
+          const modalDriveUrl = toGoogleDriveFileViewUrl(d.filePath);
+          if (d.filePath) {
+            filesHtml += `<button class="view-file-link view-drive-btn" type="button" data-drive-url="${escapeAttr(modalDriveUrl)}"><i data-lucide="hard-drive"></i><span>Google Drive</span></button>`;
           }
-          const api = getElectronAPI();
-          if (api && typeof api.openExternalUrl === "function") {
-            api.openExternalUrl(url);
-          } else {
-            window.open(url, "_blank", "noopener,noreferrer");
+          if (d.localFilePath) {
+            filesHtml += `<span class="view-file-link view-file-local"><i data-lucide="file"></i><span>${escapeAttr(d.localFilePath)}</span></span>`;
           }
+          filesEl.innerHTML =
+            filesHtml ||
+            `<span class="view-meta-empty">No files attached</span>`;
+          lucide.createIcons({
+            nodes: [document.getElementById("view-archive-modal")],
+          });
+          openModal(document.getElementById("view-archive-modal"));
           return;
         }
 
         // VIEW IN GOOGLE DRIVE
         if (btn.classList.contains("gdrive-btn")) {
-          const url = row.dataset.filePath;
-          if (!url) {
-            alert("No Google Drive link available for this record.");
-            return;
-          }
-          const api = getElectronAPI();
-          if (api && typeof api.openExternalUrl === "function") {
-            api.openExternalUrl(url);
-          } else {
-            window.open(url, "_blank", "noopener,noreferrer");
-          }
+          const rawUrl = row.dataset.filePath;
+          const driveUrl = toGoogleDriveFileViewUrl(rawUrl);
+          openGoogleDriveUrl(driveUrl);
           return;
         }
 
@@ -1849,10 +2168,7 @@
 
         // DELETE
         if (btn.classList.contains("delete-btn")) {
-          const title = row.dataset.title || "this record";
-          if (confirm(`Delete "${title}"?`)) {
-            row.remove();
-          }
+          openDeleteConfirmModal(row);
           return;
         }
       });
@@ -1901,10 +2217,33 @@
         closeArchiveActionMenu();
         closeModal(selectModeModal);
         closeModal(archiveModal);
+        closeModal(document.getElementById("view-archive-modal"));
+        closeDeleteConfirmModal();
         closeModal(sectionRequiredModal);
         closeModal(requiredFieldsModal);
         closeModal(bulkSummaryModal);
         closeModal(keywordsExpandedModal);
+      });
+
+      // View archive modal close buttons
+      const viewArchiveModal = document.getElementById("view-archive-modal");
+      const viewArchiveFiles = document.getElementById("va-files");
+      document
+        .getElementById("view-archive-close")
+        .addEventListener("click", () => closeModal(viewArchiveModal));
+      document
+        .getElementById("view-archive-cancel")
+        .addEventListener("click", () => closeModal(viewArchiveModal));
+      viewArchiveModal.addEventListener("click", (e) => {
+        if (e.target === viewArchiveModal) closeModal(viewArchiveModal);
+      });
+
+      viewArchiveFiles.addEventListener("click", (e) => {
+        const driveBtn = e.target.closest(".view-drive-btn");
+        if (!driveBtn) return;
+
+        const driveUrl = toGoogleDriveFileViewUrl(driveBtn.dataset.driveUrl);
+        openGoogleDriveUrl(driveUrl);
       });
     </script>
   </body>
