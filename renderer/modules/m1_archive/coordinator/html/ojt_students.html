@@ -1,49 +1,38 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>OJT Students</title>
-<link rel="stylesheet" href="../css/ojt_students.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OJT Students</title>
+    <link rel="stylesheet" href="../css/ojt_students.css" />
+  </head>
 
+  <body>
+    <h2 class="page-title">OJT STUDENTS</h2>
 
-</head>
-
-<body>
-
-<h2 class="page-title">OJT STUDENTS</h2>
-
-<div class="ojt-container">
-
-    <div class="student-card" data-section="BSIT-4B">
+    <div class="ojt-container">
+      <div class="student-card" data-section="BSIT-4B">
         <div class="course">BSIT-4B</div>
         <div class="divider"></div>
         <div class="students-count"><strong>36</strong> students</div>
-    </div>
+      </div>
 
-    <div class="student-card" data-section="BSIT-4D">
+      <div class="student-card" data-section="BSIT-4D">
         <div class="course">BSIT-4D</div>
         <div class="divider"></div>
         <div class="students-count"><strong>36</strong> students</div>
+      </div>
     </div>
 
-</div>
+    <script>
+      document.querySelectorAll(".student-card").forEach(function (card) {
+        card.addEventListener("click", function () {
+          let section = this.dataset.section;
 
-<script>
-
-document.querySelectorAll(".student-card").forEach(function(card){
-
-    card.addEventListener("click", function(){
-
-        let section = this.dataset.section;
-
-        window.location.href =
+          window.location.href =
             "ojt_students_list.html?section=" + encodeURIComponent(section);
-
-    });
-
-});
-
-</script>
-
-</body>
+        });
+      });
+    </script>
+  </body>
 </html>

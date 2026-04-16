@@ -142,6 +142,24 @@
         </div>
       </div>
 
+      <!-- REQUIRED FIELDS ALERT MODAL -->
+      <div id="required-fields-modal" class="modal" style="display: none">
+        <div class="modal-content choice-modal-content">
+          <div class="form-header">
+            <h4>REQUIRED FIELDS</h4>
+          </div>
+          <div class="section-alert-body">
+            <i data-lucide="alert-circle" class="section-alert-icon"></i>
+            <p>Please fill in all required text fields before saving.</p>
+          </div>
+          <div class="form-actions choice-footer">
+            <button class="save-btn" id="required-fields-ok-btn" type="button">
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- BULK SUMMARY MODAL -->
       <div id="bulk-summary-modal" class="modal" style="display: none">
         <div class="modal-content bulk-summary-modal-content">
@@ -256,9 +274,10 @@
 
             <!-- TOP ROW -->
             <div class="grid-2">
-              <div class="input-group">
+              <div class="input-group required-input-group">
                 <label>TITLE</label>
                 <input id="archive-title" type="text" placeholder="Type here" />
+                <span class="required-indicator">*</span>
               </div>
 
               <div class="input-group">
@@ -293,10 +312,7 @@
                   <select id="archive-type">
                     <option disabled selected>Type</option>
                     <option>Thesis</option>
-                    <option>Research</option>
                     <option>Capstone</option>
-                    <option>Project</option>
-                    <option>Other</option>
                   </select>
                   <span class="arrow"></span>
                 </div>
@@ -307,13 +323,14 @@
             <h4 class="authors-title">AUTHORS</h4>
 
             <div class="grid-3">
-              <div class="input-group">
+              <div class="input-group required-input-group">
                 <label>AUTHOR 1</label>
                 <input
                   id="archive-author-1"
                   type="text"
                   placeholder="Type here"
                 />
+                <span class="required-indicator">*</span>
               </div>
 
               <div class="input-group">
@@ -336,13 +353,14 @@
             </div>
 
             <!-- KEYWORDS -->
-            <div class="input-group">
+            <div class="input-group required-input-group">
               <label>KEYWORDS</label>
               <input
                 id="archive-keywords"
                 type="text"
                 placeholder="e.g. Machine Learning, AI, etc."
               />
+              <span class="required-indicator">*</span>
             </div>
           </div>
           <div class="form-actions">
@@ -363,12 +381,16 @@
                 <th><input type="checkbox" /></th>
                 <th>ID</th>
                 <th>Title</th>
-                <th>Author(s)</th>
+                <th>Authors</th>
                 <th>Section</th>
                 <th>Advisor</th>
-                <th>Date</th>
-                <th>Keyword</th>
-                <th>File</th>
+                <th>Date Published</th>
+                <th>Keywords</th>
+                <th>Type</th>
+                <th>File Path</th>
+                <th>Local File Path</th>
+                <th>Status</th>
+                <th>Created At</th>
                 <th></th>
               </tr>
             </thead>
@@ -382,8 +404,12 @@
                 <td>BSIT-4A</td>
                 <td>Dela Cruz</td>
                 <td>Feb 2025</td>
+                <td>Machine Learning, AI</td>
                 <td>Thesis</td>
-                <td><a href="#">file.pdf</a></td>
+                <td><a href="#">https://drive.google.com/file/d/sample</a></td>
+                <td>uploads/documents/file.pdf</td>
+                <td>Pending</td>
+                <td>2026-04-16 10:00:00</td>
                 <td class="action-cell">
                   <div class="dropdown">
                     <button class="dots-btn">
@@ -441,6 +467,114 @@
         modalEl.style.display = "none";
       }
 
+      function getElectronAPI() {
+        if (window.electronAPI) return window.electronAPI;
+
+        try {
+          if (
+            window.parent &&
+            window.parent !== window &&
+            window.parent.electronAPI
+          ) {
+            return window.parent.electronAPI;
+          }
+        } catch (error) {
+          // Access can fail across frame boundaries; ignore and continue fallback checks.
+        }
+
+        try {
+          if (window.top && window.top !== window && window.top.electronAPI) {
+            return window.top.electronAPI;
+          }
+        } catch (error) {
+          // Access can fail across frame boundaries; ignore and return null below.
+        }
+
+        return null;
+      }
+
+      function extractGoogleAuthCode(input) {
+        const raw = String(input || "").trim();
+        if (!raw) return "";
+
+        // If a full redirect URL is pasted, extract ?code=...
+        if (raw.startsWith("http://") || raw.startsWith("https://")) {
+          try {
+            const url = new URL(raw);
+            const codeFromQuery = url.searchParams.get("code");
+            if (codeFromQuery) return codeFromQuery;
+          } catch (_error) {
+            const match = raw.match(/[?&]code=([^&]+)/i);
+            if (match && match[1]) return decodeURIComponent(match[1]);
+          }
+        }
+
+        return raw;
+      }
+
+      async function runGoogleDriveOAuth(electronAPI) {
+        if (typeof electronAPI.authorizeGoogleDriveInteractive === "function") {
+          const interactiveResult =
+            await electronAPI.authorizeGoogleDriveInteractive();
+
+          if (interactiveResult && interactiveResult.success) {
+            return true;
+          }
+
+          alert(
+            interactiveResult?.message ||
+              "Automatic Google authorization failed. Falling back to manual mode.",
+          );
+        }
+
+        const authUrlResult = await electronAPI.getGoogleDriveAuthUrl();
+        if (
+          !authUrlResult ||
+          !authUrlResult.success ||
+          !authUrlResult.authUrl
+        ) {
+          alert(
+            authUrlResult?.message ||
+              "Failed to start Google Drive authorization.",
+          );
+          return false;
+        }
+
+        const authUrl = authUrlResult.authUrl;
+        if (typeof electronAPI.openExternalUrl === "function") {
+          await electronAPI.openExternalUrl(authUrl);
+        }
+
+        alert(
+          "Authorize Google Drive in your browser for My Drive/CTA Files/Documents, then copy either the code OR the full callback URL.",
+        );
+
+        const authInput = prompt(
+          "Paste the Google authorization code or full callback URL:",
+        );
+        if (!authInput || !authInput.trim()) {
+          return false;
+        }
+
+        const authCode = extractGoogleAuthCode(authInput);
+        if (!authCode) {
+          alert("Could not extract authorization code from your input.");
+          return false;
+        }
+
+        const saveResult = await electronAPI.saveGoogleDriveToken(
+          authCode.trim(),
+        );
+        if (!saveResult || !saveResult.success) {
+          alert(
+            saveResult?.message || "Failed to save Google authorization token.",
+          );
+          return false;
+        }
+
+        return true;
+      }
+
       function getReportName() {
         const title = (
           document.querySelector(".page-title")?.textContent || "report"
@@ -496,6 +630,18 @@
         downloadBlob(html, mime, filename);
       }
 
+      function arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        const chunkSize = 0x8000;
+        let binary = "";
+
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+        }
+
+        return btoa(binary);
+      }
+
       document.querySelector(".generate-btn").addEventListener("click", () => {
         openModal(exportModal);
         lucide.createIcons();
@@ -547,6 +693,9 @@
       const sectionRequiredModal = document.getElementById(
         "section-required-modal",
       );
+      const requiredFieldsModal = document.getElementById(
+        "required-fields-modal",
+      );
       const bulkSummaryModal = document.getElementById("bulk-summary-modal");
       const bulkSummaryBody = document.getElementById("bulk-summary-body");
       const bulkSummaryCancelBtn = document.getElementById(
@@ -570,10 +719,11 @@
       );
 
       let currentKeywordsRow = null;
+      let pendingRequiredFieldFocus = null;
 
       const titleEl = document.getElementById("archive-title");
       const sectionEl = document.getElementById("archive-section");
-      const dateEl = document.getElementById("archive-date");
+      const datePublishedEl = document.getElementById("archive-date");
       const professorEl = document.getElementById("archive-professor");
       const statusEl = document.getElementById("archive-status");
       const typeEl = document.getElementById("archive-type");
@@ -584,6 +734,7 @@
       const fileUploadEl = document.getElementById("archive-file-upload");
       const saveArchiveBtn = document.getElementById("save-archive-btn");
       const modalTitleEl = document.getElementById("archive-modal-title");
+      const requiredTextInputs = [titleEl, a1El, keywordsEl];
 
       let editingRow = null;
 
@@ -601,11 +752,39 @@
         dropZone.setAttribute("aria-disabled", String(!enabled));
       }
 
+      function updateRequiredTextIndicators() {
+        requiredTextInputs.forEach((inputEl) => {
+          const group = inputEl.closest(".required-input-group");
+          if (!group) return;
+
+          const shouldShow = !inputEl.disabled && !inputEl.value.trim();
+          group.classList.toggle("show-required", shouldShow);
+        });
+      }
+
+      function getMissingRequiredTextInputs() {
+        return requiredTextInputs.filter(
+          (inputEl) => !inputEl.disabled && !inputEl.value.trim(),
+        );
+      }
+
+      function validateRequiredTextInputs() {
+        const missingInputs = getMissingRequiredTextInputs();
+        updateRequiredTextIndicators();
+
+        if (missingInputs.length === 0) {
+          return true;
+        }
+
+        showRequiredFieldsModal(missingInputs[0]);
+        return false;
+      }
+
       function updateSectionDependentFieldsState() {
         const enabled = isSectionSelected();
         [
           titleEl,
-          dateEl,
+          datePublishedEl,
           professorEl,
           statusEl,
           typeEl,
@@ -619,11 +798,25 @@
           if (el) el.disabled = !enabled;
         });
         updateUploadInteractivity();
+        updateRequiredTextIndicators();
       }
 
       function showSectionRequiredModal() {
         openModal(sectionRequiredModal);
         lucide.createIcons();
+      }
+
+      function showRequiredFieldsModal(inputEl) {
+        pendingRequiredFieldFocus = inputEl || null;
+        openModal(requiredFieldsModal);
+        lucide.createIcons();
+      }
+
+      function closeRequiredFieldsModal() {
+        closeModal(requiredFieldsModal);
+        if (pendingRequiredFieldFocus) {
+          pendingRequiredFieldFocus.focus();
+        }
       }
 
       function statusSelectMarkup(value) {
@@ -632,8 +825,8 @@
       }
 
       function typeSelectMarkup(value) {
-        const safe = String(value || "Other");
-        const values = ["Thesis", "Research", "Capstone", "Project", "Other"];
+        const safe = String(value || "Thesis");
+        const values = ["Thesis", "Capstone"];
         return `<select class="bulk-field-type">${values
           .map((v) => `<option ${safe === v ? "selected" : ""}>${v}</option>`)
           .join("")}</select>`;
@@ -655,7 +848,7 @@
               <td><input class="bulk-field-file" value="${escapeAttr(row.fileName)}" readonly /></td>
               <td><input class="bulk-field-title" value="${escapeAttr(row.title)}" /></td>
               <td><input class="bulk-field-authors" value="${escapeAttr(row.authors)}" /></td>
-              <td><input class="bulk-field-date" type="date" value="${escapeAttr(row.date)}" /></td>
+              <td><input class="bulk-field-date" type="date" value="${escapeAttr(row.date_published || row.datePublished || row.date)}" /></td>
               <td><input class="bulk-field-section" value="${escapeAttr(row.section)}" /></td>
               <td><input class="bulk-field-advisor" value="${escapeAttr(row.advisor)}" /></td>
               <td>${typeSelectMarkup(row.type)}</td>
@@ -677,7 +870,7 @@
             fileName: valueOf(".bulk-field-file"),
             title: valueOf(".bulk-field-title"),
             authors: valueOf(".bulk-field-authors"),
-            date: valueOf(".bulk-field-date"),
+            date_published: valueOf(".bulk-field-date"),
             section: valueOf(".bulk-field-section"),
             advisor: valueOf(".bulk-field-advisor"),
             type: valueOf(".bulk-field-type"),
@@ -723,7 +916,7 @@
           status:
             statusEl.value && statusEl.selectedIndex > 0
               ? statusEl.value
-              : "Approved",
+              : "Pending",
         };
 
         try {
@@ -748,7 +941,9 @@
           const data = await extractArchiveDataFromPdf(file);
 
           if (data.title) titleEl.value = data.title;
-          if (data.date) dateEl.value = data.date;
+          if (data.date_published || data.date) {
+            datePublishedEl.value = data.date_published || data.date;
+          }
           if (data.authors[0]) a1El.value = data.authors[0];
           if (data.authors[1]) a2El.value = data.authors[1];
           if (data.authors[2]) a3El.value = data.authors[2];
@@ -769,6 +964,7 @@
 
           statusEl.value = "Approved";
           typeEl.value = data.type;
+          updateRequiredTextIndicators();
 
           dropZoneFilename.textContent = "OK " + file.name;
         } catch (err) {
@@ -861,8 +1057,10 @@
             authors: row.authors,
             section: row.section,
             advisor: row.advisor,
-            date: row.date,
-            keyword: row.keywords,
+            date_published: row.date_published,
+            keywords: row.keywords,
+            type: row.type,
+            status: row.status,
             fileName: row.fileName,
           });
         });
@@ -918,8 +1116,15 @@
       document
         .getElementById("section-required-ok-btn")
         .addEventListener("click", () => closeModal(sectionRequiredModal));
+      document
+        .getElementById("required-fields-ok-btn")
+        .addEventListener("click", closeRequiredFieldsModal);
+
       sectionRequiredModal.addEventListener("click", (e) => {
         if (e.target === sectionRequiredModal) closeModal(sectionRequiredModal);
+      });
+      requiredFieldsModal.addEventListener("click", (e) => {
+        if (e.target === requiredFieldsModal) closeRequiredFieldsModal();
       });
 
       sectionEl.addEventListener("change", updateSectionDependentFieldsState);
@@ -928,7 +1133,7 @@
       function resetForm() {
         titleEl.value = "";
         sectionEl.selectedIndex = 0;
-        dateEl.value = "";
+        datePublishedEl.value = "";
         professorEl.selectedIndex = 0;
         statusEl.selectedIndex = 0;
         typeEl.selectedIndex = 0;
@@ -939,6 +1144,7 @@
         fileUploadEl.value = "";
         dropZoneFilename.textContent = "";
         updateSectionDependentFieldsState();
+        updateRequiredTextIndicators();
       }
 
       function getNextId() {
@@ -1009,7 +1215,27 @@
         const tr = document.createElement("tr");
         const id = data.id || getNextId();
         const fileName = data.fileName || "";
-        const fileCell = fileName ? `<a href="#">${fileName}</a>` : "";
+        const filePath =
+          data.file_path ||
+          data.filePath ||
+          (fileName ? `https://drive.google.com/file/d/${fileName}` : "");
+        const localFilePath =
+          data.local_file_path ||
+          data.localFilePath ||
+          (fileName ? `uploads/documents/${fileName}` : "");
+        const createdAt =
+          data.created_at ||
+          data.createdAt ||
+          new Date().toISOString().slice(0, 19).replace("T", " ");
+        const statusRaw = (data.status || "pending").trim() || "pending";
+        const typeRaw = (data.type || "thesis").trim() || "thesis";
+        const status =
+          statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase();
+        const type =
+          typeRaw.charAt(0).toUpperCase() + typeRaw.slice(1).toLowerCase();
+        const fileCell = filePath
+          ? `<a href="${filePath}" target="_blank" rel="noopener noreferrer" title="${filePath}">${filePath}</a>`
+          : "";
 
         tr.innerHTML = `
           <td><input type="checkbox"></td>
@@ -1018,9 +1244,13 @@
           <td>${data.authors || ""}</td>
           <td>${data.section || ""}</td>
           <td>${data.advisor || ""}</td>
-          <td>${data.date || ""}</td>
-          <td>${data.keyword || ""}</td>
+          <td>${data.date_published || ""}</td>
+          <td>${data.keywords || ""}</td>
+          <td>${type}</td>
           <td>${fileCell}</td>
+          <td title="${localFilePath}">${localFilePath}</td>
+          <td>${status}</td>
+          <td>${createdAt}</td>
           <td class="action-cell">
               <div class="dropdown">
                   <button class="dots-btn" type="button">
@@ -1113,8 +1343,12 @@
           authors: headerIndex(["authors", "author(s)", "author"]),
           section: headerIndex(["section"]),
           advisor: headerIndex(["advisor", "professor", "adviser"]),
-          date: headerIndex(["date"]),
-          keyword: headerIndex(["keyword", "keywords"]),
+          date_published: headerIndex([
+            "date_published",
+            "date published",
+            "date",
+          ]),
+          keywords: headerIndex(["keywords", "keyword"]),
           file: headerIndex(["file", "filename"]),
         };
 
@@ -1132,8 +1366,9 @@
                 authors: idx.authors >= 0 ? cols[idx.authors] : "",
                 section: idx.section >= 0 ? cols[idx.section] : "",
                 advisor: idx.advisor >= 0 ? cols[idx.advisor] : "",
-                date: idx.date >= 0 ? cols[idx.date] : "",
-                keyword: idx.keyword >= 0 ? cols[idx.keyword] : "",
+                date_published:
+                  idx.date_published >= 0 ? cols[idx.date_published] : "",
+                keywords: idx.keywords >= 0 ? cols[idx.keywords] : "",
                 fileName: idx.file >= 0 ? cols[idx.file] : "",
               }
             : {
@@ -1141,8 +1376,8 @@
                 authors: cols[1] || "",
                 section: cols[2] || "",
                 advisor: cols[3] || "",
-                date: cols[4] || "",
-                keyword: cols[5] || "",
+                date_published: cols[4] || "",
+                keywords: cols[5] || "",
                 fileName: cols[6] || "",
               };
 
@@ -1155,6 +1390,8 @@
             ? `Imported ${imported} row(s) from CSV.`
             : "No rows imported. Check your CSV format.",
         );
+
+        updateRequiredTextIndicators();
       });
 
       // Close archive modal
@@ -1165,52 +1402,122 @@
       // Save (add new or update existing)
       document
         .getElementById("save-archive-btn")
-        .addEventListener("click", () => {
+        .addEventListener("click", async () => {
+          if (!validateRequiredTextInputs()) {
+            return;
+          }
+
           const title = titleEl.value.trim();
           const section =
             sectionEl.value && sectionEl.selectedIndex > 0
               ? sectionEl.value
               : "";
-          const date = dateEl.value.trim();
+          const date_published = datePublishedEl.value.trim();
           const advisor =
             professorEl.value && professorEl.selectedIndex > 0
               ? professorEl.value
               : "";
           const status =
-            statusEl.value && statusEl.selectedIndex > 0 ? statusEl.value : "";
+            statusEl.value && statusEl.selectedIndex > 0
+              ? statusEl.value
+              : "Pending";
           const type =
-            typeEl.value && typeEl.selectedIndex > 0 ? typeEl.value : "";
+            typeEl.value && typeEl.selectedIndex > 0 ? typeEl.value : "Thesis";
           const authors = formatAuthors(a1El.value, a2El.value, a3El.value);
-          const keyword = keywordsEl.value.trim();
+          const keywords = keywordsEl.value.trim();
           const fileName =
             fileUploadEl.files && fileUploadEl.files[0]
               ? fileUploadEl.files[0].name
               : "";
+          const localSourcePath =
+            fileUploadEl.files &&
+            fileUploadEl.files[0] &&
+            fileUploadEl.files[0].path
+              ? fileUploadEl.files[0].path
+              : "";
+          const mimeType =
+            fileUploadEl.files && fileUploadEl.files[0]
+              ? fileUploadEl.files[0].type || "application/pdf"
+              : "application/pdf";
+          const selectedFile =
+            fileUploadEl.files && fileUploadEl.files[0]
+              ? fileUploadEl.files[0]
+              : null;
+          let fileContentBase64 = "";
+
+          if (selectedFile && !localSourcePath) {
+            const buffer = await selectedFile.arrayBuffer();
+            fileContentBase64 = arrayBufferToBase64(buffer);
+          }
 
           if (editingRow) {
             editingRow.cells[2].textContent = title;
             editingRow.cells[3].textContent = authors;
             editingRow.cells[4].textContent = section;
             editingRow.cells[5].textContent = advisor;
-            editingRow.cells[6].textContent = date;
-            editingRow.cells[7].textContent = keyword;
-            if (fileName)
-              editingRow.cells[8].innerHTML = `<a href="#">${fileName}</a>`;
+            editingRow.cells[6].textContent = date_published;
+            editingRow.cells[7].textContent = keywords;
+            editingRow.cells[8].textContent = type;
+            editingRow.cells[11].textContent = status;
+            if (fileName) {
+              editingRow.cells[9].innerHTML = `<a href="#" title="https://drive.google.com/file/d/${fileName}">https://drive.google.com/file/d/${fileName}</a>`;
+              editingRow.cells[10].textContent = `uploads/documents/${fileName}`;
+            }
           } else {
-            addArchiveRow({
+            const electronAPI = getElectronAPI();
+            if (
+              !electronAPI ||
+              typeof electronAPI.createArchive !== "function"
+            ) {
+              alert(
+                "Archive API is not available in this view. Please reload the app and try again.",
+              );
+              return;
+            }
+
+            const archivePayload = {
               title,
               authors,
               section,
-              date,
               advisor,
-              keyword,
-              status,
+              date_published,
+              keywords,
               type,
+              status,
               fileName,
-            });
+              localSourcePath,
+              fileContentBase64,
+              mimeType,
+            };
+
+            let result = await electronAPI.createArchive(archivePayload);
+
+            if (result && result.requiresAuth) {
+              const authorized = await runGoogleDriveOAuth(electronAPI);
+              if (!authorized) {
+                alert(
+                  "Google Drive upload was cancelled. Authorize OAuth to upload to My Drive/CTA Files/Documents.",
+                );
+                return;
+              }
+
+              result = await electronAPI.createArchive(archivePayload);
+            }
+
+            if (!result || !result.success) {
+              alert(result?.message || "Failed to save archive.");
+              return;
+            }
+
+            addArchiveRow(result.archive || {});
+
+            if (result.usedFallback) {
+              alert(result.message || "Archive saved with local fallback.");
+            }
           }
 
           closeModal(archiveModal);
+          updateRequiredTextIndicators();
         });
 
       // Edit button in 3-dots menu
@@ -1227,16 +1534,18 @@
         const authors = row.cells[3]?.textContent || "";
         const section = row.cells[4]?.textContent || "";
         const advisor = row.cells[5]?.textContent || "";
-        const date = row.cells[6]?.textContent || "";
-        const keyword = row.cells[7]?.textContent || "";
+        const date_published = row.cells[6]?.textContent || "";
+        const keywords = row.cells[7]?.textContent || "";
+        const type = row.cells[8]?.textContent || "";
+        const status = row.cells[11]?.textContent || "";
 
         titleEl.value = title.trim();
-        dateEl.value = date.trim();
+        datePublishedEl.value = date_published.trim();
         const [aa1, aa2, aa3] = parseAuthors(authors);
         a1El.value = aa1;
         a2El.value = aa2;
         a3El.value = aa3;
-        keywordsEl.value = keyword.trim();
+        keywordsEl.value = keywords.trim();
 
         // Set selects if value exists in options; else keep placeholder
         sectionEl.value = sectionEl.querySelector(`option[value="${section}"]`)
@@ -1247,11 +1556,22 @@
         )
           ? advisor
           : professorEl.options[0].value;
-        statusEl.selectedIndex = 0;
-        typeEl.selectedIndex = 0;
+        statusEl.value = statusEl.querySelector(`option[value="${status}"]`)
+          ? status
+          : statusEl.options[0].value;
+        typeEl.value = typeEl.querySelector(`option[value="${type}"]`)
+          ? type
+          : typeEl.options[0].value;
+
+        updateRequiredTextIndicators();
 
         closeModal(selectModeModal);
         openModal(archiveModal);
+      });
+
+      requiredTextInputs.forEach((inputEl) => {
+        inputEl.addEventListener("input", updateRequiredTextIndicators);
+        inputEl.addEventListener("change", updateRequiredTextIndicators);
       });
 
       // Backdrop click closes modals
@@ -1267,6 +1587,7 @@
         closeModal(selectModeModal);
         closeModal(archiveModal);
         closeModal(sectionRequiredModal);
+        closeModal(requiredFieldsModal);
         closeModal(bulkSummaryModal);
         closeModal(keywordsExpandedModal);
       });

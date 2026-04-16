@@ -41,8 +41,27 @@ function getAuthUrl() {
 async function saveTokenFromCode(authCode) {
   ensureTokenDir();
 
+  const rawInput = String(authCode || "").trim();
+  let normalizedCode = rawInput;
+
+  if (rawInput.startsWith("http://") || rawInput.startsWith("https://")) {
+    try {
+      const parsedUrl = new URL(rawInput);
+      normalizedCode = parsedUrl.searchParams.get("code") || "";
+    } catch (_error) {
+      const match = rawInput.match(/[?&]code=([^&]+)/i);
+      normalizedCode = match && match[1] ? decodeURIComponent(match[1]) : "";
+    }
+  }
+
+  if (!normalizedCode) {
+    throw new Error(
+      "Authorization code is missing. Paste the Google code or full callback URL.",
+    );
+  }
+
   const oauth2Client = getOAuth2Client();
-  const { tokens } = await oauth2Client.getToken(authCode);
+  const { tokens } = await oauth2Client.getToken(normalizedCode);
 
   fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
   cachedOAuth2Client = null;

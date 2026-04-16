@@ -381,9 +381,9 @@ th:nth-child(2) {
 
 /* remove default arrow */
 select {
-  appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  appearance: none;
 }
 
 /* wrapper */

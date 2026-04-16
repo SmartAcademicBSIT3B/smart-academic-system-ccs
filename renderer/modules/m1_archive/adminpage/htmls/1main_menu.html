@@ -31,7 +31,7 @@
         <ul class="menu">
           <li
             class="menu-item active"
-            onclick="loadPage('dashboard.html', this)"
+            onclick="loadPageByKey('dashboard', this)"
           >
             <div class="menu-left">
               <i data-lucide="layout-dashboard"></i>
@@ -47,10 +47,13 @@
             <i class="arrow" data-lucide="chevron-down"></i>
           </li>
           <ul class="submenu">
-            <li onclick="loadPage('view_archives.html', this)">
+            <li onclick="loadPageByKey('view_archives', this)">
               View Archives
             </li>
-            <li onclick="loadPage('manage_archives.html', this)">
+            <li
+              data-role-only="admin"
+              onclick="loadPageByKey('manage_archives', this)"
+            >
               Manage Archives
             </li>
           </ul>
@@ -64,33 +67,37 @@
           </li>
 
           <ul class="submenu">
-            <li onclick="loadPage('external_partners.html', this)">
+            <li onclick="loadPageByKey('external_partners', this)">
               External Partners
             </li>
 
-            <li class="menu-item dropdown" onclick="toggleSubSubMenu(this)">
+            <li
+              data-role-only="admin"
+              class="menu-item dropdown"
+              onclick="toggleSubSubMenu(this)"
+            >
               <div class="menu-left">
                 <span>Coordinators</span>
               </div>
               <i class="arrow-small" data-lucide="chevron-right"></i>
             </li>
 
-            <ul class="submenu">
-              <li onclick="loadPage('user_management.html', this)">
+            <ul data-role-only="admin" class="submenu">
+              <li onclick="loadPageByKey('user_management', this)">
                 User Management
               </li>
-              <li onclick="loadPage('section_assignment.html', this)">
+              <li onclick="loadPageByKey('section_assignment', this)">
                 Section Assignment
               </li>
             </ul>
 
-            <li onclick="loadPage('ojt_students.html', this)">OJT Students</li>
+            <li onclick="loadPageByKey('ojt_students', this)">OJT Students</li>
           </ul>
 
           <div class="bottom-menu">
             <li
               class="menu-item"
-              onclick="loadPage('system_settings.html', this)"
+              onclick="loadPageByKey('system_settings', this)"
             >
               <div class="menu-left">
                 <i data-lucide="settings"></i>
@@ -104,7 +111,7 @@
       <!-- MAIN -->
       <div class="main-content">
         <div class="header">
-          <h1>Welcome, <span>Admin</span></h1>
+          <h1>Welcome, <span id="welcomeRole">User</span></h1>
 
           <div class="profile-dropdown">
             <div class="profile-icon" onclick="toggleProfileMenu(event)">
@@ -123,7 +130,7 @@
           <iframe
             title="main-content"
             id="content-frame"
-            src="dashboard.html"
+            src="about:blank"
           ></iframe>
         </div>
       </div>
@@ -305,6 +312,78 @@
           element.classList.add("active");
         }
       }
+
+      function getCurrentRole() {
+        try {
+          const userStr = localStorage.getItem("user");
+          if (!userStr) return "";
+          const user = JSON.parse(userStr);
+          return (user.role || "").toLowerCase();
+        } catch (error) {
+          console.error("Unable to parse local user data:", error);
+          return "";
+        }
+      }
+
+      const ROLE_ROUTES = {
+        admin: {
+          dashboard: "dashboard.html",
+          view_archives: "view_archives.html",
+          manage_archives: "manage_archives.html",
+          external_partners: "external_partners.html",
+          user_management: "user_management.html",
+          section_assignment: "section_assignment.html",
+          ojt_students: "ojt_students.html",
+          system_settings: "system_settings.html",
+        },
+        coordinator: {
+          dashboard: "../../coordinator/html/dashboard.html",
+          view_archives: "view_archives.html",
+          external_partners: "external_partners.html",
+          ojt_students: "../../coordinator/html/ojt_students.html",
+          system_settings: "../../coordinator/html/system_settings.html",
+        },
+      };
+
+      function loadPageByKey(pageKey, element) {
+        const role = getCurrentRole();
+        const roleRoutes = ROLE_ROUTES[role];
+        const targetPage = roleRoutes ? roleRoutes[pageKey] : null;
+
+        if (!targetPage) {
+          console.error(
+            `No route configured for page '${pageKey}' and role '${role}'.`,
+          );
+          return;
+        }
+
+        loadPage(targetPage, element);
+      }
+
+      function applyRoleAccess() {
+        const role = getCurrentRole();
+        const welcomeRole = document.getElementById("welcomeRole");
+        if (welcomeRole) {
+          if (role === "admin") welcomeRole.textContent = "Admin";
+          else if (role === "coordinator")
+            welcomeRole.textContent = "Coordinator";
+          else welcomeRole.textContent = "User";
+        }
+
+        // Hide admin-only navigation when user is coordinator.
+        document.querySelectorAll("[data-role-only='admin']").forEach((el) => {
+          if (role !== "admin") {
+            el.style.display = "none";
+          }
+        });
+
+        const dashboardMenu = document.querySelector(".menu-item.active");
+        if (dashboardMenu) {
+          loadPageByKey("dashboard", dashboardMenu);
+        }
+      }
+
+      applyRoleAccess();
 
       function toggleProfileMenu(event) {
         event.stopPropagation();

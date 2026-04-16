@@ -8,6 +8,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   selectProfileImage: () => ipcRenderer.invoke("selectProfileImage"),
   uploadProfileImage: (fileInfo) =>
     ipcRenderer.invoke("uploadProfileImage", fileInfo),
+  createArchive: (archiveData) =>
+    ipcRenderer.invoke("createArchive", archiveData),
+  checkGoogleDriveAuth: () => ipcRenderer.invoke("checkGoogleDriveAuth"),
+  getGoogleDriveAuthUrl: () => ipcRenderer.invoke("getGoogleDriveAuthUrl"),
+  saveGoogleDriveToken: (authCode) =>
+    ipcRenderer.invoke("saveGoogleDriveToken", authCode),
+  openExternalUrl: (url) => ipcRenderer.invoke("openExternalUrl", url),
+  authorizeGoogleDriveInteractive: () =>
+    ipcRenderer.invoke("authorizeGoogleDriveInteractive"),
   updateProfile: (profileData) =>
     ipcRenderer.invoke("updateProfile", profileData),
   logout: () => ipcRenderer.invoke("logout"),
