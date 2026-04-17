@@ -69,14 +69,15 @@ function applyArchiveRowUpdate(
   editingRow.cells[5].textContent = formatMonthYear(savedDate);
   editingRow.cells[6].textContent = savedType;
 
-  const savedStatusRaw = savedStatus.trim().toLowerCase() || "pending";
-  const statusDotClass =
-    savedStatusRaw === "approved"
-      ? "dot-approved"
-      : savedStatusRaw === "rejected"
-        ? "dot-rejected"
-        : "dot-pending";
-  editingRow.cells[7].innerHTML = `<span class="status-dot ${statusDotClass}"></span>${savedStatus}`;
+  const normalizedStatus =
+    typeof window.normalizeArchiveStatus === "function"
+      ? window.normalizeArchiveStatus(savedStatus)
+      : savedStatus || "Pending";
+  const statusMarkup =
+    typeof window.renderArchiveStatusSelect === "function"
+      ? window.renderArchiveStatusSelect(normalizedStatus)
+      : `<div class="row-status-control"><span class="status-dot ${normalizedStatus === "Approved" ? "dot-approved" : normalizedStatus === "Rejected" ? "dot-rejected" : "dot-pending"}"></span><select class="row-status-select"><option ${normalizedStatus === "Pending" ? "selected" : ""}>Pending</option><option ${normalizedStatus === "Approved" ? "selected" : ""}>Approved</option><option ${normalizedStatus === "Rejected" ? "selected" : ""}>Rejected</option></select></div>`;
+  editingRow.cells[7].innerHTML = statusMarkup;
 
   // Sync data-* attributes
   editingRow.dataset.title = savedTitle;
@@ -88,7 +89,7 @@ function applyArchiveRowUpdate(
     archive.keywords || fallbackData.keywords || "",
   );
   editingRow.dataset.type = savedType;
-  editingRow.dataset.status = savedStatus;
+  editingRow.dataset.status = normalizedStatus;
 }
 
 window.updateArchiveRecord = updateArchiveRecord;

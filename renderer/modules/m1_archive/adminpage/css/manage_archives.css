@@ -18,11 +18,19 @@
   font-family: "Inter", sans-serif;
 }
 
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 /* PAGE */
 .page {
   background: linear-gradient(to bottom, var(--bg-main), var(--bg-secondary));
   color: var(--text-primary);
-  padding: 40px;
+  height: 100%;
+  overflow: hidden;
+  padding: 18px 40px 40px;
 }
 
 .page-title {
@@ -83,6 +91,12 @@
   z-index: 1000;
   justify-content: center;
   align-items: center;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.modal.is-open {
+  opacity: 1;
 }
 
 .modal-content {
@@ -97,6 +111,39 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
+  opacity: 0;
+  transform: translateY(14px) scale(0.985);
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+.modal.is-open .modal-content {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Add/Edit archive modal scrollbar - match table container style */
+#archive-modal .modal-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+#archive-modal .modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#archive-modal .modal-content::-webkit-scrollbar-thumb {
+  background: var(--border, #3a3f46);
+  border-radius: 999px;
+}
+
+#archive-modal .modal-content::-webkit-scrollbar-thumb:hover {
+  background: #52585f;
+}
+
+#archive-modal .modal-content::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* FORM HEADER - full-width black bar like reference */
@@ -550,6 +597,7 @@
   align-items: center;
   justify-content: center;
   z-index: 10;
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
 
@@ -799,6 +847,7 @@
   max-width: 100%;
   overflow-x: auto;
   overflow-y: auto;
+  min-height: 320px;
 }
 
 /* Custom scrollbar — matches dark panel design */
@@ -887,6 +936,40 @@
   margin-right: 7px;
   flex-shrink: 0;
   vertical-align: middle;
+}
+
+.row-status-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+}
+
+.row-status-control .status-dot {
+  margin-right: 0;
+}
+
+.row-status-select {
+  width: calc(100% - 16px);
+  min-width: 94px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #12151a;
+  color: var(--text-primary);
+  padding: 6px 26px 6px 10px;
+  font-size: 12.5px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23c9ccd1' stroke-width='1.5'%3E%3Cpolyline points='1 1 6 6 11 1'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.row-status-select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 .dot-pending {
   background-color: #f7a84b;

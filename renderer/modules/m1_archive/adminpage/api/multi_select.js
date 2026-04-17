@@ -66,6 +66,9 @@ function initArchiveDragSelect({ tableBodyId, dragBoxId, onSelectionChange }) {
     if (e.target.closest(".dots-btn")) return;
     if (e.target.closest("button")) return;
     if (e.target.closest("input")) return;
+    if (e.target.closest("select")) return;
+    if (e.target.closest(".row-status-control")) return;
+    if (e.target.closest(".row-status-select")) return;
 
     active = true;
     dragging = false;

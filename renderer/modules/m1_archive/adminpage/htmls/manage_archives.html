@@ -757,12 +757,39 @@
       const exportExcelBtn = document.getElementById("export-excel-btn");
       const exportPdfBtn = document.getElementById("export-pdf-btn");
       const exportDocBtn = document.getElementById("export-doc-btn");
+      const modalAnimationMs = 220;
 
       function openModal(modalEl) {
+        if (!modalEl) return;
+        modalEl.classList.remove("is-closing");
         modalEl.style.display = "flex";
+        requestAnimationFrame(() => modalEl.classList.add("is-open"));
       }
       function closeModal(modalEl) {
-        modalEl.style.display = "none";
+        if (!modalEl || modalEl.style.display === "none") return;
+
+        modalEl.classList.remove("is-open");
+        modalEl.classList.add("is-closing");
+
+        const finalizeClose = () => {
+          modalEl.style.display = "none";
+          modalEl.classList.remove("is-closing");
+        };
+
+        const onTransitionEnd = (event) => {
+          if (event.target === modalEl) {
+            modalEl.removeEventListener("transitionend", onTransitionEnd);
+            finalizeClose();
+          }
+        };
+
+        modalEl.addEventListener("transitionend", onTransitionEnd);
+        window.setTimeout(() => {
+          if (!modalEl.classList.contains("is-open")) {
+            modalEl.removeEventListener("transitionend", onTransitionEnd);
+            finalizeClose();
+          }
+        }, modalAnimationMs + 60);
       }
 
       function getElectronAPI() {
@@ -1326,6 +1353,32 @@
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;");
       }
+
+      function normalizeArchiveStatus(value) {
+        const raw = String(value || "pending")
+          .trim()
+          .toLowerCase();
+        if (raw === "approved") return "Approved";
+        if (raw === "rejected") return "Rejected";
+        return "Pending";
+      }
+
+      function statusDotClassFromStatus(value) {
+        const status = normalizeArchiveStatus(value).toLowerCase();
+        if (status === "approved") return "dot-approved";
+        if (status === "rejected") return "dot-rejected";
+        return "dot-pending";
+      }
+
+      function renderArchiveStatusSelect(value) {
+        const status = normalizeArchiveStatus(value);
+        const dotClass = statusDotClassFromStatus(status);
+        return `<div class="row-status-control"><span class="status-dot ${dotClass}"></span><select class="row-status-select"><option ${status === "Pending" ? "selected" : ""}>Pending</option><option ${status === "Approved" ? "selected" : ""}>Approved</option><option ${status === "Rejected" ? "selected" : ""}>Rejected</option></select></div>`;
+      }
+
+      window.normalizeArchiveStatus = normalizeArchiveStatus;
+      window.statusDotClassFromStatus = statusDotClassFromStatus;
+      window.renderArchiveStatusSelect = renderArchiveStatusSelect;
 
       function extractGoogleDriveFileIdFromUrl(value) {
         const raw = String(value || "").trim();
@@ -2178,16 +2231,7 @@
         const displayFileName =
           storedFileName.replace(/^archive_\d+_/, "") || storedFileName || "";
 
-        const statusRaw =
-          (data.status || "pending").trim().toLowerCase() || "pending";
-        const statusLabel =
-          statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1);
-        const statusDotClass =
-          statusRaw === "approved"
-            ? "dot-approved"
-            : statusRaw === "rejected"
-              ? "dot-rejected"
-              : "dot-pending";
+        const statusLabel = normalizeArchiveStatus(data.status);
 
         const typeRaw = (data.type || "thesis").trim() || "thesis";
         const type =
@@ -2217,9 +2261,7 @@
           <td class="col-advisor">${escapeAttr(data.advisor || "")}</td>
           <td class="col-date">${escapeAttr(formatMonthYear(data.date_published))}</td>
           <td class="col-type">${escapeAttr(type)}</td>
-          <td class="col-status">
-            <span class="status-dot ${statusDotClass}"></span>${statusLabel}
-          </td>
+          <td class="col-status">${renderArchiveStatusSelect(statusLabel)}</td>
           <td class="action-cell col-actions">
             <button class="dots-btn" type="button" title="Actions">
               <i data-lucide="more-vertical"></i>
@@ -2583,67 +2625,7 @@
 
         // VIEW — open View Archive modal
         if (btn.classList.contains("view-btn")) {
-          const d = row.dataset;
-          // Badges
-          const statusRawV = (d.status || "pending").toLowerCase();
-          const dotClassV =
-            statusRawV === "approved"
-              ? "dot-approved"
-              : statusRawV === "rejected"
-                ? "dot-rejected"
-                : "dot-pending";
-          document.getElementById("va-badges").innerHTML =
-            `<span class="view-badge view-badge-type">${escapeAttr(d.type || "")}</span>` +
-            `<span class="view-badge view-badge-status"><span class="status-dot ${dotClassV}"></span>${escapeAttr(d.status || "")}</span>`;
-          // Core fields
-          document.getElementById("va-title").textContent = d.title || "—";
-          document.getElementById("va-authors").textContent = d.authors || "—";
-          document.getElementById("va-section").textContent = d.section || "—";
-          document.getElementById("va-advisor").textContent = d.advisor || "—";
-          document.getElementById("va-date").textContent =
-            formatMonthYear(d.datePublished) || "—";
-          document.getElementById("va-type").textContent = d.type || "—";
-          document.getElementById("va-status-cell").innerHTML =
-            `<span class="status-dot ${dotClassV}"></span>${escapeAttr(d.status || "")}`;
-          // Created at
-          const createdRaw = d.createdAt || "";
-          document.getElementById("va-created").textContent = createdRaw
-            ? new Date(createdRaw).toLocaleString("en-US", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })
-            : "—";
-          // Keywords
-          const kwEl = document.getElementById("va-keywords");
-          const kws = (d.keywords || "")
-            .split(/[,;]+/)
-            .map((k) => k.trim())
-            .filter(Boolean);
-          kwEl.innerHTML = kws.length
-            ? kws
-                .map(
-                  (k) =>
-                    `<span class="view-keyword-tag">${escapeAttr(k)}</span>`,
-                )
-                .join("")
-            : `<span class="view-meta-empty">—</span>`;
-          // Files
-          const filesEl = document.getElementById("va-files");
-          let filesHtml = "";
-          const modalDriveUrl = toGoogleDriveFileViewUrl(d.filePath);
-          if (d.filePath) {
-            filesHtml += `<button class="view-file-link view-drive-btn" type="button" data-drive-url="${escapeAttr(modalDriveUrl)}"><i data-lucide="hard-drive"></i><span>Google Drive</span></button>`;
-          }
-          if (d.localFilePath) {
-            filesHtml += `<span class="view-file-link view-file-local"><i data-lucide="file"></i><span>${escapeAttr(d.localFilePath)}</span></span>`;
-          }
-          filesEl.innerHTML =
-            filesHtml ||
-            `<span class="view-meta-empty">No files attached</span>`;
-          lucide.createIcons({
-            nodes: [document.getElementById("view-archive-modal")],
-          });
-          openModal(document.getElementById("view-archive-modal"));
+          renderArchiveDetailsModal(row);
           return;
         }
 
@@ -2827,6 +2809,8 @@
         .addEventListener("click", (e) => {
           if (e.target.closest(".dots-btn")) return;
           if (e.target.closest("input.archive-checkbox")) return;
+          if (e.target.closest(".row-status-control")) return;
+          if (e.target.closest(".row-status-select")) return;
           const tr = e.target.closest("tr");
           if (!tr) return;
           _toggleRowSelected(tr);
@@ -2836,6 +2820,82 @@
       document
         .getElementById("archives-table-body")
         .addEventListener("change", (e) => {
+          if (e.target.matches(".row-status-select")) {
+            const statusSelect = e.target;
+            const tr = statusSelect.closest("tr");
+            if (!tr) return;
+            const statusControl = statusSelect.closest(".row-status-control");
+
+            const setStatusDotClass = (statusValue) => {
+              const dotEl = statusControl?.querySelector(".status-dot");
+              if (!dotEl) return;
+              dotEl.classList.remove(
+                "dot-pending",
+                "dot-approved",
+                "dot-rejected",
+              );
+              dotEl.classList.add(statusDotClassFromStatus(statusValue));
+            };
+
+            const previousStatus = normalizeArchiveStatus(tr.dataset.status);
+            const nextStatus = normalizeArchiveStatus(statusSelect.value);
+            if (previousStatus === nextStatus) return;
+
+            const archiveId = Number.parseInt(tr.dataset.id, 10);
+            if (!Number.isInteger(archiveId) || archiveId <= 0) {
+              statusSelect.value = previousStatus;
+              showToast("Cannot update status: invalid archive id.", "error");
+              return;
+            }
+
+            statusSelect.disabled = true;
+            (async () => {
+              try {
+                if (typeof window.updateArchiveRecord !== "function") {
+                  throw new Error(
+                    "Archive update API is unavailable in this view.",
+                  );
+                }
+
+                const payload = {
+                  id: archiveId,
+                  title: tr.dataset.title || "",
+                  authors: tr.dataset.authors || "",
+                  section: tr.dataset.section || "",
+                  advisor: tr.dataset.advisor || "",
+                  date_published: normalizeDateForDateInput(
+                    tr.dataset.datePublished || "",
+                  ),
+                  keywords: tr.dataset.keywords || "",
+                  type: tr.dataset.type || "",
+                  status: nextStatus,
+                };
+
+                const result = await window.updateArchiveRecord(payload);
+                if (!result || !result.success) {
+                  throw new Error(
+                    result?.message || "Failed to update archive status.",
+                  );
+                }
+
+                tr.dataset.status = nextStatus;
+                statusSelect.value = nextStatus;
+                setStatusDotClass(nextStatus);
+                showToast(`Status updated to ${nextStatus}.`, "success", 2200);
+              } catch (error) {
+                statusSelect.value = previousStatus;
+                setStatusDotClass(previousStatus);
+                showToast(
+                  error?.message || "Failed to update status.",
+                  "error",
+                );
+              } finally {
+                statusSelect.disabled = false;
+              }
+            })();
+            return;
+          }
+
           if (!e.target.matches("input.archive-checkbox")) return;
           const tr = e.target.closest("tr");
           if (!tr) return;
@@ -2843,6 +2903,19 @@
           else _selectedRows.delete(tr);
           tr.classList.toggle("row-selected", e.target.checked);
           updateSelectionUI();
+        });
+
+      document
+        .getElementById("archives-table-body")
+        .addEventListener("dblclick", (e) => {
+          if (
+            e.target.closest(".dots-btn, .archive-checkbox, .row-status-select")
+          ) {
+            return;
+          }
+          const tr = e.target.closest("tr");
+          if (!tr) return;
+          renderArchiveDetailsModal(tr);
         });
 
       // ── Toast ─────────────────────────────────────────────────────────────
@@ -2883,6 +2956,70 @@
           message.includes(`No handler registered for '${channelName}'`) ||
           message.includes(`No handler registered for \"${channelName}\"`)
         );
+      }
+
+      function renderArchiveDetailsModal(row) {
+        const d = row.dataset;
+        const statusLabel = normalizeArchiveStatus(d.status || "Pending");
+        const statusRawV = statusLabel.toLowerCase();
+        const dotClassV =
+          statusRawV === "approved"
+            ? "dot-approved"
+            : statusRawV === "rejected"
+              ? "dot-rejected"
+              : "dot-pending";
+
+        document.getElementById("va-badges").innerHTML =
+          `<span class="view-badge view-badge-type">${escapeAttr(d.type || "")}</span>` +
+          `<span class="view-badge view-badge-status"><span class="status-dot ${dotClassV}"></span>${escapeAttr(statusLabel)}</span>`;
+
+        document.getElementById("va-title").textContent = d.title || "—";
+        document.getElementById("va-authors").textContent = d.authors || "—";
+        document.getElementById("va-section").textContent = d.section || "—";
+        document.getElementById("va-advisor").textContent = d.advisor || "—";
+        document.getElementById("va-date").textContent =
+          formatMonthYear(d.datePublished) || "—";
+        document.getElementById("va-type").textContent = d.type || "—";
+        document.getElementById("va-status-cell").innerHTML =
+          `<span class="status-dot ${dotClassV}"></span>${escapeAttr(statusLabel)}`;
+
+        const createdRaw = d.createdAt || "";
+        document.getElementById("va-created").textContent = createdRaw
+          ? new Date(createdRaw).toLocaleString("en-US", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })
+          : "—";
+
+        const kwEl = document.getElementById("va-keywords");
+        const kws = (d.keywords || "")
+          .split(/[,;]+/)
+          .map((k) => k.trim())
+          .filter(Boolean);
+        kwEl.innerHTML = kws.length
+          ? kws
+              .map(
+                (k) => `<span class="view-keyword-tag">${escapeAttr(k)}</span>`,
+              )
+              .join("")
+          : `<span class="view-meta-empty">—</span>`;
+
+        const filesEl = document.getElementById("va-files");
+        let filesHtml = "";
+        const modalDriveUrl = toGoogleDriveFileViewUrl(d.filePath);
+        if (d.filePath) {
+          filesHtml += `<button class="view-file-link view-drive-btn" type="button" data-drive-url="${escapeAttr(modalDriveUrl)}"><i data-lucide="hard-drive"></i><span>Google Drive</span></button>`;
+        }
+        if (d.localFilePath) {
+          filesHtml += `<span class="view-file-link view-file-local"><i data-lucide="file"></i><span>${escapeAttr(d.localFilePath)}</span></span>`;
+        }
+        filesEl.innerHTML =
+          filesHtml || `<span class="view-meta-empty">No files attached</span>`;
+
+        lucide.createIcons({
+          nodes: [document.getElementById("view-archive-modal")],
+        });
+        openModal(document.getElementById("view-archive-modal"));
       }
 
       // ── Bulk action bar buttons ───────────────────────────────────────────
