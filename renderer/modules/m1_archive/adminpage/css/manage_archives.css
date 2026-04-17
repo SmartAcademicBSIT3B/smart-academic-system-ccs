@@ -30,13 +30,16 @@ body {
   color: var(--text-primary);
   height: 100%;
   overflow: hidden;
-  padding: 18px 40px 40px;
+  padding: 18px 40px 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .page-title {
   font-size: 28px;
   font-weight: 700;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 /* Tooltip for buttons */
@@ -76,6 +79,165 @@ body {
 
 .tooltip:hover .tooltip-text {
   visibility: visible;
+  opacity: 1;
+}
+
+/* ── SEARCH BAR ─────────────────────────────────────────────────────────── */
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-wrap .search-icon {
+  position: absolute;
+  left: 10px;
+  width: 15px;
+  height: 15px;
+  color: var(--text-secondary);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.search-input {
+  padding-left: 32px !important;
+  width: 320px;
+}
+
+/* ── SORT DIRECTION BUTTON ───────────────────────────────────────────────── */
+.sort-dir-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.sort-dir-btn:hover {
+  background: #232830;
+}
+
+.sort-dir-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── CLEAR FILTERS BUTTON ────────────────────────────────────────────────── */
+.clear-filters-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 9px 16px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.clear-filters-btn:hover {
+  background: #232830;
+  color: var(--text-primary);
+}
+
+/* ── FILTER BAR ──────────────────────────────────────────────────────────── */
+/* Prevent controls row and filter bar from stretching when .page is flex */
+.controls {
+  flex-shrink: 0;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+
+.filter-selects {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-pill-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 10px 4px 12px;
+}
+
+.filter-pill-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.filter-pill-select {
+  background: var(--panel-bg) !important;
+  border: none !important;
+  padding: 2px 20px 2px 4px !important;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  min-width: 60px;
+  outline: none;
+  border-radius: 0;
+}
+
+.filter-pill-select option {
+  background: #181c22;
+  color: var(--text-primary);
+}
+
+/* ── ACTIVE FILTER TAGS ──────────────────────────────────────────────────── */
+.active-filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(157, 198, 255, 0.12);
+  border: 1px solid rgba(157, 198, 255, 0.3);
+  color: var(--accent);
+  font-size: 12px;
+  padding: 4px 8px 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.filter-tag-remove {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.filter-tag-remove:hover {
   opacity: 1;
 }
 
@@ -841,13 +1003,18 @@ body {
 /* Keep table constrained inside its container */
 .table-card {
   overflow: hidden;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .table-wrapper {
   max-width: 100%;
   overflow-x: auto;
   overflow-y: auto;
-  min-height: 320px;
+  min-height: 0;
+  flex: 1 1 0;
 }
 
 /* Custom scrollbar — matches dark panel design */

@@ -90,6 +90,10 @@ function applyArchiveRowUpdate(
   );
   editingRow.dataset.type = savedType;
   editingRow.dataset.status = normalizedStatus;
+
+  if (window.archiveSearchFilter?.refresh) {
+    window.archiveSearchFilter.refresh();
+  }
 }
 
 window.updateArchiveRecord = updateArchiveRecord;

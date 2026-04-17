@@ -25,6 +25,7 @@
     <script src="../api/delete_archive.js"></script>
     <script src="../api/update_archive.js"></script>
     <script src="../api/multi_select.js"></script>
+    <script src="../api/search_filter.js"></script>
   </head>
 
   <body>
@@ -34,19 +35,48 @@
       <!-- Controls -->
       <div class="controls">
         <div class="left-controls">
-          <input type="text" placeholder="Search" />
+          <div class="search-wrap">
+            <i data-lucide="search" class="search-icon"></i>
+            <input
+              type="text"
+              id="archive-search"
+              class="search-input"
+              placeholder="Search title, authors, keywords…"
+              autocomplete="off"
+            />
+          </div>
 
           <div class="select-wrapper">
-            <select>
-              <option>Sort By</option>
-              <option>Section</option>
-              <option>Advisor</option>
-              <option>Date</option>
+            <select id="archive-sort">
+              <option value="">Sort By</option>
+              <option value="title">Title</option>
+              <option value="authors">Authors</option>
+              <option value="section">Section</option>
+              <option value="advisor">Advisor</option>
+              <option value="date">Date</option>
+              <option value="type">Type</option>
+              <option value="status">Status</option>
             </select>
             <span class="arrow"></span>
           </div>
 
-          <button class="filter-btn">Filter</button>
+          <button
+            class="sort-dir-btn"
+            id="archive-sort-dir"
+            type="button"
+            title="Toggle sort direction"
+            style="display: none"
+          >
+            <i data-lucide="arrow-up-narrow-wide"></i>
+          </button>
+
+          <button
+            class="clear-filters-btn"
+            id="archive-clear-filters"
+            type="button"
+          >
+            Clear Filters
+          </button>
         </div>
 
         <div class="right-controls">
@@ -62,6 +92,37 @@
             <span class="tooltip-text">Add File</span>
           </div>
         </div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="filter-bar" id="filter-bar">
+        <div class="filter-selects">
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="af-section">Section</label>
+            <select id="af-section" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="af-year">Date</label>
+            <select id="af-year" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="af-type">Type</label>
+            <select id="af-type" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="af-status">Status</label>
+            <select id="af-status" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+        </div>
+        <div class="active-filter-tags" id="active-filter-tags"></div>
       </div>
 
       <!-- DOWNLOAD OPTIONS MODAL -->
@@ -2271,6 +2332,10 @@
 
         tbody.appendChild(tr);
         lucide.createIcons();
+
+        if (typeof window.archiveSearchFilter !== "undefined") {
+          window.archiveSearchFilter.refresh();
+        }
       }
 
       window.addArchiveRow = addArchiveRow;
@@ -2881,6 +2946,9 @@
                 tr.dataset.status = nextStatus;
                 statusSelect.value = nextStatus;
                 setStatusDotClass(nextStatus);
+                if (window.archiveSearchFilter?.refresh) {
+                  window.archiveSearchFilter.refresh();
+                }
                 showToast(`Status updated to ${nextStatus}.`, "success", 2200);
               } catch (error) {
                 statusSelect.value = previousStatus;

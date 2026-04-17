@@ -198,6 +198,10 @@ async function loadArchives() {
     if (typeof lucide !== "undefined") {
       lucide.createIcons();
     }
+
+    if (typeof window.archiveSearchFilter !== "undefined") {
+      window.archiveSearchFilter.refresh();
+    }
   } catch (error) {
     console.error("loadArchives error:", error);
     renderArchiveTableMessage(
