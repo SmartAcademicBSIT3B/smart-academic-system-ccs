@@ -13,12 +13,12 @@
   </head>
 
   <body>
-    <!-- Loading screen -->
+    <!-- 🔥 LOADING SCREEN -->
     <div id="loading-screen">
-      <img src="./logo.png" alt="Logo" class="loading-logo" />
+      <img src="./images/logo.png" alt="Logo" class="loading-logo" />
     </div>
 
-    <!-- Main landing page -->
+    <!-- ✅ MAIN LANDING PAGE -->
     <div class="landing-page" id="main-content">
       <button
         id="landing-settings-btn"
@@ -45,24 +45,20 @@
         </svg>
       </button>
 
-      <img
-        class="bg-image"
-        src="../modules/m1_archive/images/plp_courtyard.jpg"
-        alt="Campus background"
-      />
+      <!-- BACKGROUND -->
+      <img class="bg-image" src="./images/plp_courtyard.jpg" alt="" />
       <div class="overlay"></div>
 
+      <!-- LOGOS -->
       <div class="logos">
-        <img src="./PASIG.png" alt="Pasig logo" />
-        <img
-          src="../modules/m1_archive/images/cropped-logo120.png"
-          alt="PLP logo"
-        />
-        <img src="../modules/m1_archive/images/CCSLOGO.png" alt="CCS logo" />
+        <img src="./images/PASIG.png" alt="" />
+        <img src="./images/PLPLOGO.png" alt="" />
+        <img src="./images/CCSLOGO.png" alt="" />
       </div>
 
+      <!-- TEXT CONTENT -->
       <div class="content">
-        <p class="sub">PAMANTASAN NG LUNGSOD NG PASIG'S</p>
+        <p class="sub">PAMANTASAN NG LUNGSOD NG PASIG’S</p>
 
         <h1>
           THESIS/CAPSTONE <br />
@@ -71,9 +67,7 @@
           ESTABLISHMENT (HTE)
         </h1>
 
-        <button id="landing-login-btn" class="login-btn" type="button">
-          LOGIN
-        </button>
+        <button class="login-btn" type="button">LOGIN</button>
       </div>
     </div>
 
@@ -102,14 +96,14 @@
       </div>
     </div>
 
+    <!-- ⏳ SCRIPT -->
     <script>
       window.addEventListener("load", function () {
         const loadingScreen = document.getElementById("loading-screen");
         const mainContent = document.getElementById("main-content");
-        const loginBtn = document.getElementById("landing-login-btn");
+        const loginBtn = document.querySelector(".login-btn");
         const offlineModal = document.getElementById("offline-modal");
         const offlineRetryBtn = document.getElementById("offline-retry-btn");
-        const loginPath = "../modules/m1_archive/login.html";
         let revealTimer = null;
 
         function showOfflineBlocker() {
@@ -151,15 +145,16 @@
         window.addEventListener("online", enforceConnectivity);
         offlineRetryBtn.addEventListener("click", enforceConnectivity);
 
-        loginBtn.addEventListener("click", function () {
+        loginBtn.addEventListener("click", function (event) {
           if (!navigator.onLine) {
+            event.preventDefault();
             showOfflineBlocker();
             return;
           }
 
           document.body.classList.add("page-exit");
           window.setTimeout(function () {
-            window.location.href = loginPath;
+            window.location.href = "login.html";
           }, 420);
         });
       });

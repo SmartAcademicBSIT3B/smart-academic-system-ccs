@@ -40,6 +40,16 @@ body {
   align-items: center;
   position: relative;
   overflow: hidden;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: loginPageEnter 0.5s ease forwards;
+}
+
+@keyframes loginPageEnter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ===============================
