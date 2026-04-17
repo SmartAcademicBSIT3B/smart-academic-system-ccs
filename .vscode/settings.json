@@ -1,3 +1,22 @@
 {
-  "claudeCodeChat.permissions.yoloMode": false
+  "claudeCodeChat.permissions.yoloMode": false,
+  "sqltools.connections": [
+    {
+      "mysqlOptions": {
+        "authProtocol": "default",
+        "enableSsl": "Enabled",
+        "ssl": {
+          "ca": "database/ca.pem"
+        }
+      },
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "mysql-eac28ff-smartacademicbsit3b-fb16.b.aivencloud.com",
+      "port": 25442,
+      "driver": "MySQL",
+      "name": "CTA Aiven MySQL Server",
+      "database": "CTAPLP",
+      "username": "avnadmin"
+    }
+  ]
 }
