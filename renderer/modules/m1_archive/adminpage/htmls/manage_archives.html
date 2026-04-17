@@ -132,10 +132,6 @@
             <h4>DOWNLOAD REPORT</h4>
           </div>
           <div class="choice-actions">
-            <button type="button" class="choice-btn" id="export-csv-btn">
-              <i data-lucide="file-text"></i>
-              CSV
-            </button>
             <button type="button" class="choice-btn" id="export-excel-btn">
               <i data-lucide="sheet"></i>
               Excel
@@ -143,10 +139,6 @@
             <button type="button" class="choice-btn" id="export-pdf-btn">
               <i data-lucide="file-output"></i>
               PDF
-            </button>
-            <button type="button" class="choice-btn" id="export-doc-btn">
-              <i data-lucide="file"></i>
-              DOC
             </button>
           </div>
           <div class="form-actions choice-footer">
@@ -814,10 +806,8 @@
       // Export modal + downloads
       const exportModal = document.getElementById("export-modal");
       const exportCancelBtn = document.getElementById("export-cancel-btn");
-      const exportCsvBtn = document.getElementById("export-csv-btn");
       const exportExcelBtn = document.getElementById("export-excel-btn");
       const exportPdfBtn = document.getElementById("export-pdf-btn");
-      const exportDocBtn = document.getElementById("export-doc-btn");
       const modalAnimationMs = 220;
 
       function openModal(modalEl) {
@@ -1038,14 +1028,6 @@
         if (e.target === exportModal) closeModal(exportModal);
       });
 
-      exportCsvBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        const csv = tableToCsv(table);
-        downloadBlob(csv, "text/csv;charset=utf-8", `${getReportName()}.csv`);
-        closeModal(exportModal);
-      });
-
       exportExcelBtn.addEventListener("click", () => {
         const table = getTable();
         if (!table) return;
@@ -1057,23 +1039,6 @@
         closeModal(exportModal);
       });
 
-      exportDocBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        downloadTableAsHtmlDoc(
-          table,
-          `${getReportName()}.doc`,
-          "application/msword",
-        );
-        closeModal(exportModal);
-      });
-
-      exportPdfBtn.addEventListener("click", () => {
-        closeModal(exportModal);
-        window.print();
-      });
-
-      // Modals
       const selectModeModal = document.getElementById("select-mode-modal");
       const archiveModal = document.getElementById("archive-modal");
       const archiveAlertModal = document.getElementById("archive-alert-modal");
@@ -1824,7 +1789,9 @@
         closeModal(archiveModal);
 
         // Now safely add rows to the table
-        pendingRows.forEach((rowData) => addArchiveRow(rowData));
+        pendingRows.forEach((rowData) =>
+          addArchiveRow(rowData, { highlight: true, insertAtTop: true }),
+        );
 
         const successCount = rows.length - failedCount;
         if (failedCount === 0) {
@@ -2265,7 +2232,25 @@
           .replace(/[._-]/g, " ");
       }
 
-      function addArchiveRow(data) {
+      function flashInsertedArchiveRow(row) {
+        if (!row) return;
+
+        row.classList.remove("row-inserted");
+        void row.offsetWidth;
+        row.classList.add("row-inserted");
+
+        if (row.offsetParent !== null) {
+          row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+
+        window.setTimeout(() => {
+          row.classList.remove("row-inserted");
+        }, 2400);
+      }
+
+      function addArchiveRow(data, options = {}) {
+        const highlight = Boolean(options.highlight);
+        const insertAtTop = Boolean(options.insertAtTop);
         const tbody = document.getElementById("archives-table-body");
         // Remove the loading/empty placeholder if present
         const placeholder = tbody.querySelector(
@@ -2308,6 +2293,7 @@
         tr.dataset.keywords = data.keywords || "";
         tr.dataset.type = type;
         tr.dataset.status = statusLabel;
+        tr.dataset.department = data.department || "CCS";
         tr.dataset.filePath = driveUrl;
         tr.dataset.fileName = displayFileName;
         tr.dataset.localFilePath =
@@ -2330,11 +2316,19 @@
           </td>
         `;
 
-        tbody.appendChild(tr);
+        if (insertAtTop) {
+          tbody.prepend(tr);
+        } else {
+          tbody.appendChild(tr);
+        }
         lucide.createIcons();
 
         if (typeof window.archiveSearchFilter !== "undefined") {
           window.archiveSearchFilter.refresh();
+        }
+
+        if (highlight) {
+          flashInsertedArchiveRow(tr);
         }
       }
 
@@ -2658,7 +2652,10 @@
                 return;
               }
 
-              addArchiveRow(result.archive || {});
+              addArchiveRow(result.archive || {}, {
+                highlight: true,
+                insertAtTop: true,
+              });
               showToast("Archive uploaded successfully.", "success", 4000);
 
               if (result.usedFallback) {

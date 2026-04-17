@@ -729,8 +729,8 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
 
     const result = await query(
       `INSERT INTO archives
-      (title, authors, section, advisor, date_published, keywords, type, file_path, local_file_path, status, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (title, authors, section, advisor, date_published, keywords, type, department, file_path, local_file_path, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         title,
         authors,
@@ -739,6 +739,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
         datePublished || null,
         keywords,
         type,
+        "CCS",
         filePath || null,
         localFilePath || null,
         status,
@@ -748,7 +749,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
 
     const insertedId = result.insertId;
     const rows = await query(
-      `SELECT id, title, authors, section, advisor, date_published, keywords, type,
+      `SELECT id, title, authors, section, advisor, date_published, keywords, type, department,
               file_path, local_file_path, status, created_at
        FROM archives
        WHERE id = ?`,
@@ -775,7 +776,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
 ipcMain.handle("getArchives", async () => {
   try {
     const rows = await query(
-      `SELECT id, title, authors, section, advisor, date_published, keywords, type,
+      `SELECT id, title, authors, section, advisor, date_published, keywords, type, department,
               file_path, local_file_path, status, created_at
        FROM archives
        ORDER BY created_at DESC`,
@@ -861,7 +862,7 @@ ipcMain.handle("updateArchive", async (event, payload = {}) => {
     );
 
     const rows = await query(
-      `SELECT id, title, authors, section, advisor, date_published, keywords, type,
+      `SELECT id, title, authors, section, advisor, date_published, keywords, type, department,
               file_path, local_file_path, status, created_at
        FROM archives
        WHERE id = ?

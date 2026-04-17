@@ -55,13 +55,16 @@ function applyArchiveRowUpdate(
     archive.date_published || fallbackData.date_published || "",
   );
   const savedType = String(archive.type || fallbackData.type || "");
+  const savedDepartment = String(
+    archive.department || fallbackData.department || "CCS",
+  );
   const savedStatus = String(archive.status || fallbackData.status || "");
   const formatMonthYear =
     typeof formatMonthYearFn === "function"
       ? formatMonthYearFn
       : (value) => String(value || "");
 
-  // Update visible cells (new column order: check|title|authors|section|advisor|date|type|status|actions)
+  // Visible column order: check|title|authors|section|advisor|date|type|status|actions
   editingRow.cells[1].textContent = savedTitle;
   editingRow.cells[2].textContent = savedAuthors;
   editingRow.cells[3].textContent = savedSection;
@@ -90,6 +93,7 @@ function applyArchiveRowUpdate(
   );
   editingRow.dataset.type = savedType;
   editingRow.dataset.status = normalizedStatus;
+  editingRow.dataset.department = savedDepartment;
 
   if (window.archiveSearchFilter?.refresh) {
     window.archiveSearchFilter.refresh();
