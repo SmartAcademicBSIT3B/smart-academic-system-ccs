@@ -18,11 +18,15 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="../api/extract_archive.js"></script>
     <script src="../api/bulk_archive_summary.js"></script>
     <script src="../api/fetch_archive_dropdowns.js"></script>
     <script src="../api/fetch_archives.js"></script>
     <script src="../api/delete_archive.js"></script>
+    <script src="../api/export_excel.js"></script>
+    <script src="../api/export_pdf.js"></script>
     <script src="../api/update_archive.js"></script>
     <script src="../api/multi_select.js"></script>
     <script src="../api/search_filter.js"></script>
@@ -1029,14 +1033,69 @@
       });
 
       exportExcelBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        downloadTableAsHtmlDoc(
-          table,
-          `${getReportName()}.xls`,
-          "application/vnd.ms-excel",
+        if (typeof window.exportVisibleArchivesToExcel !== "function") {
+          showToast("Excel export module is unavailable.", "error", 3500);
+          showArchiveAlert(
+            "Export Failed",
+            "The Excel export module is not available in this view.",
+          );
+          return;
+        }
+
+        const loadingToast = showToast(
+          "Preparing Excel export...",
+          "loading",
+          0,
         );
-        closeModal(exportModal);
+        try {
+          window.exportVisibleArchivesToExcel({
+            fileName: `${getReportName()}.xls`,
+          });
+          dismissToast(loadingToast);
+          showToast("Excel report exported successfully.", "success", 3200);
+          closeModal(exportModal);
+        } catch (error) {
+          dismissToast(loadingToast);
+          console.error("Excel export failed:", error);
+          showToast(error?.message || "Excel export failed.", "error", 4200);
+          showArchiveAlert(
+            "Export Failed",
+            error?.message || "Failed to export the current archive table.",
+          );
+        }
+      });
+
+      exportPdfBtn.addEventListener("click", async () => {
+        if (typeof window.exportVisibleArchivesToPdf !== "function") {
+          showToast("PDF export module is unavailable.", "error", 3500);
+          showArchiveAlert(
+            "Export Failed",
+            "The PDF export module is not available in this view.",
+          );
+          return;
+        }
+
+        const loadingToast = showToast(
+          "Preparing PDF preview...",
+          "loading",
+          0,
+        );
+        try {
+          await window.exportVisibleArchivesToPdf({
+            fileName: `${getReportName()}.pdf`,
+          });
+          dismissToast(loadingToast);
+          showToast("PDF preview is ready.", "success", 3200);
+          closeModal(exportModal);
+        } catch (error) {
+          dismissToast(loadingToast);
+          console.error("PDF export failed:", error);
+          showToast(error?.message || "PDF export failed.", "error", 4200);
+          showArchiveAlert(
+            "Export Failed",
+            error?.message || "Failed to export the current archive table.",
+          );
+        }
       });
 
       const selectModeModal = document.getElementById("select-mode-modal");

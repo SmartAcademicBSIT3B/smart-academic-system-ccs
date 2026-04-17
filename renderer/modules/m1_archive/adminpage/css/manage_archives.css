@@ -574,6 +574,10 @@ body {
   padding-top: 0;
 }
 
+#export-modal .choice-footer {
+  padding-top: 10px;
+}
+
 .section-alert-body {
   padding: 24px 30px 10px;
   display: flex;
