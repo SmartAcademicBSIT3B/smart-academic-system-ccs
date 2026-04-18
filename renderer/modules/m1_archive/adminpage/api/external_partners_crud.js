@@ -6,6 +6,7 @@
   let editingRow = null;
   let pendingDeleteRows = [];
   let activeActionRow = null;
+  let viewingRow = null;
 
   function getElectronAPI() {
     if (typeof window.getExternalPartnersElectronApiBridge === "function") {
@@ -163,18 +164,31 @@
     row.dataset.representativeContact = asText(partner.representative_contact);
   }
 
+  function buildLogoCellMarkup(partner) {
+    const logoUrl = safeLogoUrl(partner.logo);
+    const initials = getCompanyInitials(partner.company_name);
+    const partnerId = esc(partner.id);
+
+    return `<td class="external-logo-cell">
+      <div class="external-logo-wrapper" data-company="${esc(partner.company_name)}" data-initials="${initials}">
+        <img src="${esc(logoUrl)}" class="external-company-logo" alt="Company logo" data-partner-id="${partnerId}" />
+        <div class="external-logo-fallback" data-partner-id="${partnerId}">
+          <span class="external-logo-fallback-initials">${initials}</span>
+        </div>
+      </div>
+    </td>`;
+  }
+
   function buildRowMarkup(partner) {
     const idValue = Number.parseInt(partner.id, 10);
     const displayId = Number.isFinite(idValue)
       ? String(idValue).padStart(3, "0")
       : esc(partner.id);
 
-    const logoUrl = safeLogoUrl(partner.logo);
-
     return `
       <td><input type="checkbox" class="archive-checkbox row-check" /></td>
       <td>${displayId}</td>
-      <td class="external-logo-cell"><img src="${esc(logoUrl)}" class="external-company-logo" alt="Company logo" onerror="this.src='${EMPTY_LOGO}';" /></td>
+      ${buildLogoCellMarkup(partner)}
       <td>${esc(partner.company_name)}</td>
       <td>${esc(partner.address)}</td>
       <td>${esc(partner.company_email)}</td>
@@ -195,6 +209,7 @@
     if (existing) {
       syncRowDataset(existing, partner);
       existing.innerHTML = buildRowMarkup(partner);
+      attachLogoErrorHandlers();
       return;
     }
 
@@ -202,6 +217,7 @@
     row.dataset.id = String(partner.id || "");
     syncRowDataset(row, partner);
     row.innerHTML = buildRowMarkup(partner);
+    attachLogoErrorHandlers();
 
     const firstDataRow = tbody.querySelector("tr:not([data-placeholder])");
     if (firstDataRow) {
@@ -209,6 +225,29 @@
     } else {
       tbody.appendChild(row);
     }
+  }
+
+  function attachLogoErrorHandlers() {
+    const imgs = document.querySelectorAll(".external-company-logo");
+    imgs.forEach((img) => {
+      img.addEventListener("error", () => {
+        const wrapper = img.closest(".external-logo-wrapper");
+        if (wrapper) {
+          img.style.display = "none";
+          const fallback = wrapper.querySelector(".external-logo-fallback");
+          if (fallback) fallback.style.display = "flex";
+        }
+      });
+
+      img.addEventListener("load", () => {
+        const wrapper = img.closest(".external-logo-wrapper");
+        if (wrapper) {
+          img.style.display = "block";
+          const fallback = wrapper.querySelector(".external-logo-fallback");
+          if (fallback) fallback.style.display = "none";
+        }
+      });
+    });
   }
 
   function setFormValues(partner) {
@@ -376,6 +415,7 @@
   }
 
   function openViewModal(row) {
+    viewingRow = row;
     const partner = partnerFromRow(row);
 
     document.getElementById("epv-id").textContent = partner.id || "-";
@@ -396,11 +436,34 @@
       partner.representative_contact || "-";
 
     const logo = document.getElementById("epv-logo");
+    const logoWrapper = document.getElementById("epv-logo-wrapper");
+    const logoFallback = document.getElementById("epv-logo-fallback");
+    const logoFallbackInitials = document.getElementById(
+      "epv-logo-fallback-initials",
+    );
+
     if (logo) {
-      logo.src = safeLogoUrl(partner.logo);
+      const logoUrl = safeLogoUrl(partner.logo);
+      logo.src = logoUrl;
+      logo.alt = partner.company_name || "Company logo";
       logo.onerror = () => {
-        logo.src = EMPTY_LOGO;
+        if (logo && logoWrapper) {
+          logo.style.display = "none";
+          if (logoFallback) logoFallback.style.display = "flex";
+        }
       };
+      logo.onload = () => {
+        if (logo && logoWrapper) {
+          logo.style.display = "block";
+          if (logoFallback) logoFallback.style.display = "none";
+        }
+      };
+    }
+
+    if (logoFallbackInitials) {
+      logoFallbackInitials.textContent = getCompanyInitials(
+        partner.company_name,
+      );
     }
 
     window.ExternalPartnersUI?.openModal(
@@ -510,11 +573,14 @@
 
     const label = document.getElementById("external-delete-confirm-target");
     if (label) {
-      if (pendingDeleteRows.length <= 1) {
+      if (pendingDeleteRows.length === 1) {
+        const partner = partnerFromRow(pendingDeleteRows[0]);
+        label.textContent = `Are you sure you want to delete "${partner.company_name || "Unknown"}"?`;
+      } else if (pendingDeleteRows.length > 1) {
+        label.textContent = `Are you sure you want to delete ${pendingDeleteRows.length} external partners?`;
+      } else {
         label.textContent =
           "This external partner will be permanently deleted.";
-      } else {
-        label.textContent = `${pendingDeleteRows.length} external partners will be permanently deleted.`;
       }
     }
 
@@ -733,11 +799,233 @@
     };
   }
 
-  async function handleBulkCsvUpload(file) {
+  // Pending rows state for bulk preview modal
+  let bulkPreviewRows = [];
+
+  function buildBulkPreviewRow(record, rowIndex) {
+    const initials = getCompanyInitials(record.company_name || "");
+    const hasLogo = !!asText(record.logo);
+
+    return `<tr data-bulk-row="${rowIndex}">
+      <td>
+        <div class="ep-bulk-logo-cell">
+          <img
+            class="ep-bulk-logo-preview"
+            src="${esc(record.logo || "")}"
+            alt="logo"
+            style="display:${hasLogo ? "block" : "none"}"
+          />
+          <div class="ep-bulk-logo-fallback" style="display:${hasLogo ? "none" : "flex"}">
+            <span class="ep-bulk-logo-fallback-initials">${esc(initials)}</span>
+          </div>
+          <input type="hidden" class="ep-bulk-logo-val" value="${esc(record.logo || "")}" />
+          <button type="button" class="ep-bulk-upload-logo-btn" data-row="${rowIndex}">
+            <i data-lucide="upload"></i> Logo
+          </button>
+        </div>
+      </td>
+      <td><input type="text" class="ep-bulk-company-name" value="${esc(record.company_name || "")}" placeholder="Company Name" /></td>
+      <td><input type="text" class="ep-bulk-address" value="${esc(record.address || "")}" placeholder="Address" /></td>
+      <td><input type="text" class="ep-bulk-company-email" value="${esc(record.company_email || "")}" placeholder="Company Email" /></td>
+      <td><input type="text" class="ep-bulk-company-contact" value="${esc(record.company_contact || "")}" placeholder="Contact No." /></td>
+      <td><input type="text" class="ep-bulk-representative" value="${esc(record.representative || "")}" placeholder="Representative" /></td>
+      <td><input type="text" class="ep-bulk-job-description" value="${esc(record.job_description || "")}" placeholder="Job Description" /></td>
+      <td><input type="text" class="ep-bulk-representative-email" value="${esc(record.representative_email || "")}" placeholder="Email Address" /></td>
+      <td><input type="text" class="ep-bulk-representative-contact" value="${esc(record.representative_contact || "")}" placeholder="Contact No." /></td>
+    </tr>`;
+  }
+
+  function openBulkPreviewModal(records) {
+    bulkPreviewRows = records.map((r) => ({ ...r }));
+
+    const tbody = document.getElementById("ep-bulk-summary-body");
+    if (tbody) {
+      tbody.innerHTML = records
+        .map((r, i) => buildBulkPreviewRow(r, i))
+        .join("");
+      if (typeof lucide !== "undefined") lucide.createIcons();
+    }
+
+    // Attach logo upload buttons
+    const rows = tbody?.querySelectorAll("tr[data-bulk-row]") || [];
+    rows.forEach((tr) => {
+      const btn = tr.querySelector(".ep-bulk-upload-logo-btn");
+      if (btn) {
+        btn.addEventListener("click", () =>
+          uploadBulkRowLogo(tr, Number(tr.dataset.bulkRow)),
+        );
+      }
+      // Live-update company name → fallback initials
+      const nameInput = tr.querySelector(".ep-bulk-company-name");
+      const fallbackInitials = tr.querySelector(
+        ".ep-bulk-logo-fallback-initials",
+      );
+      if (nameInput && fallbackInitials) {
+        nameInput.addEventListener("input", () => {
+          fallbackInitials.textContent = getCompanyInitials(nameInput.value);
+        });
+      }
+    });
+
+    window.ExternalPartnersUI?.openModal(
+      document.getElementById("ep-bulk-summary-modal"),
+    );
+  }
+
+  async function uploadBulkRowLogo(tr, rowIndex) {
     const ui = window.ExternalPartnersUI;
     const electronAPI = getElectronAPI();
 
-    if (!ui || !electronAPI || !file) return;
+    if (!ui || !electronAPI) return;
+    if (
+      typeof electronAPI.selectExternalPartnerLogo !== "function" ||
+      typeof electronAPI.uploadExternalPartnerLogo !== "function"
+    ) {
+      ui.showToast("Logo upload API is unavailable.", "error");
+      return;
+    }
+
+    let pickerResult;
+    try {
+      pickerResult = await electronAPI.selectExternalPartnerLogo();
+    } catch {
+      ui.showToast("Could not open logo picker.", "error");
+      return;
+    }
+
+    if (!pickerResult || pickerResult.canceled || !pickerResult.success) return;
+
+    const loadingToast = ui.showToast("Uploading logo...", "info", 1800);
+    if (loadingToast) loadingToast.classList.add("toast-loading");
+
+    try {
+      const result = await electronAPI.uploadExternalPartnerLogo({
+        localPath: pickerResult.localPath,
+        fileName: pickerResult.fileName,
+        mimeType: pickerResult.mimeType,
+        partnerId: null,
+      });
+
+      if (!result || !result.success || !result.path) {
+        ui.showToast(result?.message || "Logo upload failed.", "error");
+        return;
+      }
+
+      const logoUrl = result.path;
+
+      // Update hidden input
+      const logoValInput = tr.querySelector(".ep-bulk-logo-val");
+      if (logoValInput) logoValInput.value = logoUrl;
+
+      // Update preview image
+      const img = tr.querySelector(".ep-bulk-logo-preview");
+      const fallback = tr.querySelector(".ep-bulk-logo-fallback");
+      if (img) {
+        img.src = logoUrl;
+        img.style.display = "block";
+      }
+      if (fallback) fallback.style.display = "none";
+
+      ui.showToast("Logo uploaded.", "success");
+    } catch {
+      ui.showToast("Logo upload error.", "error");
+    }
+  }
+
+  function collectBulkPreviewData() {
+    const tbody = document.getElementById("ep-bulk-summary-body");
+    if (!tbody) return [];
+    const trs = tbody.querySelectorAll("tr[data-bulk-row]");
+    const result = [];
+    trs.forEach((tr) => {
+      result.push({
+        logo: tr.querySelector(".ep-bulk-logo-val")?.value || "",
+        company_name: tr.querySelector(".ep-bulk-company-name")?.value || "",
+        address: tr.querySelector(".ep-bulk-address")?.value || "",
+        company_email: tr.querySelector(".ep-bulk-company-email")?.value || "",
+        company_contact:
+          tr.querySelector(".ep-bulk-company-contact")?.value || "",
+        representative:
+          tr.querySelector(".ep-bulk-representative")?.value || "",
+        job_description:
+          tr.querySelector(".ep-bulk-job-description")?.value || "",
+        representative_email:
+          tr.querySelector(".ep-bulk-representative-email")?.value || "",
+        representative_contact:
+          tr.querySelector(".ep-bulk-representative-contact")?.value || "",
+      });
+    });
+    return result;
+  }
+
+  async function importBulkPreviewRows() {
+    const ui = window.ExternalPartnersUI;
+    const electronAPI = getElectronAPI();
+
+    if (!ui || !electronAPI) return;
+
+    const records = collectBulkPreviewData();
+    if (!records.length) return;
+
+    const loadingOverlay = document.getElementById("ep-bulk-loading-overlay");
+    const loadingText = document.getElementById("ep-bulk-loading-text");
+    if (loadingOverlay) loadingOverlay.style.display = "flex";
+
+    const createdRows = [];
+    const failedRows = [];
+
+    for (let i = 0; i < records.length; i += 1) {
+      if (loadingText)
+        loadingText.textContent = `Importing row ${i + 1} of ${records.length}...`;
+
+      const payload = payloadFromCsvRecord(records[i]);
+      const validation = validatePartnerPayload(payload);
+      if (!validation.valid) {
+        const firstError =
+          Object.values(validation.errors)[0] || "Invalid data.";
+        failedRows.push(`Row ${i + 1}: ${firstError}`);
+        continue;
+      }
+
+      const result = await electronAPI.createExternalPartner(payload);
+      if (!result || !result.success || !result.partner) {
+        failedRows.push(
+          `Row ${i + 1}: ${result?.message || "Failed to create partner."}`,
+        );
+        continue;
+      }
+
+      createdRows.push(result.partner);
+      addExternalPartnerRow(result.partner);
+    }
+
+    if (loadingOverlay) loadingOverlay.style.display = "none";
+
+    window.ExternalPartnersUI?.closeModal(
+      document.getElementById("ep-bulk-summary-modal"),
+    );
+
+    if (window.externalPartnersSearchFilter) {
+      window.externalPartnersSearchFilter.refresh();
+    }
+
+    if (createdRows.length) {
+      ui.showToast(
+        `${createdRows.length} external partner${createdRows.length === 1 ? "" : "s"} imported.`,
+        "success",
+      );
+    }
+
+    if (failedRows.length) {
+      ui.showToast(failedRows[0], "error");
+      console.warn("External partner bulk import errors:", failedRows);
+    }
+  }
+
+  async function handleBulkCsvUpload(file) {
+    const ui = window.ExternalPartnersUI;
+
+    if (!ui || !file) return;
 
     const rawText = await file.text();
     const lines = rawText
@@ -795,64 +1083,35 @@
       return;
     }
 
-    const createdRows = [];
-    const failedRows = [];
+    const parsedRecords = [];
 
     for (let i = 1; i < lines.length; i += 1) {
       const rowData = parseCsvRow(lines[i]);
       if (!rowData.length) continue;
 
-      const record = {
+      parsedRecords.push({
         logo: columnIndex.logo >= 0 ? rowData[columnIndex.logo] : "",
-        company_name: rowData[columnIndex.company_name],
-        address: rowData[columnIndex.address],
-        company_email: rowData[columnIndex.company_email],
-        company_contact: rowData[columnIndex.company_contact],
-        representative: rowData[columnIndex.representative],
+        company_name: rowData[columnIndex.company_name] || "",
+        address: rowData[columnIndex.address] || "",
+        company_email: rowData[columnIndex.company_email] || "",
+        company_contact: rowData[columnIndex.company_contact] || "",
+        representative: rowData[columnIndex.representative] || "",
         job_description:
           columnIndex.job_description >= 0
             ? rowData[columnIndex.job_description]
             : "",
-        representative_email: rowData[columnIndex.representative_email],
-        representative_contact: rowData[columnIndex.representative_contact],
-      };
-
-      const payload = payloadFromCsvRecord(record);
-      const validation = validatePartnerPayload(payload);
-      if (!validation.valid) {
-        const firstError =
-          Object.values(validation.errors)[0] || "Invalid data.";
-        failedRows.push(`Row ${i + 1}: ${firstError}`);
-        continue;
-      }
-
-      const result = await electronAPI.createExternalPartner(payload);
-      if (!result || !result.success || !result.partner) {
-        failedRows.push(
-          `Row ${i + 1}: ${result?.message || "Failed to create partner."}`,
-        );
-        continue;
-      }
-
-      createdRows.push(result.partner);
-      addExternalPartnerRow(result.partner);
+        representative_email: rowData[columnIndex.representative_email] || "",
+        representative_contact:
+          rowData[columnIndex.representative_contact] || "",
+      });
     }
 
-    if (window.externalPartnersSearchFilter) {
-      window.externalPartnersSearchFilter.refresh();
+    if (!parsedRecords.length) {
+      ui.showToast("No valid data rows found in the CSV.", "error");
+      return;
     }
 
-    if (createdRows.length) {
-      ui.showToast(
-        `${createdRows.length} external partner${createdRows.length === 1 ? "" : "s"} uploaded.`,
-        "success",
-      );
-    }
-
-    if (failedRows.length) {
-      ui.showToast(failedRows[0], "error");
-      console.warn("External partner CSV upload row errors:", failedRows);
-    }
+    openBulkPreviewModal(parsedRecords);
   }
 
   function bindEvents() {
@@ -900,6 +1159,17 @@
       });
 
     document
+      .getElementById("ep-bulk-summary-cancel")
+      ?.addEventListener("click", () => {
+        ui?.closeModal(document.getElementById("ep-bulk-summary-modal"));
+        bulkPreviewRows = [];
+      });
+
+    document
+      .getElementById("ep-bulk-summary-import")
+      ?.addEventListener("click", importBulkPreviewRows);
+
+    document
       .getElementById("ep-logo")
       ?.addEventListener("input", updateCompanyProfilePreview);
 
@@ -940,6 +1210,34 @@
       .getElementById("external-view-close-btn")
       ?.addEventListener("click", () => {
         ui?.closeModal(document.getElementById("external-partner-view-modal"));
+      });
+
+    document
+      .getElementById("external-view-header-close-btn")
+      ?.addEventListener("click", () => {
+        ui?.closeModal(document.getElementById("external-partner-view-modal"));
+      });
+
+    document
+      .getElementById("external-view-edit-btn")
+      ?.addEventListener("click", () => {
+        if (viewingRow) {
+          ui?.closeModal(
+            document.getElementById("external-partner-view-modal"),
+          );
+          openFormForEdit(viewingRow);
+        }
+      });
+
+    document
+      .getElementById("external-view-delete-btn")
+      ?.addEventListener("click", () => {
+        if (viewingRow) {
+          ui?.closeModal(
+            document.getElementById("external-partner-view-modal"),
+          );
+          openDeleteConfirm([viewingRow]);
+        }
       });
 
     document
@@ -1058,11 +1356,27 @@
         updateSelectionUI();
       });
 
+    document
+      .getElementById("external-partners-table-body")
+      ?.addEventListener("dblclick", (event) => {
+        const row = event.target.closest("tr");
+        if (!row) return;
+        if (
+          event.target.closest(".dots-btn") ||
+          event.target.closest(".row-check") ||
+          event.target.closest("button")
+        ) {
+          return;
+        }
+        openViewModal(row);
+      });
+
     [
       document.getElementById("external-partner-modal"),
       document.getElementById("external-required-fields-modal"),
       document.getElementById("external-delete-confirm-modal"),
       document.getElementById("external-partner-view-modal"),
+      document.getElementById("ep-bulk-summary-modal"),
     ].forEach((modalEl) => {
       modalEl?.addEventListener("click", (event) => {
         if (event.target !== modalEl) return;

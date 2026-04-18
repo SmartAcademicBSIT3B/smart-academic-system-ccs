@@ -225,8 +225,10 @@
             <h4>CONFIRM DELETE</h4>
           </div>
           <div class="delete-confirm-body">
-            <i data-lucide="trash-2" class="delete-confirm-icon"></i>
-            <p id="external-delete-confirm-target"></p>
+            <p
+              id="external-delete-confirm-target"
+              class="delete-confirm-target"
+            ></p>
             <p class="delete-confirm-helper">
               Type <strong>DELETE</strong> to continue.
             </p>
@@ -452,8 +454,24 @@
         <div
           class="modal-content view-archive-modal-content external-view-modal-content"
         >
-          <div class="form-header">
+          <div
+            class="form-header"
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding-right: 20px;
+            "
+          >
             <h4>EXTERNAL PARTNER DETAILS</h4>
+            <button
+              class="view-archive-close-btn"
+              type="button"
+              id="external-view-header-close-btn"
+              aria-label="Close"
+            >
+              <i data-lucide="x"></i>
+            </button>
           </div>
           <div class="view-archive-body">
             <div class="va-grid two-col">
@@ -495,21 +513,107 @@
               </div>
               <div class="va-field">
                 <label>Logo</label>
-                <img
-                  id="epv-logo"
-                  class="external-logo-preview"
-                  alt="Partner logo"
-                />
+                <div id="epv-logo-wrapper" class="external-logo-wrapper">
+                  <img
+                    id="epv-logo"
+                    class="external-logo-preview"
+                    alt="Partner logo"
+                  />
+                  <div
+                    id="epv-logo-fallback"
+                    class="external-logo-fallback"
+                    style="display: none"
+                  >
+                    <span
+                      id="epv-logo-fallback-initials"
+                      class="external-logo-fallback-initials"
+                      >CP</span
+                    >
+                  </div>
+                </div>
               </div>
             </div>
           </div>
           <div class="form-actions choice-footer">
+            <button
+              class="save-btn view-archive-icon-btn"
+              id="external-view-edit-btn"
+              type="button"
+              aria-label="Edit"
+              title="Edit"
+            >
+              <i data-lucide="pencil"></i>
+            </button>
+            <button
+              class="cancel-btn view-archive-delete-btn view-archive-icon-btn"
+              id="external-view-delete-btn"
+              type="button"
+              aria-label="Delete"
+              title="Delete"
+            >
+              <i data-lucide="trash-2"></i>
+            </button>
             <button
               class="cancel-btn"
               id="external-view-close-btn"
               type="button"
             >
               Close
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BULK CSV SUMMARY MODAL -->
+      <div id="ep-bulk-summary-modal" class="modal" style="display: none">
+        <div
+          class="modal-content bulk-summary-modal-content ep-bulk-summary-modal-content"
+        >
+          <div class="form-header">
+            <h4>BULK UPLOAD PREVIEW</h4>
+          </div>
+          <div class="bulk-summary-note">
+            Review and edit values before importing. Click the logo cell to
+            upload a logo image.
+          </div>
+          <div class="bulk-summary-wrap">
+            <table class="bulk-summary-table ep-bulk-summary-table">
+              <thead>
+                <tr>
+                  <th>Logo</th>
+                  <th>Company Name</th>
+                  <th>Address</th>
+                  <th>Company Email</th>
+                  <th>Company Contact</th>
+                  <th>Representative</th>
+                  <th>Job Description</th>
+                  <th>Email Address</th>
+                  <th>Contact No.</th>
+                </tr>
+              </thead>
+              <tbody id="ep-bulk-summary-body"></tbody>
+            </table>
+          </div>
+          <div
+            id="ep-bulk-loading-overlay"
+            class="bulk-loading-overlay"
+            style="display: none"
+          >
+            <div class="bulk-loading-content">
+              <div class="bulk-spinner"></div>
+              <p id="ep-bulk-loading-text">Uploading...</p>
+            </div>
+          </div>
+          <div class="form-actions choice-footer">
+            <button
+              class="cancel-btn"
+              id="ep-bulk-summary-cancel"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button class="save-btn" id="ep-bulk-summary-import" type="button">
+              Import Rows
             </button>
           </div>
         </div>
