@@ -540,7 +540,7 @@ select {
   border: 1px solid var(--border-color);
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   transform-origin: left center;
   transition:
     opacity 0.32s ease,
@@ -852,13 +852,18 @@ select {
 .tooltip {
   position: relative;
   display: inline-block;
+  overflow: visible;
+}
+
+.tooltip[hidden] {
+  display: none !important;
 }
 
 .tooltip-text {
   visibility: hidden;
   opacity: 0;
   position: absolute;
-  bottom: 120%;
+  bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
   background: #232830;
@@ -876,7 +881,7 @@ select {
   content: "";
   position: absolute;
   top: 100%;
-  left: 70%;
+  left: 50%;
   transform: translateX(-50%);
   border-width: 5px;
   border-style: solid;

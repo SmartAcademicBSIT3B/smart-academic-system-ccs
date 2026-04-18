@@ -44,6 +44,57 @@
     return null;
   }
 
+  function getCurrentRole() {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (!userStr) return "";
+      const user = JSON.parse(userStr);
+      return String(user?.role || "")
+        .trim()
+        .toLowerCase();
+    } catch (error) {
+      console.error("Unable to parse local user data:", error);
+      return "";
+    }
+  }
+
+  function isAdminUser() {
+    return getCurrentRole() === "admin";
+  }
+
+  function applyManageDocumentAccess() {
+    const manageDocumentTooltip = document.getElementById(
+      "manage-document-tooltip",
+    );
+    if (!manageDocumentTooltip) return;
+
+    const manageDocumentBtn = document.getElementById("manage-document-btn");
+    const isAdmin = isAdminUser();
+
+    if (!isAdmin) {
+      manageDocumentTooltip.hidden = true;
+      manageDocumentTooltip.style.display = "none";
+      manageDocumentTooltip.setAttribute("aria-hidden", "true");
+
+      if (manageDocumentBtn) {
+        manageDocumentBtn.disabled = true;
+        manageDocumentBtn.tabIndex = -1;
+      }
+
+      manageDocumentTooltip.remove();
+      return;
+    }
+
+    manageDocumentTooltip.hidden = false;
+    manageDocumentTooltip.style.display = "inline-block";
+    manageDocumentTooltip.removeAttribute("aria-hidden");
+
+    if (manageDocumentBtn) {
+      manageDocumentBtn.disabled = false;
+      manageDocumentBtn.removeAttribute("tabindex");
+    }
+  }
+
   function escapeHtml(value) {
     return String(value || "")
       .replace(/&/g, "&amp;")
@@ -344,6 +395,8 @@
   }
 
   function openManageConfirmModal() {
+    if (!isAdminUser()) return;
+
     const modal = document.getElementById("manage-confirm-modal");
     if (!modal) {
       navigateToManageArchivePage();
@@ -1041,6 +1094,7 @@
   }
 
   function initViewArchivesPage() {
+    applyManageDocumentAccess();
     wireEvents();
     wireSidebarHoverBridge();
     loadArchivesForViewPage();
