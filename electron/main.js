@@ -8,6 +8,7 @@ const { fileURLToPath } = require("node:url");
 const { query } = require("../database/dbconnect");
 const {
   uploadProfileImageToCloudinary,
+  uploadExternalPartnerLogoToCloudinary,
 } = require("../services/cloudinary_config");
 const {
   uploadProfileImage: uploadFileToGoogleDrive,
@@ -583,6 +584,37 @@ ipcMain.handle("selectProfileImage", async () => {
   }
 });
 
+ipcMain.handle("selectExternalPartnerLogo", async () => {
+  try {
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    const { canceled, filePaths } = await dialog.showOpenDialog(focusedWindow, {
+      title: "Select external partner logo",
+      properties: ["openFile"],
+      filters: [{ name: "Images", extensions: ["jpg", "jpeg", "png", "gif"] }],
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return { success: false, canceled: true };
+    }
+
+    const selectedPath = filePaths[0];
+    const ext = path.extname(selectedPath).toLowerCase();
+    const mimeMap = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+    };
+    const mimeType = mimeMap[ext] || "image/jpeg";
+    const fileName = `external_partner_logo_${Date.now()}_${path.basename(selectedPath)}`;
+
+    return { success: true, localPath: selectedPath, fileName, mimeType };
+  } catch (error) {
+    console.error("Select external partner logo error:", error);
+    return { success: false, message: "Could not open file picker." };
+  }
+});
+
 ipcMain.handle(
   "uploadProfileImage",
   async (event, { localPath, fileName, mimeType, userId }) => {
@@ -599,6 +631,30 @@ ipcMain.handle(
       return { success: true, path: uploadedUrl };
     } catch (error) {
       console.error("Cloudinary profile upload error:", error);
+      return {
+        success: false,
+        message: error.message || "Upload failed. Please try again.",
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  "uploadExternalPartnerLogo",
+  async (event, { localPath, fileName, mimeType, partnerId }) => {
+    try {
+      const fileBuffer = await fs.readFile(localPath);
+
+      const uploadedUrl = await uploadExternalPartnerLogoToCloudinary(
+        fileBuffer,
+        fileName,
+        mimeType,
+        partnerId,
+      );
+
+      return { success: true, path: uploadedUrl };
+    } catch (error) {
+      console.error("Cloudinary external partner logo upload error:", error);
       return {
         success: false,
         message: error.message || "Upload failed. Please try again.",

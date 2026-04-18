@@ -13,6 +13,10 @@ const CLOUDINARY_API_SECRET = String(
 const CLOUDINARY_PROFILE_FOLDER = String(
   process.env.CLOUDINARY_PROFILE_FOLDER || "CTA Files/Profiles",
 ).trim();
+const CLOUDINARY_EXTERNAL_PARTNER_LOGO_FOLDER = String(
+  process.env.CLOUDINARY_EXTERNAL_PARTNER_LOGO_FOLDER ||
+    "HTA Files/External Partners Logo",
+).trim();
 
 function isCloudinaryConfigured() {
   return Boolean(
@@ -95,10 +99,73 @@ async function uploadProfileImageToCloudinary(
   return finalUrl;
 }
 
+function buildExternalPartnerLogoPublicId(partnerId, fileName) {
+  const normalizedPartnerId = sanitizePublicId(String(partnerId || ""));
+  if (normalizedPartnerId) {
+    return `external_partner_${normalizedPartnerId}_logo`;
+  }
+
+  const parsedName = path.parse(String(fileName || "logo"));
+  const safeBaseName = sanitizePublicId(parsedName.name) || "logo";
+  return `external_partner_logo_${Date.now()}_${safeBaseName}`;
+}
+
+async function uploadExternalPartnerLogoToCloudinary(
+  fileBuffer,
+  fileName,
+  mimeType,
+  partnerId,
+) {
+  if (!isCloudinaryConfigured()) {
+    throw new Error(
+      "Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in .env.",
+    );
+  }
+
+  const publicId = buildExternalPartnerLogoPublicId(partnerId, fileName);
+
+  const result = await new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: CLOUDINARY_EXTERNAL_PARTNER_LOGO_FOLDER,
+        public_id: publicId,
+        resource_type: "image",
+        overwrite: true,
+        invalidate: true,
+        use_filename: false,
+        unique_filename: false,
+      },
+      (error, uploaded) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(uploaded);
+      },
+    );
+
+    uploadStream.end(fileBuffer);
+  });
+
+  const finalUrl =
+    result && typeof result === "object"
+      ? result.secure_url || result.url || ""
+      : "";
+
+  if (!finalUrl) {
+    throw new Error("Cloudinary upload succeeded but no URL was returned.");
+  }
+
+  return finalUrl;
+}
+
 module.exports = {
   cloudinary,
   isCloudinaryConfigured,
   uploadProfileImageToCloudinary,
+  uploadExternalPartnerLogoToCloudinary,
   buildProfilePublicId,
+  buildExternalPartnerLogoPublicId,
   CLOUDINARY_PROFILE_FOLDER,
+  CLOUDINARY_EXTERNAL_PARTNER_LOGO_FOLDER,
 };

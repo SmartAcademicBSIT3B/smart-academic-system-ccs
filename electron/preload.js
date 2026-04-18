@@ -6,8 +6,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getSections: () => ipcRenderer.invoke("getSections"),
   getProfessors: () => ipcRenderer.invoke("getProfessors"),
   selectProfileImage: () => ipcRenderer.invoke("selectProfileImage"),
+  selectExternalPartnerLogo: () =>
+    ipcRenderer.invoke("selectExternalPartnerLogo"),
   uploadProfileImage: (fileInfo) =>
     ipcRenderer.invoke("uploadProfileImage", fileInfo),
+  uploadExternalPartnerLogo: (fileInfo) =>
+    ipcRenderer.invoke("uploadExternalPartnerLogo", fileInfo),
   createArchive: (archiveData) =>
     ipcRenderer.invoke("createArchive", archiveData),
   updateArchive: (archiveData) =>

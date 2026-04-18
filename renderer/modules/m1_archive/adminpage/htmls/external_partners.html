@@ -77,11 +77,35 @@
           </div>
 
           <div class="tooltip">
+            <button
+              class="generate-btn"
+              id="external-partner-download-template-btn"
+            >
+              <i data-lucide="file-down"></i>
+            </button>
+            <span class="tooltip-text">Download CSV Template</span>
+          </div>
+
+          <div class="tooltip">
+            <button class="generate-btn" id="external-partner-upload-csv-btn">
+              <i data-lucide="file-up"></i>
+            </button>
+            <span class="tooltip-text">Bulk Upload CSV</span>
+          </div>
+
+          <div class="tooltip">
             <button class="add-btn" id="external-partner-open-modal">+</button>
             <span class="tooltip-text">Add External Partner</span>
           </div>
         </div>
       </div>
+
+      <input
+        type="file"
+        id="external-partner-csv-input"
+        accept=".csv,text/csv"
+        style="display: none"
+      />
 
       <div class="filter-bar" id="external-filter-bar">
         <div class="filter-selects">
@@ -242,91 +266,167 @@
             </h4>
           </div>
 
-          <div class="form-body external-form-body">
-            <div class="grid-4">
-              <div class="input-group">
-                <label>NAME OF COMPANY</label>
-                <input
-                  id="ep-company-name"
-                  class="required-field"
-                  placeholder="Company Name"
+          <div
+            class="form-body external-form-body external-company-profile-shell"
+          >
+            <aside class="external-company-profile-card">
+              <div class="external-company-logo-frame">
+                <img
+                  id="ep-logo-preview"
+                  class="external-company-logo-preview"
+                  src=""
+                  alt="Company logo preview"
                 />
+                <span
+                  id="ep-logo-initials"
+                  class="external-company-logo-initials"
+                  >CP</span
+                >
               </div>
 
-              <div class="input-group">
-                <label>ADDRESS</label>
-                <input
-                  id="ep-address"
-                  class="required-field"
-                  placeholder="Address"
-                />
+              <button
+                type="button"
+                id="ep-upload-logo-btn"
+                class="external-upload-logo-btn"
+              >
+                <i data-lucide="upload"></i>
+                Upload Logo
+              </button>
+
+              <div class="external-company-profile-meta">
+                <h5 id="ep-company-preview-name">Company Profile</h5>
+                <p>Complete details for your external partner record.</p>
               </div>
 
-              <div class="input-group">
-                <label>COMPANY EMAIL</label>
-                <input
-                  id="ep-company-email"
-                  type="email"
-                  placeholder="Company Email"
-                />
-              </div>
-
-              <div class="input-group">
-                <label>COMPANY CONTACT NO.</label>
-                <input
-                  id="ep-company-contact"
-                  type="text"
-                  placeholder="Contact Number"
-                />
-              </div>
-            </div>
-
-            <h4 class="section-title">REPRESENTATIVE</h4>
-
-            <div class="grid-4">
-              <div class="input-group">
-                <label>REPRESENTATIVE</label>
-                <input
-                  id="ep-representative"
-                  type="text"
-                  placeholder="Representative Name"
-                />
-              </div>
-
-              <div class="input-group">
-                <label>JOB DESCRIPTION</label>
-                <input
-                  id="ep-job-description"
-                  type="text"
-                  placeholder="Job Description"
-                />
-              </div>
-
-              <div class="input-group">
-                <label>EMAIL ADDRESS</label>
-                <input
-                  id="ep-representative-email"
-                  type="email"
-                  placeholder="Representative Email"
-                />
-              </div>
-
-              <div class="input-group">
-                <label>CONTACT NO.</label>
-                <input
-                  id="ep-representative-contact"
-                  type="text"
-                  placeholder="Representative Contact"
-                />
-              </div>
-            </div>
-
-            <div class="grid-4">
-              <div class="input-group">
+              <div class="input-group external-logo-url-group">
                 <label>LOGO URL</label>
                 <input id="ep-logo" type="url" placeholder="https://..." />
               </div>
-            </div>
+            </aside>
+
+            <section class="external-company-profile-fields">
+              <div class="external-form-section-card">
+                <div class="external-form-section-title">
+                  Company Information
+                </div>
+                <div class="external-form-grid-two">
+                  <div class="input-group">
+                    <label
+                      >NAME OF COMPANY
+                      <span class="required-asterisk">*</span></label
+                    >
+                    <input
+                      id="ep-company-name"
+                      class="required-field"
+                      placeholder="Company Name"
+                    />
+                    <div class="field-error" id="ep-company-name-error"></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >ADDRESS <span class="required-asterisk">*</span></label
+                    >
+                    <input
+                      id="ep-address"
+                      class="required-field"
+                      placeholder="Address"
+                    />
+                    <div class="field-error" id="ep-address-error"></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >COMPANY EMAIL
+                      <span class="required-asterisk">*</span></label
+                    >
+                    <input
+                      id="ep-company-email"
+                      type="email"
+                      placeholder="Company Email"
+                    />
+                    <div class="field-error" id="ep-company-email-error"></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >COMPANY CONTACT NO.
+                      <span class="required-asterisk">*</span></label
+                    >
+                    <input
+                      id="ep-company-contact"
+                      type="text"
+                      placeholder="Contact Number"
+                    />
+                    <div
+                      class="field-error"
+                      id="ep-company-contact-error"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="external-form-section-card">
+                <div class="external-form-section-title">
+                  Representative Information
+                </div>
+                <div class="external-form-grid-two">
+                  <div class="input-group">
+                    <label
+                      >REPRESENTATIVE
+                      <span class="required-asterisk">*</span></label
+                    >
+                    <input
+                      id="ep-representative"
+                      type="text"
+                      placeholder="Representative Name"
+                    />
+                    <div class="field-error" id="ep-representative-error"></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label>JOB DESCRIPTION</label>
+                    <input
+                      id="ep-job-description"
+                      type="text"
+                      placeholder="Job Description"
+                    />
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >EMAIL ADDRESS
+                      <span class="required-asterisk">*</span></label
+                    >
+                    <input
+                      id="ep-representative-email"
+                      type="email"
+                      placeholder="Representative Email"
+                    />
+                    <div
+                      class="field-error"
+                      id="ep-representative-email-error"
+                    ></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >CONTACT NO.
+                      <span class="required-asterisk">*</span></label
+                    >
+                    <input
+                      id="ep-representative-contact"
+                      type="text"
+                      placeholder="Representative Contact"
+                    />
+                    <div
+                      class="field-error"
+                      id="ep-representative-contact-error"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
 
           <div class="form-actions">

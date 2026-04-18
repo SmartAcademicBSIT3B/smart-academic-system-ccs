@@ -69,6 +69,7 @@ CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 CLOUDINARY_PROFILE_FOLDER=CTA Files/Profiles
+CLOUDINARY_EXTERNAL_PARTNER_LOGO_FOLDER=HTA Files/External Partners Logo
 ```
 
 1. **Fill in your actual credentials** (database and Cloudinary details)

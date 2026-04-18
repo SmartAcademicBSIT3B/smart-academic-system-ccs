@@ -3,8 +3,196 @@
   width: min(1100px, 92vw);
 }
 
+#external-partner-modal .modal-content::-webkit-scrollbar {
+  width: 9px;
+}
+
+#external-partner-modal .modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#external-partner-modal .modal-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8fb4dd 0%, #5d7ea1 100%);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+#external-partner-modal .modal-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #a4c5ea 0%, #6b8fb5 100%);
+  background-clip: padding-box;
+}
+
+#external-partner-modal .modal-content::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .external-form-body {
   gap: 14px;
+}
+
+.external-company-profile-shell {
+  display: grid;
+  grid-template-columns: minmax(250px, 300px) 1fr;
+  gap: 18px;
+  padding-top: 18px;
+}
+
+.external-company-profile-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 18px;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(157, 198, 255, 0.16),
+      transparent 42%
+    ),
+    linear-gradient(165deg, #1c222b, #161b21);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100%;
+}
+
+.external-company-logo-frame {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  margin: 0 auto;
+  position: relative;
+  border: 2px solid rgba(157, 198, 255, 0.45);
+  background: #0f1419;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.external-company-logo-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.external-company-logo-initials {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: 700;
+  color: #8ba7c8;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.external-company-profile-meta {
+  text-align: center;
+  border-top: 1px solid rgba(157, 198, 255, 0.25);
+  border-bottom: 1px solid rgba(157, 198, 255, 0.2);
+  padding: 10px 4px;
+}
+
+.external-company-profile-meta h5 {
+  margin: 0;
+  color: #eff4fb;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.external-company-profile-meta p {
+  margin: 6px 0 0;
+  color: #b7c2d2;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.external-upload-logo-btn {
+  width: 100%;
+  border: 1px solid rgba(157, 198, 255, 0.45);
+  border-radius: 10px;
+  background: rgba(157, 198, 255, 0.08);
+  color: #d8e7fb;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.external-upload-logo-btn:hover {
+  background: rgba(157, 198, 255, 0.16);
+  border-color: rgba(157, 198, 255, 0.68);
+}
+
+.external-upload-logo-btn i,
+.external-upload-logo-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.external-logo-url-group {
+  margin-top: auto;
+}
+
+.external-company-profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.external-form-section-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px;
+}
+
+.external-form-section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.external-form-grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.required-asterisk {
+  color: #ff6f6f;
+  font-weight: 700;
+  margin-left: 3px;
+}
+
+.field-error {
+  min-height: 16px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: #ff7e7e;
+  margin-top: 3px;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.field-error.show {
+  opacity: 1;
+}
+
+#external-partner-modal .input-group input.input-invalid {
+  border-color: #d66a6a;
+  box-shadow: 0 0 0 1px rgba(214, 106, 106, 0.2);
 }
 
 #archives-table td {
@@ -50,4 +238,14 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   background: #101317;
+}
+
+@media (max-width: 980px) {
+  .external-company-profile-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .external-form-grid-two {
+    grid-template-columns: 1fr;
+  }
 }

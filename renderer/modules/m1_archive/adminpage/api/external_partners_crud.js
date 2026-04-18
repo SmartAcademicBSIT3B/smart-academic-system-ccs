@@ -18,6 +18,10 @@
     return String(value || "").trim();
   }
 
+  function normalizeDigits(value) {
+    return String(value || "").replace(/\D+/g, "");
+  }
+
   function safeLogoUrl(value) {
     const raw = asText(value);
     if (!raw) return EMPTY_LOGO;
@@ -31,6 +35,104 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function getCompanyInitials(value) {
+    const words = asText(value).split(/\s+/).filter(Boolean);
+
+    if (!words.length) return "CP";
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return `${words[0][0] || ""}${words[1][0] || ""}`.toUpperCase();
+  }
+
+  async function uploadExternalPartnerLogoFromPicker() {
+    const ui = window.ExternalPartnersUI;
+    const electronAPI = getElectronAPI();
+
+    if (!ui || !electronAPI) return;
+
+    if (typeof electronAPI.selectExternalPartnerLogo !== "function") {
+      ui.showToast("Logo picker API is unavailable.", "error");
+      return;
+    }
+
+    if (typeof electronAPI.uploadExternalPartnerLogo !== "function") {
+      ui.showToast("Logo upload API is unavailable.", "error");
+      return;
+    }
+
+    let pickerResult;
+    try {
+      pickerResult = await electronAPI.selectExternalPartnerLogo();
+    } catch (error) {
+      ui.showToast("Could not open logo picker.", "error");
+      return;
+    }
+
+    if (!pickerResult || pickerResult.canceled || !pickerResult.success) {
+      return;
+    }
+
+    const partnerId = editingRow
+      ? Number.parseInt(editingRow.dataset.id, 10)
+      : null;
+
+    const loadingToast = ui.showToast("Uploading logo...", "info", 1800);
+    if (loadingToast) {
+      loadingToast.classList.add("toast-loading");
+    }
+
+    try {
+      const uploadResult = await electronAPI.uploadExternalPartnerLogo({
+        localPath: pickerResult.localPath,
+        fileName: pickerResult.fileName,
+        mimeType: pickerResult.mimeType,
+        partnerId:
+          Number.isInteger(partnerId) && partnerId > 0 ? partnerId : null,
+      });
+
+      if (!uploadResult || !uploadResult.success || !uploadResult.path) {
+        ui.showToast(uploadResult?.message || "Logo upload failed.", "error");
+        return;
+      }
+
+      const logoInput = document.getElementById("ep-logo");
+      if (logoInput) {
+        logoInput.value = uploadResult.path;
+      }
+      updateCompanyProfilePreview();
+      ui.showToast("Logo uploaded successfully.", "success");
+    } catch (error) {
+      ui.showToast(error?.message || "Logo upload failed.", "error");
+    }
+  }
+
+  function updateCompanyProfilePreview() {
+    const logoInput = document.getElementById("ep-logo");
+    const nameInput = document.getElementById("ep-company-name");
+    const logoPreview = document.getElementById("ep-logo-preview");
+    const initialsEl = document.getElementById("ep-logo-initials");
+    const namePreview = document.getElementById("ep-company-preview-name");
+
+    const logoUrl = asText(logoInput?.value);
+    const companyName = asText(nameInput?.value);
+
+    if (namePreview) {
+      namePreview.textContent = companyName || "Company Profile";
+    }
+
+    if (initialsEl) {
+      initialsEl.textContent = getCompanyInitials(companyName);
+      initialsEl.style.display = logoUrl ? "none" : "inline-flex";
+    }
+
+    if (logoPreview) {
+      logoPreview.src = logoUrl || EMPTY_LOGO;
+      logoPreview.onerror = () => {
+        logoPreview.src = EMPTY_LOGO;
+        if (initialsEl) initialsEl.style.display = "inline-flex";
+      };
+    }
   }
 
   function partnerFromRow(row) {
@@ -133,6 +235,8 @@
     document.getElementById("ep-representative-contact").value = asText(
       partner.representative_contact,
     );
+
+    updateCompanyProfilePreview();
   }
 
   function getFormValues() {
@@ -141,7 +245,7 @@
       company_name: asText(document.getElementById("ep-company-name")?.value),
       address: asText(document.getElementById("ep-address")?.value),
       company_email: asText(document.getElementById("ep-company-email")?.value),
-      company_contact: asText(
+      company_contact: normalizeDigits(
         document.getElementById("ep-company-contact")?.value,
       ),
       representative: asText(
@@ -153,14 +257,99 @@
       representative_email: asText(
         document.getElementById("ep-representative-email")?.value,
       ),
-      representative_contact: asText(
+      representative_contact: normalizeDigits(
         document.getElementById("ep-representative-contact")?.value,
       ),
     };
   }
 
+  function clearFieldError(fieldId) {
+    const errorEl = document.getElementById(`${fieldId}-error`);
+    const inputEl = document.getElementById(fieldId);
+    if (errorEl) {
+      errorEl.textContent = "";
+      errorEl.classList.remove("show");
+    }
+    if (inputEl) {
+      inputEl.classList.remove("input-invalid");
+    }
+  }
+
+  function setFieldError(fieldId, message) {
+    const errorEl = document.getElementById(`${fieldId}-error`);
+    const inputEl = document.getElementById(fieldId);
+    if (errorEl) {
+      errorEl.textContent = String(message || "");
+      errorEl.classList.add("show");
+    }
+    if (inputEl) {
+      inputEl.classList.add("input-invalid");
+    }
+  }
+
+  function clearAllFieldErrors() {
+    [
+      "ep-company-name",
+      "ep-address",
+      "ep-company-email",
+      "ep-company-contact",
+      "ep-representative",
+      "ep-representative-email",
+      "ep-representative-contact",
+    ].forEach(clearFieldError);
+  }
+
+  function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+  }
+
+  function isValidContactDigits(value) {
+    return /^\d{7,15}$/.test(String(value || ""));
+  }
+
+  function validatePartnerPayload(payload) {
+    const errors = {};
+
+    if (!payload.company_name) {
+      errors["ep-company-name"] = "Company name is required.";
+    }
+    if (!payload.address) {
+      errors["ep-address"] = "Address is required.";
+    }
+    if (!payload.company_email) {
+      errors["ep-company-email"] = "Company email is required.";
+    } else if (!isValidEmail(payload.company_email)) {
+      errors["ep-company-email"] = "Enter a valid company email.";
+    }
+    if (!payload.company_contact) {
+      errors["ep-company-contact"] = "Company contact number is required.";
+    } else if (!isValidContactDigits(payload.company_contact)) {
+      errors["ep-company-contact"] = "Use 7 to 15 digits only.";
+    }
+    if (!payload.representative) {
+      errors["ep-representative"] = "Representative is required.";
+    }
+    if (!payload.representative_email) {
+      errors["ep-representative-email"] = "Representative email is required.";
+    } else if (!isValidEmail(payload.representative_email)) {
+      errors["ep-representative-email"] = "Enter a valid representative email.";
+    }
+    if (!payload.representative_contact) {
+      errors["ep-representative-contact"] =
+        "Representative contact number is required.";
+    } else if (!isValidContactDigits(payload.representative_contact)) {
+      errors["ep-representative-contact"] = "Use 7 to 15 digits only.";
+    }
+
+    return {
+      valid: Object.keys(errors).length === 0,
+      errors,
+    };
+  }
+
   function resetForm() {
     setFormValues({});
+    clearAllFieldErrors();
     editingRow = null;
     const title = document.getElementById("external-partner-modal-title");
     if (title) title.textContent = "ADDING NEW EXTERNAL PARTNER";
@@ -360,8 +549,16 @@
     if (!ui || !electronAPI) return;
 
     const payload = getFormValues();
-    if (!payload.company_name || !payload.address) {
-      ui.openModal(document.getElementById("external-required-fields-modal"));
+    clearAllFieldErrors();
+    const validation = validatePartnerPayload(payload);
+
+    if (!validation.valid) {
+      Object.entries(validation.errors).forEach(([fieldId, message]) => {
+        setFieldError(fieldId, message);
+      });
+
+      const firstField = Object.keys(validation.errors)[0];
+      document.getElementById(firstField)?.focus();
       return;
     }
 
@@ -437,6 +634,227 @@
     }
   }
 
+  function parseCsvRow(line) {
+    const result = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i += 1) {
+      const ch = line[i];
+
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === "," && !inQuotes) {
+        result.push(current);
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+
+    result.push(current);
+    return result.map((value) => value.trim());
+  }
+
+  function normalizeHeader(value) {
+    return String(value || "")
+      .replace(/^\uFEFF/, "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getTemplateCsvContent() {
+    const headers = [
+      "Logo",
+      "Company Name",
+      "Address",
+      "Company Email",
+      "Company Contact no.",
+      "Representative",
+      "Job Description",
+      "Email Address",
+      "Contact No.",
+    ];
+
+    const sample = [
+      "https://example.com/logo.png",
+      "Acme Corporation",
+      "123 Business Ave, Makati City",
+      "contact@acme.com",
+      "09171234567",
+      "Juan Dela Cruz",
+      "HR Manager",
+      "juan.delacruz@acme.com",
+      "09181234567",
+    ];
+
+    const toCsvCell = (value) => {
+      const s = String(value ?? "");
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+
+    return `${headers.map(toCsvCell).join(",")}\n${sample.map(toCsvCell).join(",")}`;
+  }
+
+  function downloadCsvTemplate() {
+    const blob = new Blob([getTemplateCsvContent()], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "external_partners_template.csv";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function payloadFromCsvRecord(record) {
+    return {
+      logo: asText(record.logo),
+      company_name: asText(record.company_name),
+      address: asText(record.address),
+      company_email: asText(record.company_email),
+      company_contact: normalizeDigits(record.company_contact),
+      representative: asText(record.representative),
+      job_description: asText(record.job_description),
+      representative_email: asText(record.representative_email),
+      representative_contact: normalizeDigits(record.representative_contact),
+    };
+  }
+
+  async function handleBulkCsvUpload(file) {
+    const ui = window.ExternalPartnersUI;
+    const electronAPI = getElectronAPI();
+
+    if (!ui || !electronAPI || !file) return;
+
+    const rawText = await file.text();
+    const lines = rawText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length < 2) {
+      ui.showToast(
+        "CSV file must include a header and at least one row.",
+        "error",
+      );
+      return;
+    }
+
+    const headerRow = parseCsvRow(lines[0]);
+    const headerMap = {};
+    headerRow.forEach((header, idx) => {
+      headerMap[normalizeHeader(header)] = idx;
+    });
+
+    const indexOf = (aliases) => {
+      for (const alias of aliases) {
+        const index = headerMap[normalizeHeader(alias)];
+        if (typeof index === "number") return index;
+      }
+      return -1;
+    };
+
+    const columnIndex = {
+      logo: indexOf(["logo"]),
+      company_name: indexOf(["company name"]),
+      address: indexOf(["address"]),
+      company_email: indexOf(["company email"]),
+      company_contact: indexOf(["company contact no", "company contact"]),
+      representative: indexOf(["representative"]),
+      job_description: indexOf(["job description"]),
+      representative_email: indexOf(["email address", "representative email"]),
+      representative_contact: indexOf(["contact no", "representative contact"]),
+    };
+
+    if (
+      columnIndex.company_name < 0 ||
+      columnIndex.address < 0 ||
+      columnIndex.company_email < 0 ||
+      columnIndex.company_contact < 0 ||
+      columnIndex.representative < 0 ||
+      columnIndex.representative_email < 0 ||
+      columnIndex.representative_contact < 0
+    ) {
+      ui.showToast(
+        "CSV headers are invalid. Please use the downloaded template format.",
+        "error",
+      );
+      return;
+    }
+
+    const createdRows = [];
+    const failedRows = [];
+
+    for (let i = 1; i < lines.length; i += 1) {
+      const rowData = parseCsvRow(lines[i]);
+      if (!rowData.length) continue;
+
+      const record = {
+        logo: columnIndex.logo >= 0 ? rowData[columnIndex.logo] : "",
+        company_name: rowData[columnIndex.company_name],
+        address: rowData[columnIndex.address],
+        company_email: rowData[columnIndex.company_email],
+        company_contact: rowData[columnIndex.company_contact],
+        representative: rowData[columnIndex.representative],
+        job_description:
+          columnIndex.job_description >= 0
+            ? rowData[columnIndex.job_description]
+            : "",
+        representative_email: rowData[columnIndex.representative_email],
+        representative_contact: rowData[columnIndex.representative_contact],
+      };
+
+      const payload = payloadFromCsvRecord(record);
+      const validation = validatePartnerPayload(payload);
+      if (!validation.valid) {
+        const firstError =
+          Object.values(validation.errors)[0] || "Invalid data.";
+        failedRows.push(`Row ${i + 1}: ${firstError}`);
+        continue;
+      }
+
+      const result = await electronAPI.createExternalPartner(payload);
+      if (!result || !result.success || !result.partner) {
+        failedRows.push(
+          `Row ${i + 1}: ${result?.message || "Failed to create partner."}`,
+        );
+        continue;
+      }
+
+      createdRows.push(result.partner);
+      addExternalPartnerRow(result.partner);
+    }
+
+    if (window.externalPartnersSearchFilter) {
+      window.externalPartnersSearchFilter.refresh();
+    }
+
+    if (createdRows.length) {
+      ui.showToast(
+        `${createdRows.length} external partner${createdRows.length === 1 ? "" : "s"} uploaded.`,
+        "success",
+      );
+    }
+
+    if (failedRows.length) {
+      ui.showToast(failedRows[0], "error");
+      console.warn("External partner CSV upload row errors:", failedRows);
+    }
+  }
+
   function bindEvents() {
     const ui = window.ExternalPartnersUI;
 
@@ -454,6 +872,61 @@
     document
       .getElementById("external-partner-save-btn")
       ?.addEventListener("click", savePartner);
+
+    document
+      .getElementById("ep-upload-logo-btn")
+      ?.addEventListener("click", uploadExternalPartnerLogoFromPicker);
+
+    document
+      .getElementById("external-partner-download-template-btn")
+      ?.addEventListener("click", () => {
+        downloadCsvTemplate();
+        ui?.showToast("CSV template downloaded.", "success");
+      });
+
+    document
+      .getElementById("external-partner-upload-csv-btn")
+      ?.addEventListener("click", () => {
+        document.getElementById("external-partner-csv-input")?.click();
+      });
+
+    document
+      .getElementById("external-partner-csv-input")
+      ?.addEventListener("change", async (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        await handleBulkCsvUpload(file);
+        event.target.value = "";
+      });
+
+    document
+      .getElementById("ep-logo")
+      ?.addEventListener("input", updateCompanyProfilePreview);
+
+    document
+      .getElementById("ep-company-name")
+      ?.addEventListener("input", updateCompanyProfilePreview);
+
+    [
+      "ep-company-name",
+      "ep-address",
+      "ep-company-email",
+      "ep-company-contact",
+      "ep-representative",
+      "ep-representative-email",
+      "ep-representative-contact",
+    ].forEach((fieldId) => {
+      document.getElementById(fieldId)?.addEventListener("input", () => {
+        if (
+          fieldId === "ep-company-contact" ||
+          fieldId === "ep-representative-contact"
+        ) {
+          const input = document.getElementById(fieldId);
+          if (input) input.value = normalizeDigits(input.value);
+        }
+        clearFieldError(fieldId);
+      });
+    });
 
     document
       .getElementById("external-required-fields-ok-btn")
@@ -607,6 +1080,7 @@
     }
 
     bindEvents();
+    updateCompanyProfilePreview();
 
     if (typeof window.loadExternalPartners === "function") {
       window.loadExternalPartners();
