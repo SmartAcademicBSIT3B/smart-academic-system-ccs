@@ -266,6 +266,30 @@ function normalizeExternalPartnerPayload(payload = {}) {
   };
 }
 
+function cleanOjtStudentField(value) {
+  const normalized = String(value || "").trim();
+  return normalized || null;
+}
+
+function normalizeOjtStudentPayload(payload = {}) {
+  const department = String(payload.department || "").trim() || "CCS";
+  const status = String(payload.status || "").trim() || "Deployed";
+
+  return {
+    student_id: String(payload.student_id || "").trim(),
+    name: String(payload.name || "").trim(),
+    section: String(payload.section || "").trim(),
+    department,
+    email: cleanOjtStudentField(payload.email),
+    contact_no: cleanOjtStudentField(payload.contact_no),
+    status,
+    external_partner_assigned: cleanOjtStudentField(
+      payload.external_partner_assigned,
+    ),
+    nature_of_business: cleanOjtStudentField(payload.nature_of_business),
+  };
+}
+
 async function ensureExternalPartnersTable() {
   await query(`
     CREATE TABLE IF NOT EXISTS external_partners (
@@ -307,6 +331,54 @@ async function ensureExternalPartnersTable() {
 
   await query(
     `UPDATE external_partners
+     SET department = 'CCS'
+     WHERE department IS NULL OR TRIM(department) = ''`,
+  );
+}
+
+async function ensureOjtStudentsTable() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS ojt_students (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      student_id VARCHAR(120) NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      section VARCHAR(120) NOT NULL,
+      department VARCHAR(120) NOT NULL DEFAULT 'CCS',
+      email VARCHAR(255) NULL,
+      contact_no VARCHAR(50) NULL,
+      status VARCHAR(120) NOT NULL DEFAULT 'Deployed',
+      external_partner_assigned VARCHAR(255) NULL,
+      nature_of_business VARCHAR(255) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_ojt_students_student_id (student_id),
+      INDEX idx_ojt_students_name (name),
+      INDEX idx_ojt_students_section (section),
+      INDEX idx_ojt_students_department (department),
+      INDEX idx_ojt_students_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  // Backfill legacy databases where the table already exists without department.
+  const departmentColumn = await query(
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'ojt_students'
+       AND COLUMN_NAME = 'department'
+     LIMIT 1`,
+  );
+
+  if (!Array.isArray(departmentColumn) || departmentColumn.length === 0) {
+    await query(
+      `ALTER TABLE ojt_students
+       ADD COLUMN department VARCHAR(120) NOT NULL DEFAULT 'CCS'
+       AFTER section`,
+    );
+  }
+
+  await query(
+    `UPDATE ojt_students
      SET department = 'CCS'
      WHERE department IS NULL OR TRIM(department) = ''`,
   );
@@ -486,6 +558,12 @@ app.whenReady().then(async () => {
     await ensureExternalPartnersTable();
   } catch (error) {
     console.error("Failed to ensure external_partners table exists:", error);
+  }
+
+  try {
+    await ensureOjtStudentsTable();
+  } catch (error) {
+    console.error("Failed to ensure ojt_students table exists:", error);
   }
 
   createMainWindow();
@@ -1357,6 +1435,189 @@ ipcMain.handle("deleteExternalPartner", async (event, partnerId) => {
     return {
       success: false,
       message: error.message || "Failed to delete external partner.",
+    };
+  }
+});
+
+ipcMain.handle("getOjtStudents", async () => {
+  try {
+    const rows = await query(
+      `SELECT id, student_id, name, section, department, email, contact_no,
+              status, external_partner_assigned, nature_of_business,
+              created_at, updated_at
+       FROM ojt_students
+       ORDER BY id DESC`,
+    );
+
+    return { success: true, students: rows };
+  } catch (error) {
+    console.error("getOjtStudents error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to fetch OJT students.",
+    };
+  }
+});
+
+ipcMain.handle("createOjtStudent", async (event, payload = {}) => {
+  try {
+    const data = normalizeOjtStudentPayload(payload);
+
+    if (!data.student_id || !data.name || !data.section) {
+      return {
+        success: false,
+        message: "Student ID, Name, and Section are required.",
+      };
+    }
+
+    const result = await query(
+      `INSERT INTO ojt_students
+      (student_id, name, section, department, email, contact_no, status,
+       external_partner_assigned, nature_of_business)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        data.student_id,
+        data.name,
+        data.section,
+        data.department,
+        data.email,
+        data.contact_no,
+        data.status,
+        data.external_partner_assigned,
+        data.nature_of_business,
+      ],
+    );
+
+    const rows = await query(
+      `SELECT id, student_id, name, section, department, email, contact_no,
+              status, external_partner_assigned, nature_of_business,
+              created_at, updated_at
+       FROM ojt_students
+       WHERE id = ?
+       LIMIT 1`,
+      [result.insertId],
+    );
+
+    return {
+      success: true,
+      student: rows[0],
+      message: "OJT student added successfully.",
+    };
+  } catch (error) {
+    console.error("createOjtStudent error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to create OJT student.",
+    };
+  }
+});
+
+ipcMain.handle("updateOjtStudent", async (event, payload = {}) => {
+  try {
+    const id = Number.parseInt(payload.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return {
+        success: false,
+        message: "A valid OJT student ID is required.",
+      };
+    }
+
+    const data = normalizeOjtStudentPayload(payload);
+
+    if (!data.student_id || !data.name || !data.section) {
+      return {
+        success: false,
+        message: "Student ID, Name, and Section are required.",
+      };
+    }
+
+    const existing = await query(
+      "SELECT id FROM ojt_students WHERE id = ? LIMIT 1",
+      [id],
+    );
+    if (!existing || existing.length === 0) {
+      return { success: false, message: "OJT student not found." };
+    }
+
+    await query(
+      `UPDATE ojt_students
+       SET student_id = ?,
+           name = ?,
+           section = ?,
+           department = ?,
+           email = ?,
+           contact_no = ?,
+           status = ?,
+           external_partner_assigned = ?,
+           nature_of_business = ?
+       WHERE id = ?`,
+      [
+        data.student_id,
+        data.name,
+        data.section,
+        data.department,
+        data.email,
+        data.contact_no,
+        data.status,
+        data.external_partner_assigned,
+        data.nature_of_business,
+        id,
+      ],
+    );
+
+    const rows = await query(
+      `SELECT id, student_id, name, section, department, email, contact_no,
+              status, external_partner_assigned, nature_of_business,
+              created_at, updated_at
+       FROM ojt_students
+       WHERE id = ?
+       LIMIT 1`,
+      [id],
+    );
+
+    return {
+      success: true,
+      student: rows[0],
+      message: "OJT student updated successfully.",
+    };
+  } catch (error) {
+    console.error("updateOjtStudent error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to update OJT student.",
+    };
+  }
+});
+
+ipcMain.handle("deleteOjtStudent", async (event, studentId) => {
+  try {
+    const id = Number.parseInt(studentId, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return {
+        success: false,
+        message: "A valid OJT student ID is required.",
+      };
+    }
+
+    const existing = await query(
+      "SELECT id FROM ojt_students WHERE id = ? LIMIT 1",
+      [id],
+    );
+    if (!existing || existing.length === 0) {
+      return {
+        success: false,
+        message: "OJT student not found or already deleted.",
+      };
+    }
+
+    await query("DELETE FROM ojt_students WHERE id = ?", [id]);
+
+    return { success: true, message: "OJT student deleted successfully." };
+  } catch (error) {
+    console.error("deleteOjtStudent error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to delete OJT student.",
     };
   }
 });

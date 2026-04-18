@@ -1,0 +1,225 @@
+/* OJT Students page styles aligned with External Partners page */
+
+#ojt-student-modal .modal-content {
+  max-width: 1100px;
+  width: min(1100px, 92vw);
+}
+
+.ojt-form-body {
+  gap: 14px;
+}
+
+.ojt-form-grid-three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.required-asterisk {
+  color: #ff6f6f;
+  font-weight: 700;
+  margin-left: 3px;
+}
+
+.field-error {
+  min-height: 16px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: #ff7e7e;
+  margin-top: 3px;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.field-error.show {
+  opacity: 1;
+}
+
+#ojt-student-modal .input-group input.input-invalid,
+#ojt-student-modal .input-group select.input-invalid {
+  border-color: #d66a6a;
+  box-shadow: 0 0 0 1px rgba(214, 106, 106, 0.2);
+}
+
+/* Keep Add button tooltip over controls area */
+.controls,
+.right-controls,
+.tooltip-add-ojt {
+  overflow: visible;
+}
+
+.tooltip-add-ojt {
+  position: relative;
+  z-index: 2005;
+}
+
+.tooltip-add-ojt .tooltip-text {
+  bottom: calc(100% + 10px);
+  z-index: 2010;
+}
+
+#ojt-export-cancel-btn {
+  margin-top: 8px;
+}
+
+#archives-table {
+  min-width: 1500px;
+}
+
+#archives-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #2a2f36;
+}
+
+#archives-table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+#archives-table th:nth-child(1),
+#archives-table td:nth-child(1) {
+  width: 50px;
+}
+
+#archives-table th:nth-child(2),
+#archives-table td:nth-child(2) {
+  width: 60px;
+}
+
+#archives-table th:nth-child(3),
+#archives-table td:nth-child(3) {
+  width: 110px;
+}
+
+#archives-table th:nth-child(4),
+#archives-table td:nth-child(4) {
+  width: 170px;
+}
+
+#archives-table th:nth-child(5),
+#archives-table td:nth-child(5) {
+  width: 120px;
+}
+
+#archives-table th:nth-child(6),
+#archives-table td:nth-child(6) {
+  width: 110px;
+}
+
+#archives-table th:nth-child(7),
+#archives-table td:nth-child(7) {
+  width: 180px;
+}
+
+#archives-table th:nth-child(8),
+#archives-table td:nth-child(8) {
+  width: 110px;
+}
+
+#archives-table th:nth-child(9),
+#archives-table td:nth-child(9) {
+  width: 130px;
+}
+
+#archives-table th:nth-child(10),
+#archives-table td:nth-child(10) {
+  width: 180px;
+}
+
+#archives-table th:nth-child(11),
+#archives-table td:nth-child(11) {
+  width: 180px;
+}
+
+#archives-table th:nth-child(12),
+#archives-table td:nth-child(12) {
+  width: 58px;
+  text-align: center;
+}
+
+.ojt-view-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 20px;
+}
+
+.ojt-view-modal-content .va-field label {
+  margin-bottom: 6px;
+}
+
+.ojt-bulk-summary-modal-content {
+  width: min(1320px, calc(100vw - 24px));
+}
+
+.ojt-bulk-summary-table th,
+.ojt-bulk-summary-table td {
+  white-space: nowrap;
+}
+
+.ojt-bulk-summary-table th:nth-child(1),
+.ojt-bulk-summary-table td:nth-child(1) {
+  width: 130px;
+}
+
+.ojt-bulk-summary-table th:nth-child(2),
+.ojt-bulk-summary-table td:nth-child(2) {
+  width: 170px;
+}
+
+.ojt-bulk-summary-table th:nth-child(3),
+.ojt-bulk-summary-table td:nth-child(3) {
+  width: 120px;
+}
+
+.ojt-bulk-summary-table th:nth-child(4),
+.ojt-bulk-summary-table td:nth-child(4) {
+  width: 110px;
+}
+
+.ojt-bulk-summary-table th:nth-child(5),
+.ojt-bulk-summary-table td:nth-child(5) {
+  width: 180px;
+}
+
+.ojt-bulk-summary-table th:nth-child(6),
+.ojt-bulk-summary-table td:nth-child(6) {
+  width: 110px;
+}
+
+.ojt-bulk-summary-table th:nth-child(7),
+.ojt-bulk-summary-table td:nth-child(7) {
+  width: 130px;
+}
+
+.ojt-bulk-summary-table th:nth-child(8),
+.ojt-bulk-summary-table td:nth-child(8) {
+  width: 180px;
+}
+
+.ojt-bulk-summary-table th:nth-child(9),
+.ojt-bulk-summary-table td:nth-child(9) {
+  width: 180px;
+}
+
+.ojt-bulk-summary-table input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+@media (max-width: 980px) {
+  .ojt-form-grid-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .ojt-form-grid-three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
