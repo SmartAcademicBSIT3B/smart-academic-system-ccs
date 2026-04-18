@@ -6,9 +6,11 @@ const fs = require("node:fs/promises");
 const { pipeline } = require("node:stream/promises");
 const { fileURLToPath } = require("node:url");
 const { query } = require("../database/dbconnect");
-const { supabase } = require("../services/supabase_config");
 const {
-  uploadProfileImage,
+  uploadProfileImageToCloudinary,
+} = require("../services/cloudinary_config");
+const {
+  uploadProfileImage: uploadFileToGoogleDrive,
   deleteDriveFileByUrl,
   extractGoogleDriveFileId,
   getDriveClient,
@@ -533,31 +535,20 @@ ipcMain.handle("selectProfileImage", async () => {
 
 ipcMain.handle(
   "uploadProfileImage",
-  async (event, { localPath, fileName, mimeType }) => {
+  async (event, { localPath, fileName, mimeType, userId }) => {
     try {
       const fileBuffer = await fs.readFile(localPath);
 
-      const uploadPath = `profiles/${fileName}`;
-      const { error: uploadError } = await supabase.storage
-        .from("cta-files")
-        .upload(uploadPath, fileBuffer, {
-          contentType: mimeType,
-          cacheControl: "3600",
-          upsert: true,
-        });
+      const uploadedUrl = await uploadProfileImageToCloudinary(
+        fileBuffer,
+        fileName,
+        mimeType,
+        userId,
+      );
 
-      if (uploadError) {
-        console.error("Supabase upload error:", uploadError);
-        return { success: false, message: "Could not upload profile image." };
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from("cta-files")
-        .getPublicUrl(uploadPath);
-
-      return { success: true, path: publicUrlData.publicUrl };
+      return { success: true, path: uploadedUrl };
     } catch (error) {
-      console.error("Supabase profile upload error:", error);
+      console.error("Cloudinary profile upload error:", error);
       return {
         success: false,
         message: error.message || "Upload failed. Please try again.",
@@ -656,7 +647,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
 
       try {
         const fileBuffer = await fs.readFile(localSourcePath);
-        filePath = await uploadProfileImage(
+        filePath = await uploadFileToGoogleDrive(
           fileBuffer,
           storedFileName,
           mimeType,
@@ -690,7 +681,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
       localFilePath = `uploads/documents/${storedFileName}`;
 
       try {
-        filePath = await uploadProfileImage(
+        filePath = await uploadFileToGoogleDrive(
           fileBuffer,
           storedFileName,
           mimeType,

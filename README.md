@@ -64,13 +64,14 @@ DB_PASSWORD=your_database_password
 DB_NAME=your_database_name
 DB_SSL_REJECT_UNAUTHORIZED=false
 
-# Supabase Configuration
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_PASSWORD=your_supabase_password
+# Cloudinary Configuration (Profile Pictures)
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+CLOUDINARY_PROFILE_FOLDER=CTA Files/Profiles
 ```
 
-1. **Fill in your actual credentials** (database and Supabase details)
+1. **Fill in your actual credentials** (database and Cloudinary details)
 
 ⚠️ **Important:** Never commit the `.env` file to version control. It's already in `.gitignore`.
 

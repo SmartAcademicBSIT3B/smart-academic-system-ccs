@@ -61,6 +61,19 @@ function showAvatarError(message) {
 async function chooseProfileImage() {
   showAvatarError(null);
 
+  let userId = null;
+  try {
+    const userStr = localStorage.getItem("user");
+    userId = userStr ? JSON.parse(userStr)?.id : null;
+  } catch (error) {
+    console.error("Unable to read local user data:", error);
+  }
+
+  if (!userId) {
+    showAvatarError("Unable to identify user. Please log in again.");
+    return;
+  }
+
   // Step 1: Open file picker (fast — no loader needed yet)
   let pickerResult;
   try {
@@ -76,7 +89,7 @@ async function chooseProfileImage() {
     return;
   }
 
-  // Step 2: Show loader then upload to Google Drive
+  // Step 2: Show loader then upload to Cloudinary
   showAvatarLoading(true);
   let uploadResult;
   try {
@@ -84,6 +97,7 @@ async function chooseProfileImage() {
       localPath: pickerResult.localPath,
       fileName: pickerResult.fileName,
       mimeType: pickerResult.mimeType,
+      userId,
     });
   } catch (error) {
     console.error("Upload error:", error);
