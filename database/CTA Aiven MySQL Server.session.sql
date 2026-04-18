@@ -1,3 +1,0 @@
-ALTER TABLE archives
-ADD COLUMN department VARCHAR(50) NOT NULL DEFAULT 'CCS'
-AFTER type;

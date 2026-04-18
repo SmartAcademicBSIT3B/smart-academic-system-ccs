@@ -10,10 +10,10 @@
     sortField: "", // key in _sortFieldDataAttr
     sortDir: "asc",
     filters: {
-      section: "",
-      dateMonth: "",
-      type: "",
-      status: "",
+      section: [],
+      dateMonth: [],
+      type: [],
+      status: [],
     },
   };
 
@@ -75,21 +75,27 @@
   function _rowMatchesFilters(row) {
     const { section, dateMonth, type, status } = _state.filters;
 
-    if (section && (row.dataset.section || "") !== section) return false;
+    if (section.length && !section.includes(row.dataset.section || "")) {
+      return false;
+    }
 
-    if (dateMonth) {
+    if (dateMonth.length) {
       const rowYM = _dateToYYYYMM(row.dataset.datePublished || "");
-      if (rowYM !== dateMonth) return false;
+      if (!dateMonth.includes(rowYM)) return false;
     }
 
-    if (type) {
+    if (type.length) {
       const rowType = (row.dataset.type || "").toLowerCase();
-      if (rowType !== type.toLowerCase()) return false;
+      const selectedTypes = type.map((value) => String(value).toLowerCase());
+      if (!selectedTypes.includes(rowType)) return false;
     }
 
-    if (status) {
+    if (status.length) {
       const rowStatus = (row.dataset.status || "").toLowerCase();
-      if (rowStatus !== status.toLowerCase()) return false;
+      const selectedStatuses = status.map((value) =>
+        String(value).toLowerCase(),
+      );
+      if (!selectedStatuses.includes(rowStatus)) return false;
     }
 
     return true;
@@ -200,34 +206,45 @@
     );
   }
 
-  function _fillSelect(id, options, currentValue) {
+  function _fillSelect(id, options, currentValues) {
     const el = document.getElementById(id);
     if (!el) return;
-    const current = currentValue || "";
+
+    const selected = Array.isArray(currentValues) ? currentValues : [];
+    const allLabel = selected.length
+      ? `All (${selected.length} selected)`
+      : "All";
+
     el.innerHTML =
-      `<option value="">All</option>` +
+      `<option value="">${allLabel}</option>` +
       options
-        .map(
-          (o) =>
-            `<option value="${_esc(o)}"${o === current ? " selected" : ""}>${_esc(o)}</option>`,
-        )
+        .map((o) => `<option value="${_esc(o)}">${_esc(o)}</option>`)
         .join("");
-    el.value = current;
+
+    // Keep placeholder selected so each pick can add another tag.
+    el.value = "";
   }
   /** Same as _fillSelect but displays YYYY-MM values as "Mon YYYY" */
-  function _fillDateSelect(id, yyyyMMValues, currentValue) {
+  function _fillDateSelect(id, yyyyMMValues, currentValues) {
     const el = document.getElementById(id);
     if (!el) return;
-    const current = currentValue || "";
+
+    const selected = Array.isArray(currentValues) ? currentValues : [];
+    const allLabel = selected.length
+      ? `All (${selected.length} selected)`
+      : "All";
+
     el.innerHTML =
-      `<option value="">All</option>` +
+      `<option value="">${allLabel}</option>` +
       yyyyMMValues
         .map(
           (v) =>
-            `<option value="${_esc(v)}"${v === current ? " selected" : ""}>${_esc(_formatMonthYear(v))}</option>`,
+            `<option value="${_esc(v)}">${_esc(_formatMonthYear(v))}</option>`,
         )
         .join("");
-    el.value = current;
+
+    // Keep placeholder selected so each pick can add another tag.
+    el.value = "";
   }
   function _esc(str) {
     return String(str || "")
@@ -242,9 +259,10 @@
     const bar = document.getElementById("active-filter-tags");
     if (!bar) return;
 
-    const tags = Object.entries(_state.filters)
-      .filter(([, v]) => v !== "")
-      .map(([key, val]) => ({ key, val }));
+    const tags = Object.entries(_state.filters).flatMap(([key, values]) => {
+      const arr = Array.isArray(values) ? values : [];
+      return arr.map((val) => ({ key, val }));
+    });
 
     if (tags.length === 0) {
       bar.innerHTML = "";
@@ -255,11 +273,24 @@
       .map(
         (t) =>
           `<span class="filter-tag" data-key="${t.key}">` +
-          `${_esc(_filterKeyLabel[t.key])}: ${_esc(t.val)}` +
-          `<button class="filter-tag-remove" type="button" aria-label="Remove ${_esc(_filterKeyLabel[t.key])} filter" data-key="${t.key}">×</button>` +
+          `${_esc(_filterKeyLabel[t.key])}: ${_esc(t.key === "dateMonth" ? _formatMonthYear(t.val) : t.val)}` +
+          `<button class="filter-tag-remove" type="button" aria-label="Remove ${_esc(_filterKeyLabel[t.key])} filter" data-key="${t.key}" data-value="${_esc(t.val)}">×</button>` +
           `</span>`,
       )
       .join("");
+  }
+
+  function _toggleFilterValue(filterKey, value) {
+    const normalized = String(value || "").trim();
+    if (!normalized || !(_state.filters[filterKey] instanceof Array)) return;
+
+    const list = _state.filters[filterKey];
+    const idx = list.indexOf(normalized);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+    } else {
+      list.push(normalized);
+    }
   }
 
   // ── Sort direction button label ───────────────────────────────────────────
@@ -332,7 +363,16 @@
       const el = document.getElementById(selectId);
       if (!el) return;
       el.addEventListener("change", () => {
-        _state.filters[_selectToFilterKey[selectId]] = el.value;
+        const key = _selectToFilterKey[selectId];
+        const selectedValue = String(el.value || "").trim();
+
+        if (!selectedValue) {
+          _state.filters[key] = [];
+        } else {
+          _toggleFilterValue(key, selectedValue);
+        }
+
+        _populateFilterDropdowns();
         _renderActiveTags();
         _applyVisibility();
       });
@@ -343,10 +383,15 @@
       const btn = e.target.closest(".filter-tag-remove");
       if (!btn) return;
       const key = btn.dataset.key;
-      if (!(key in _state.filters)) return;
-      _state.filters[key] = "";
+      const value = String(btn.dataset.value || "").trim();
+      if (!(key in _state.filters) || !_state.filters[key].length) return;
+
+      _state.filters[key] = _state.filters[key].filter((v) => v !== value);
+
       const selectEl = document.getElementById(_filterKeyToSelect[key]);
       if (selectEl) selectEl.value = "";
+
+      _populateFilterDropdowns();
       _renderActiveTags();
       _applyVisibility();
     });
@@ -358,7 +403,12 @@
         _state.query = "";
         _state.sortField = "";
         _state.sortDir = "asc";
-        _state.filters = { section: "", dateMonth: "", type: "", status: "" };
+        _state.filters = {
+          section: [],
+          dateMonth: [],
+          type: [],
+          status: [],
+        };
 
         const searchEl2 = document.getElementById("archive-search");
         if (searchEl2) searchEl2.value = "";
@@ -371,6 +421,7 @@
           if (el) el.value = "";
         });
 
+        _populateFilterDropdowns();
         _updateSortDirBtn();
         _renderActiveTags();
         _applyVisibility();
