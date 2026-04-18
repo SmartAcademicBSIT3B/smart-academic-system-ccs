@@ -1429,6 +1429,17 @@ body {
   gap: 6px;
 }
 
+#va-status-cell .view-status-control {
+  width: 100%;
+  max-width: 210px;
+}
+
+#va-status-cell .view-status-select {
+  width: 100%;
+  min-width: 120px;
+  background-color: #12151a;
+}
+
 /* Full-width meta sections (keywords, files) */
 .view-meta-section {
   display: flex;

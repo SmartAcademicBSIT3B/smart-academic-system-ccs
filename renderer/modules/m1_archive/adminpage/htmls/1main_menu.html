@@ -304,13 +304,36 @@
       }
 
       function loadPage(page, element) {
-        document.getElementById("content-frame").src = page;
+        const contentFrame = document.getElementById("content-frame");
+        contentFrame.src = page;
         document.querySelectorAll(".menu-item").forEach((item) => {
           item.classList.remove("active");
         });
         if (element.classList.contains("menu-item")) {
           element.classList.add("active");
         }
+
+        // Re-emit current sidebar hover state after iframe navigation.
+        emitSidebarHoverState();
+      }
+
+      function emitSidebarHoverState(forceHovered) {
+        const sidebar = document.querySelector(".sidebar");
+        const frame = document.getElementById("content-frame");
+        if (!sidebar || !frame || !frame.contentWindow) return;
+
+        const hovered =
+          typeof forceHovered === "boolean"
+            ? forceHovered
+            : sidebar.matches(":hover");
+
+        frame.contentWindow.postMessage(
+          {
+            type: "main-menu-sidebar-hover",
+            hovered,
+          },
+          "*",
+        );
       }
 
       function getCurrentRole() {
@@ -384,6 +407,20 @@
       }
 
       applyRoleAccess();
+
+      const sidebarElement = document.querySelector(".sidebar");
+      if (sidebarElement) {
+        sidebarElement.addEventListener("mouseenter", () => {
+          emitSidebarHoverState(true);
+        });
+        sidebarElement.addEventListener("mouseleave", () => {
+          emitSidebarHoverState(false);
+        });
+      }
+
+      document
+        .getElementById("content-frame")
+        ?.addEventListener("load", () => emitSidebarHoverState());
 
       function toggleProfileMenu(event) {
         event.stopPropagation();

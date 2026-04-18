@@ -20,46 +20,102 @@
       <div class="controls">
         <div class="left-controls">
           <div class="search-box">
+            <i data-lucide="search" class="search-icon"></i>
             <input type="text" id="archive-search-input" placeholder="Search" />
           </div>
 
-          <!-- FILTER -->
-          <div class="filter-group">
-            <button class="filter-toggle">
-              Filter Option
-              <i data-lucide="chevron-down" class="filter-arrow"></i>
-            </button>
+          <button class="search-btn" id="archive-search-btn" type="button">
+            Search
+          </button>
 
-            <div class="filter-dropdown">
-              <label
-                ><input type="radio" name="course" value="" /> All
-                Programs</label
-              >
-              <label
-                ><input type="radio" name="course" value="BSIT" /> BSIT</label
-              >
-              <label
-                ><input type="radio" name="course" value="BSCS" /> BSCS</label
-              >
-              <label
-                ><input type="radio" name="sort" value="date" checked /> Date
-                Published</label
-              >
-              <label><input type="radio" name="sort" value="az" /> A-Z</label>
-              <label><input type="radio" name="sort" value="za" /> Z-A</label>
-            </div>
+          <div class="select-wrapper">
+            <select id="archive-sort" aria-label="Sort archives">
+              <option value="">Sort By</option>
+              <option value="title">Title</option>
+              <option value="authors">Authors</option>
+              <option value="section">Section</option>
+              <option value="advisor">Advisor</option>
+              <option value="date">Date</option>
+              <option value="type">Type</option>
+              <option value="status">Status</option>
+            </select>
+            <span class="arrow"></span>
           </div>
 
-          <button class="filter-btn" id="apply-filter-btn" type="button">
+          <button
+            class="sort-dir-btn"
+            id="archive-sort-dir"
+            type="button"
+            title="Toggle sort direction"
+          >
+            <i data-lucide="arrow-up-narrow-wide"></i>
+          </button>
+
+          <button class="filter-btn" id="filter-panel-toggle" type="button">
             Filter
           </button>
+
+          <button
+            class="clear-filters-btn"
+            id="archive-clear-filters"
+            type="button"
+            style="display: none"
+          >
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="filter-panel" id="filter-panel">
+        <div class="filter-selects">
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="af-section">Section</label>
+            <select id="af-section" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="af-year">Date</label>
+            <select id="af-year" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="af-type">Type</label>
+            <select id="af-type" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="af-status">Status</label>
+            <select id="af-status" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+        </div>
+        <div
+          class="active-filter-tags-container"
+          id="active-filter-tags-container"
+        >
+          <div class="active-filter-tags" id="active-filter-tags"></div>
         </div>
       </div>
 
       <!-- MAIN CONTENT -->
       <div class="content">
         <!-- LEFT LIST -->
-        <div class="archive-list" id="archive-list"></div>
+        <div class="archive-list-panel">
+          <div class="archive-list" id="archive-list"></div>
+          <div class="archive-list-footer">
+            <span class="archive-count" id="archive-count">0/0</span>
+            <div class="archive-pagination" id="archive-pagination">
+              <button type="button" id="archive-prev-page">Previous</button>
+              <span id="archive-page-label">Page 1</span>
+              <button type="button" id="archive-next-page">Next</button>
+            </div>
+          </div>
+        </div>
 
         <!-- RIGHT PREVIEW -->
         <div class="preview">
@@ -78,10 +134,60 @@
                 <span class="tooltip-text">Download File</span>
               </div>
             </div>
+            <div class="tooltip">
+              <button
+                class="manage-doc-btn"
+                id="manage-document-btn"
+                type="button"
+                aria-label="Manage Document"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M5 3a2 2 0 0 0-2 2v3h18V5a2 2 0 0 0-2-2H5Zm16 7H3v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9ZM9 13h6a1 1 0 1 1 0 2H9a1 1 0 1 1 0-2Z"
+                  />
+                </svg>
+              </button>
+              <span class="tooltip-text">Manage Document</span>
+            </div>
             <button class="flip-card-btn" id="flip-preview-btn" type="button">
               Flip Card
             </button>
             <button class="viewfull-btn">See Full Document</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="manage-confirm-overlay" id="manage-confirm-modal">
+        <div
+          class="manage-confirm-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="manage-confirm-title"
+        >
+          <h3 id="manage-confirm-title">Open Manage Archives?</h3>
+          <p>
+            Do you want to move to the Manage Archives page for this document?
+          </p>
+          <div class="manage-confirm-actions">
+            <button
+              type="button"
+              class="manage-confirm-cancel"
+              id="manage-confirm-cancel"
+            >
+              Stay Here
+            </button>
+            <button
+              type="button"
+              class="manage-confirm-proceed"
+              id="manage-confirm-proceed"
+            >
+              Go to Manage Archives
+            </button>
           </div>
         </div>
       </div>

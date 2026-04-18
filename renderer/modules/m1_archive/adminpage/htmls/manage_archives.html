@@ -2434,6 +2434,22 @@
         window.loadArchives();
       }
 
+      window.addEventListener("DOMContentLoaded", () => {
+        try {
+          const pendingManageSearch = sessionStorage.getItem(
+            "manageArchivesSearchTitle",
+          );
+          const searchInput = document.getElementById("archive-search");
+          if (pendingManageSearch && searchInput) {
+            searchInput.value = pendingManageSearch;
+            searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+            sessionStorage.removeItem("manageArchivesSearchTitle");
+          }
+        } catch (_error) {
+          // Ignore storage access errors.
+        }
+      });
+
       // Open flow: "+" goes straight to add form
       document.getElementById("open-modal").addEventListener("click", () => {
         if (typeof window.loadArchiveDropdownOptions === "function") {
@@ -3001,6 +3017,149 @@
         openDeleteConfirmFromViewRow(_activeViewModalRow);
       });
 
+      function renderViewArchiveBadges(typeValue, statusValue) {
+        const statusLabel = normalizeArchiveStatus(statusValue || "Pending");
+        const dotClass = statusDotClassFromStatus(statusLabel);
+        return (
+          `<span class="view-badge view-badge-type">${escapeAttr(typeValue || "")}</span>` +
+          `<span class="view-badge view-badge-status"><span class="status-dot ${dotClass}"></span>${escapeAttr(statusLabel)}</span>`
+        );
+      }
+
+      function renderViewModalStatusControl(value) {
+        const status = normalizeArchiveStatus(value || "Pending");
+        const dotClass = statusDotClassFromStatus(status);
+        return `<div class="row-status-control view-status-control"><span class="status-dot ${dotClass}"></span><select id="va-status-select" class="row-status-select view-status-select"><option ${status === "Pending" ? "selected" : ""}>Pending</option><option ${status === "Approved" ? "selected" : ""}>Approved</option><option ${status === "Rejected" ? "selected" : ""}>Rejected</option></select></div>`;
+      }
+
+      function applyStatusDotClass(dotEl, statusValue) {
+        if (!dotEl) return;
+        dotEl.classList.remove("dot-pending", "dot-approved", "dot-rejected");
+        dotEl.classList.add(statusDotClassFromStatus(statusValue));
+      }
+
+      function buildStatusUpdatePayloadFromRow(tr, nextStatus) {
+        return {
+          id: Number.parseInt(tr.dataset.id, 10),
+          title: tr.dataset.title || "",
+          authors: tr.dataset.authors || "",
+          section: tr.dataset.section || "",
+          advisor: tr.dataset.advisor || "",
+          date_published: normalizeDateForDateInput(
+            tr.dataset.datePublished || "",
+          ),
+          keywords: tr.dataset.keywords || "",
+          type: tr.dataset.type || "",
+          status: nextStatus,
+        };
+      }
+
+      async function persistArchiveStatusFromControl(tr, nextStatus, control) {
+        if (!tr) return;
+
+        const next = normalizeArchiveStatus(nextStatus);
+        const previous = normalizeArchiveStatus(tr.dataset.status);
+        if (next === previous) return;
+
+        const selectEl = control?.selectEl || null;
+        const dotEl = control?.dotEl || null;
+        const suppressToast = Boolean(control?.suppressToast);
+
+        const archiveId = Number.parseInt(tr.dataset.id, 10);
+        if (!Number.isInteger(archiveId) || archiveId <= 0) {
+          if (selectEl) selectEl.value = previous;
+          applyStatusDotClass(dotEl, previous);
+          showToast("Cannot update status: invalid archive id.", "error");
+          return;
+        }
+
+        if (selectEl) selectEl.disabled = true;
+
+        try {
+          if (typeof window.updateArchiveRecord !== "function") {
+            throw new Error("Archive update API is unavailable in this view.");
+          }
+
+          const payload = buildStatusUpdatePayloadFromRow(tr, next);
+          const result = await window.updateArchiveRecord(payload);
+          if (!result || !result.success) {
+            throw new Error(
+              result?.message || "Failed to update archive status.",
+            );
+          }
+
+          tr.dataset.status = next;
+
+          const rowStatusSelect = tr.querySelector(".row-status-select");
+          if (rowStatusSelect) rowStatusSelect.value = next;
+          applyStatusDotClass(
+            tr.querySelector(".row-status-control .status-dot"),
+            next,
+          );
+
+          if (_activeViewModalRow === tr) {
+            const badgesEl = document.getElementById("va-badges");
+            if (badgesEl) {
+              badgesEl.innerHTML = renderViewArchiveBadges(
+                tr.dataset.type || "",
+                next,
+              );
+            }
+            const vaStatusCell = document.getElementById("va-status-cell");
+            if (vaStatusCell) {
+              vaStatusCell.innerHTML = renderViewModalStatusControl(next);
+            }
+          }
+
+          if (window.archiveSearchFilter?.refresh) {
+            window.archiveSearchFilter.refresh();
+          }
+
+          if (!suppressToast) {
+            showToast(`Status updated to ${next}.`, "success", 2200);
+          }
+        } catch (error) {
+          tr.dataset.status = previous;
+          if (selectEl) selectEl.value = previous;
+          applyStatusDotClass(dotEl, previous);
+
+          const rowStatusSelect = tr.querySelector(".row-status-select");
+          if (rowStatusSelect) rowStatusSelect.value = previous;
+          applyStatusDotClass(
+            tr.querySelector(".row-status-control .status-dot"),
+            previous,
+          );
+
+          if (_activeViewModalRow === tr) {
+            const badgesEl = document.getElementById("va-badges");
+            if (badgesEl) {
+              badgesEl.innerHTML = renderViewArchiveBadges(
+                tr.dataset.type || "",
+                previous,
+              );
+            }
+          }
+
+          showToast(error?.message || "Failed to update status.", "error");
+        } finally {
+          if (selectEl) selectEl.disabled = false;
+        }
+      }
+
+      viewArchiveModal.addEventListener("change", (e) => {
+        if (e.target?.id !== "va-status-select") return;
+        const selectEl = e.target;
+        if (!_activeViewModalRow) return;
+
+        persistArchiveStatusFromControl(_activeViewModalRow, selectEl.value, {
+          selectEl,
+          dotEl: selectEl
+            .closest(".view-status-control")
+            ?.querySelector(".status-dot"),
+          suppressToast: false,
+        });
+      });
+
       viewArchiveFiles.addEventListener("click", (e) => {
         const driveBtn = e.target.closest(".view-drive-btn");
         if (!driveBtn) return;
@@ -3084,78 +3243,12 @@
             const statusSelect = e.target;
             const tr = statusSelect.closest("tr");
             if (!tr) return;
-            const statusControl = statusSelect.closest(".row-status-control");
-
-            const setStatusDotClass = (statusValue) => {
-              const dotEl = statusControl?.querySelector(".status-dot");
-              if (!dotEl) return;
-              dotEl.classList.remove(
-                "dot-pending",
-                "dot-approved",
-                "dot-rejected",
-              );
-              dotEl.classList.add(statusDotClassFromStatus(statusValue));
-            };
-
-            const previousStatus = normalizeArchiveStatus(tr.dataset.status);
-            const nextStatus = normalizeArchiveStatus(statusSelect.value);
-            if (previousStatus === nextStatus) return;
-
-            const archiveId = Number.parseInt(tr.dataset.id, 10);
-            if (!Number.isInteger(archiveId) || archiveId <= 0) {
-              statusSelect.value = previousStatus;
-              showToast("Cannot update status: invalid archive id.", "error");
-              return;
-            }
-
-            statusSelect.disabled = true;
-            (async () => {
-              try {
-                if (typeof window.updateArchiveRecord !== "function") {
-                  throw new Error(
-                    "Archive update API is unavailable in this view.",
-                  );
-                }
-
-                const payload = {
-                  id: archiveId,
-                  title: tr.dataset.title || "",
-                  authors: tr.dataset.authors || "",
-                  section: tr.dataset.section || "",
-                  advisor: tr.dataset.advisor || "",
-                  date_published: normalizeDateForDateInput(
-                    tr.dataset.datePublished || "",
-                  ),
-                  keywords: tr.dataset.keywords || "",
-                  type: tr.dataset.type || "",
-                  status: nextStatus,
-                };
-
-                const result = await window.updateArchiveRecord(payload);
-                if (!result || !result.success) {
-                  throw new Error(
-                    result?.message || "Failed to update archive status.",
-                  );
-                }
-
-                tr.dataset.status = nextStatus;
-                statusSelect.value = nextStatus;
-                setStatusDotClass(nextStatus);
-                if (window.archiveSearchFilter?.refresh) {
-                  window.archiveSearchFilter.refresh();
-                }
-                showToast(`Status updated to ${nextStatus}.`, "success", 2200);
-              } catch (error) {
-                statusSelect.value = previousStatus;
-                setStatusDotClass(previousStatus);
-                showToast(
-                  error?.message || "Failed to update status.",
-                  "error",
-                );
-              } finally {
-                statusSelect.disabled = false;
-              }
-            })();
+            persistArchiveStatusFromControl(tr, statusSelect.value, {
+              selectEl: statusSelect,
+              dotEl: statusSelect
+                .closest(".row-status-control")
+                ?.querySelector(".status-dot"),
+            });
             return;
           }
 
@@ -3225,17 +3318,9 @@
         const d = row.dataset;
         _activeViewModalRow = row;
         const statusLabel = normalizeArchiveStatus(d.status || "Pending");
-        const statusRawV = statusLabel.toLowerCase();
-        const dotClassV =
-          statusRawV === "approved"
-            ? "dot-approved"
-            : statusRawV === "rejected"
-              ? "dot-rejected"
-              : "dot-pending";
 
         document.getElementById("va-badges").innerHTML =
-          `<span class="view-badge view-badge-type">${escapeAttr(d.type || "")}</span>` +
-          `<span class="view-badge view-badge-status"><span class="status-dot ${dotClassV}"></span>${escapeAttr(statusLabel)}</span>`;
+          renderViewArchiveBadges(d.type || "", statusLabel);
 
         document.getElementById("va-title").textContent = d.title || "—";
         document.getElementById("va-authors").textContent = d.authors || "—";
@@ -3245,7 +3330,7 @@
           formatMonthYear(d.datePublished) || "—";
         document.getElementById("va-type").textContent = d.type || "—";
         document.getElementById("va-status-cell").innerHTML =
-          `<span class="status-dot ${dotClassV}"></span>${escapeAttr(statusLabel)}`;
+          renderViewModalStatusControl(statusLabel);
 
         const createdRaw = d.createdAt || "";
         document.getElementById("va-created").textContent = createdRaw

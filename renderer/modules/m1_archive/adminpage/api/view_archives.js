@@ -1,8 +1,21 @@
 (function () {
+  const MANAGE_ARCHIVE_SEARCH_KEY = "manageArchivesSearchTitle";
+
   const state = {
     archives: [],
     filtered: [],
     activeArchiveId: null,
+    query: "",
+    sortField: "",
+    sortDir: "asc",
+    currentPage: 1,
+    pageSize: 10,
+    filters: {
+      section: [],
+      dateMonth: [],
+      type: [],
+      status: [],
+    },
   };
 
   function getElectronApiBridge() {
@@ -135,29 +148,357 @@
     return `${chips}<span class="archive-keyword-tag archive-keyword-more">+${sampled.remaining}</span>`;
   }
 
-  function matchesCourse(section, course) {
-    if (!course) return true;
-    const sectionText = String(section || "").toUpperCase();
-    return sectionText.startsWith(course) || sectionText.includes(course);
-  }
+  const filterSelectToKey = {
+    "af-section": "section",
+    "af-year": "dateMonth",
+    "af-type": "type",
+    "af-status": "status",
+  };
 
-  function getSelectedCourse() {
-    const selected = document.querySelector('input[name="course"]:checked');
-    return selected ? String(selected.value || "") : "";
-  }
+  const filterKeyToSelect = {
+    section: "af-section",
+    dateMonth: "af-year",
+    type: "af-type",
+    status: "af-status",
+  };
 
-  function getSelectedSort() {
-    const selected = document.querySelector('input[name="sort"]:checked');
-    return selected ? String(selected.value || "date") : "date";
-  }
+  const filterKeyLabel = {
+    section: "Section",
+    dateMonth: "Date",
+    type: "Type",
+    status: "Status",
+  };
 
-  function getSearchQuery() {
+  function getSearchInputValue() {
     const input = document.getElementById("archive-search-input");
     return input
       ? String(input.value || "")
           .trim()
           .toLowerCase()
       : "";
+  }
+
+  function dateToYYYYMM(raw) {
+    if (!raw) return "";
+    const direct = String(raw).match(/^(\d{4}-\d{2})/);
+    if (direct) return direct[1];
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    }
+    return "";
+  }
+
+  function formatYearMonth(yyyyMM) {
+    if (!yyyyMM || yyyyMM.length < 7) return yyyyMM;
+    const [y, m] = yyyyMM.split("-");
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const idx = parseInt(m, 10) - 1;
+    if (idx < 0 || idx > 11) return yyyyMM;
+    return `${months[idx]} ${y}`;
+  }
+
+  function hasActiveFilters() {
+    return Object.values(state.filters).some(
+      (arr) => Array.isArray(arr) && arr.length,
+    );
+  }
+
+  function shouldPaginateList() {
+    return !state.query && !hasActiveFilters();
+  }
+
+  function getVisibleArchives() {
+    if (!shouldPaginateList()) {
+      return state.filtered;
+    }
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil(state.filtered.length / state.pageSize),
+    );
+    if (state.currentPage > totalPages) {
+      state.currentPage = totalPages;
+    }
+
+    const start = (state.currentPage - 1) * state.pageSize;
+    return state.filtered.slice(start, start + state.pageSize);
+  }
+
+  function hasActiveSearchOrSort() {
+    return Boolean(getSearchInputValue()) || Boolean(state.sortField);
+  }
+
+  function updateClearFiltersVisibility() {
+    const clearBtn = document.getElementById("archive-clear-filters");
+    if (!clearBtn) return;
+    clearBtn.style.display =
+      hasActiveFilters() || hasActiveSearchOrSort() ? "" : "none";
+  }
+
+  function updateSortDirBtn() {
+    const btn = document.getElementById("archive-sort-dir");
+    const sortSelect = document.getElementById("archive-sort");
+    const selectWrapper = sortSelect?.closest(".select-wrapper");
+    if (!btn) return;
+
+    if (!state.sortField) {
+      btn.classList.remove("is-visible");
+      if (selectWrapper) {
+        selectWrapper.classList.remove("has-value");
+      }
+      return;
+    }
+
+    btn.classList.add("is-visible");
+    if (selectWrapper) {
+      selectWrapper.classList.add("has-value");
+    }
+    const icon =
+      state.sortDir === "asc"
+        ? "arrow-up-narrow-wide"
+        : "arrow-down-narrow-wide";
+    btn.innerHTML = `<i data-lucide="${icon}"></i>`;
+    btn.title =
+      state.sortDir === "asc"
+        ? "Ascending - click to sort descending"
+        : "Descending - click to sort ascending";
+
+    if (typeof lucide !== "undefined") {
+      lucide.createIcons({ nodes: [btn] });
+    }
+  }
+
+  function updateArchiveCount(displayCount) {
+    const countEl = document.getElementById("archive-count");
+    if (!countEl) return;
+    countEl.textContent = `${displayCount}/${state.archives.length}`;
+  }
+
+  function updatePaginationControls() {
+    const pagination = document.getElementById("archive-pagination");
+    const prevBtn = document.getElementById("archive-prev-page");
+    const nextBtn = document.getElementById("archive-next-page");
+    const pageLabel = document.getElementById("archive-page-label");
+    if (!pagination || !prevBtn || !nextBtn || !pageLabel) return;
+
+    if (!shouldPaginateList()) {
+      pagination.style.display = "none";
+      pageLabel.textContent = "Filtered";
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+      return;
+    }
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil(state.filtered.length / state.pageSize),
+    );
+    pagination.style.display = "inline-flex";
+    pageLabel.textContent = `Page ${state.currentPage} of ${totalPages}`;
+    prevBtn.disabled = state.currentPage <= 1;
+    nextBtn.disabled = state.currentPage >= totalPages;
+  }
+
+  function applySearch() {
+    state.query = getSearchInputValue();
+    state.currentPage = 1;
+    applyFilters();
+  }
+
+  function navigateToManageArchivePage() {
+    const archive = state.archives.find(
+      (item) => getArchiveId(item) === state.activeArchiveId,
+    );
+
+    if (!archive) {
+      if (window.ViewArchivesModal) {
+        window.ViewArchivesModal.showToast("No archive selected.", "error");
+      }
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(
+        MANAGE_ARCHIVE_SEARCH_KEY,
+        String(archive.title || "").trim(),
+      );
+    } catch (_error) {
+      // Ignore session storage errors and continue navigation.
+    }
+
+    window.location.href = "./manage_archives.html";
+  }
+
+  function openManageConfirmModal() {
+    const modal = document.getElementById("manage-confirm-modal");
+    if (!modal) {
+      navigateToManageArchivePage();
+      return;
+    }
+    modal.classList.add("is-open");
+  }
+
+  function closeManageConfirmModal() {
+    const modal = document.getElementById("manage-confirm-modal");
+    if (!modal) return;
+    modal.classList.remove("is-open");
+  }
+
+  function setSidebarHoverState(isHovered) {
+    const page = document.querySelector(".page");
+    if (!page) return;
+    page.classList.toggle("sidebar-hover", Boolean(isHovered));
+  }
+
+  function wireSidebarHoverBridge() {
+    window.addEventListener("message", (event) => {
+      const data = event?.data;
+      if (!data || data.type !== "main-menu-sidebar-hover") return;
+      setSidebarHoverState(Boolean(data.hovered));
+    });
+  }
+
+  function esc(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function populateFilterSelect(id, options, currentValues) {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const selected = Array.isArray(currentValues) ? currentValues : [];
+    const allLabel = selected.length
+      ? `All (${selected.length} selected)`
+      : "All";
+
+    el.innerHTML =
+      `<option value="">${allLabel}</option>` +
+      options
+        .map((o) => {
+          const isSelected = selected.includes(o);
+          const label = isSelected ? `${o} [selected]` : o;
+          return `<option value="${esc(o)}" data-selected="${isSelected ? "true" : "false"}">${esc(label)}</option>`;
+        })
+        .join("");
+    el.value = "";
+  }
+
+  function populateDateFilterSelect(id, options, currentValues) {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const selected = Array.isArray(currentValues) ? currentValues : [];
+    const allLabel = selected.length
+      ? `All (${selected.length} selected)`
+      : "All";
+
+    el.innerHTML =
+      `<option value="">${allLabel}</option>` +
+      options
+        .map((v) => {
+          const isSelected = selected.includes(v);
+          const formatted = formatYearMonth(v);
+          const label = isSelected ? `${formatted} [selected]` : formatted;
+          return `<option value="${esc(v)}" data-selected="${isSelected ? "true" : "false"}">${esc(label)}</option>`;
+        })
+        .join("");
+    el.value = "";
+  }
+
+  function populateFilterDropdowns() {
+    const sections = new Set();
+    const dates = new Set();
+    const types = new Set();
+    const statuses = new Set();
+
+    state.archives.forEach((archive) => {
+      if (archive.section) sections.add(String(archive.section));
+      const ym = dateToYYYYMM(archive.date_published || "");
+      if (ym) dates.add(ym);
+      if (archive.type) types.add(String(archive.type));
+      if (archive.status) statuses.add(String(archive.status));
+    });
+
+    populateFilterSelect(
+      "af-section",
+      Array.from(sections).sort(),
+      state.filters.section,
+    );
+    populateDateFilterSelect(
+      "af-year",
+      Array.from(dates).sort().reverse(),
+      state.filters.dateMonth,
+    );
+    populateFilterSelect(
+      "af-type",
+      Array.from(types).sort(),
+      state.filters.type,
+    );
+    populateFilterSelect(
+      "af-status",
+      Array.from(statuses).sort(),
+      state.filters.status,
+    );
+  }
+
+  function renderActiveFilterTags() {
+    const bar = document.getElementById("active-filter-tags");
+    if (!bar) return;
+
+    const tags = Object.entries(state.filters).flatMap(([key, values]) => {
+      const arr = Array.isArray(values) ? values : [];
+      return arr.map((val) => ({ key, val }));
+    });
+
+    if (!tags.length) {
+      bar.innerHTML = "";
+      updateClearFiltersVisibility();
+      return;
+    }
+
+    bar.innerHTML = tags
+      .map(
+        (tag) =>
+          `<span class="filter-tag" data-key="${tag.key}">` +
+          `${esc(filterKeyLabel[tag.key])}: ${esc(tag.key === "dateMonth" ? formatYearMonth(tag.val) : tag.val)}` +
+          `<button class="filter-tag-remove" type="button" aria-label="Remove ${esc(filterKeyLabel[tag.key])} filter" data-key="${tag.key}" data-value="${esc(tag.val)}">x</button>` +
+          `</span>`,
+      )
+      .join("");
+
+    updateClearFiltersVisibility();
+  }
+
+  function toggleFilterValue(filterKey, value) {
+    const normalized = String(value || "").trim();
+    if (!normalized || !(state.filters[filterKey] instanceof Array)) return;
+
+    const list = state.filters[filterKey];
+    const idx = list.indexOf(normalized);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+    } else {
+      list.push(normalized);
+    }
   }
 
   function getArchiveId(archive) {
@@ -168,13 +509,18 @@
     const list = document.getElementById("archive-list");
     if (!list) return;
 
+    const visibleArchives = getVisibleArchives();
+
     if (state.filtered.length === 0) {
       list.innerHTML =
         '<div class="archive-card"><h3>No archives found</h3><p>Try changing your filters or search query.</p><span></span><p class="desc">The list is synced to the archives table and updates from the database.</p></div>';
+      updateArchiveCount(0);
+      updatePaginationControls();
+      renderPreview(null);
       return;
     }
 
-    list.innerHTML = state.filtered
+    list.innerHTML = visibleArchives
       .map((archive, index) => {
         const id = getArchiveId(archive);
         const isActive =
@@ -192,12 +538,15 @@
       })
       .join("");
 
+    updateArchiveCount(visibleArchives.length);
+    updatePaginationControls();
+
     const activeCard =
       list.querySelector(".archive-card.active") ||
       list.querySelector(".archive-card");
     if (activeCard) {
       state.activeArchiveId = activeCard.dataset.archiveId || null;
-      const activeArchive = state.filtered.find(
+      const activeArchive = visibleArchives.find(
         (item) => getArchiveId(item) === state.activeArchiveId,
       );
       renderPreview(activeArchive || null);
@@ -277,9 +626,9 @@
   }
 
   function applyFilters() {
-    const query = getSearchQuery();
-    const selectedCourse = getSelectedCourse().toUpperCase();
-    const selectedSort = getSelectedSort();
+    const query = String(state.query || "")
+      .trim()
+      .toLowerCase();
 
     state.filtered = state.archives.filter((archive) => {
       const searchable = [
@@ -293,21 +642,68 @@
         .toLowerCase();
 
       const passesQuery = !query || searchable.includes(query);
-      const passesCourse = matchesCourse(archive.section, selectedCourse);
-      return passesQuery && passesCourse;
+
+      const sectionFilters = state.filters.section;
+      const dateFilters = state.filters.dateMonth;
+      const typeFilters = state.filters.type.map((v) =>
+        String(v).toLowerCase(),
+      );
+      const statusFilters = state.filters.status.map((v) =>
+        String(v).toLowerCase(),
+      );
+
+      const sectionValue = String(archive.section || "");
+      if (sectionFilters.length && !sectionFilters.includes(sectionValue)) {
+        return false;
+      }
+
+      const rowYM = dateToYYYYMM(archive.date_published || "");
+      if (dateFilters.length && !dateFilters.includes(rowYM)) {
+        return false;
+      }
+
+      const typeValue = String(archive.type || "").toLowerCase();
+      if (typeFilters.length && !typeFilters.includes(typeValue)) {
+        return false;
+      }
+
+      const statusValue = String(archive.status || "").toLowerCase();
+      if (statusFilters.length && !statusFilters.includes(statusValue)) {
+        return false;
+      }
+
+      return passesQuery;
     });
 
     state.filtered.sort((a, b) => {
-      if (selectedSort === "az") {
-        return String(a.title || "").localeCompare(String(b.title || ""));
-      }
-      if (selectedSort === "za") {
-        return String(b.title || "").localeCompare(String(a.title || ""));
+      const sortField = state.sortField;
+      if (!sortField) {
+        const aDate = new Date(a.date_published || 0).getTime();
+        const bDate = new Date(b.date_published || 0).getTime();
+        return bDate - aDate;
       }
 
-      const aDate = new Date(a.date_published || 0).getTime();
-      const bDate = new Date(b.date_published || 0).getTime();
-      return bDate - aDate;
+      const getSortValue = (item) => {
+        if (sortField === "title")
+          return String(item.title || "").toLowerCase();
+        if (sortField === "authors")
+          return String(item.authors || "").toLowerCase();
+        if (sortField === "section")
+          return String(item.section || "").toLowerCase();
+        if (sortField === "advisor")
+          return String(item.advisor || "").toLowerCase();
+        if (sortField === "type") return String(item.type || "").toLowerCase();
+        if (sortField === "status")
+          return String(item.status || "").toLowerCase();
+        if (sortField === "date")
+          return new Date(item.date_published || 0).getTime();
+        return "";
+      };
+
+      const aVal = getSortValue(a);
+      const bVal = getSortValue(b);
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return state.sortDir === "asc" ? cmp : -cmp;
     });
 
     const exists = state.filtered.some(
@@ -319,7 +715,17 @@
         : null;
     }
 
+    const totalPages = Math.max(
+      1,
+      Math.ceil(state.filtered.length / state.pageSize),
+    );
+    if (state.currentPage > totalPages) {
+      state.currentPage = totalPages;
+    }
+
     renderArchiveList();
+    renderActiveFilterTags();
+    updateSortDirBtn();
   }
 
   async function loadArchivesForViewPage() {
@@ -353,6 +759,9 @@
       state.activeArchiveId = state.filtered[0]
         ? getArchiveId(state.filtered[0])
         : null;
+      populateFilterDropdowns();
+      renderActiveFilterTags();
+      updateSortDirBtn();
       applyFilters();
     } catch (error) {
       if (list) {
@@ -362,45 +771,164 @@
   }
 
   function wireEvents() {
-    const toggleBtn = document.querySelector(".filter-toggle");
-    const dropdown = document.querySelector(".filter-dropdown");
-    const filterGroup = document.querySelector(".filter-group");
+    const filterPanelToggleBtn = document.getElementById("filter-panel-toggle");
+    const filterPanel = document.getElementById("filter-panel");
     const searchInput = document.getElementById("archive-search-input");
-    const applyBtn = document.getElementById("apply-filter-btn");
+    const searchBtn = document.getElementById("archive-search-btn");
+    const sortSelect = document.getElementById("archive-sort");
+    const sortDirBtn = document.getElementById("archive-sort-dir");
+    const clearFiltersBtn = document.getElementById("archive-clear-filters");
+    const activeFilterTags = document.getElementById("active-filter-tags");
     const list = document.getElementById("archive-list");
+    const prevPageBtn = document.getElementById("archive-prev-page");
+    const nextPageBtn = document.getElementById("archive-next-page");
     const downloadBtn = document.getElementById("archive-download-btn");
+    const manageDocumentBtn = document.getElementById("manage-document-btn");
+    const manageConfirmModal = document.getElementById("manage-confirm-modal");
+    const manageConfirmCancel = document.getElementById(
+      "manage-confirm-cancel",
+    );
+    const manageConfirmProceed = document.getElementById(
+      "manage-confirm-proceed",
+    );
     const viewfullBtn = document.querySelector(".viewfull-btn");
 
-    if (toggleBtn && dropdown && filterGroup) {
-      toggleBtn.addEventListener("click", (event) => {
+    if (filterPanelToggleBtn && filterPanel) {
+      filterPanelToggleBtn.addEventListener("click", (event) => {
         event.stopPropagation();
-        dropdown.classList.toggle("show");
-        filterGroup.classList.toggle("active");
+        const isOpen = filterPanel.classList.toggle("is-open");
+        filterPanelToggleBtn.classList.toggle("is-open", isOpen);
       });
 
-      dropdown.addEventListener("click", (event) => {
+      filterPanel.addEventListener("click", (event) => {
         event.stopPropagation();
       });
 
       document.addEventListener("click", () => {
-        dropdown.classList.remove("show");
-        filterGroup.classList.remove("active");
+        filterPanel.classList.remove("is-open");
+        filterPanelToggleBtn.classList.remove("is-open");
       });
     }
 
     if (searchInput) {
-      searchInput.addEventListener("input", applyFilters);
-    }
-
-    if (applyBtn) {
-      applyBtn.addEventListener("click", applyFilters);
-    }
-
-    document
-      .querySelectorAll('input[name="course"], input[name="sort"]')
-      .forEach((inputEl) => {
-        inputEl.addEventListener("change", applyFilters);
+      searchInput.addEventListener("input", updateClearFiltersVisibility);
+      searchInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        applySearch();
       });
+    }
+
+    if (searchBtn) {
+      searchBtn.addEventListener("click", applySearch);
+    }
+
+    if (sortSelect) {
+      sortSelect.addEventListener("change", () => {
+        state.sortField = String(sortSelect.value || "");
+        state.sortDir = "asc";
+        state.currentPage = 1;
+        applyFilters();
+      });
+    }
+
+    if (sortDirBtn) {
+      sortDirBtn.addEventListener("click", () => {
+        if (!state.sortField) return;
+        state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+        applyFilters();
+      });
+    }
+
+    Object.keys(filterSelectToKey).forEach((selectId) => {
+      const el = document.getElementById(selectId);
+      if (!el) return;
+      el.addEventListener("change", () => {
+        const key = filterSelectToKey[selectId];
+        const selectedValue = String(el.value || "").trim();
+
+        if (!selectedValue) {
+          state.filters[key] = [];
+        } else {
+          toggleFilterValue(key, selectedValue);
+        }
+
+        state.currentPage = 1;
+        populateFilterDropdowns();
+        applyFilters();
+      });
+    });
+
+    activeFilterTags?.addEventListener("click", (event) => {
+      const btn = event.target.closest(".filter-tag-remove");
+      if (!btn) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const key = String(btn.dataset.key || "");
+      const value = String(btn.dataset.value || "").trim();
+      if (!(key in state.filters)) return;
+
+      state.filters[key] = state.filters[key].filter((v) => v !== value);
+
+      const selectEl = document.getElementById(filterKeyToSelect[key]);
+      if (selectEl) selectEl.value = "";
+
+      state.currentPage = 1;
+      populateFilterDropdowns();
+      applyFilters();
+    });
+
+    if (clearFiltersBtn) {
+      clearFiltersBtn.addEventListener("click", () => {
+        state.filters = {
+          section: [],
+          dateMonth: [],
+          type: [],
+          status: [],
+        };
+        state.query = "";
+        state.currentPage = 1;
+        state.sortField = "";
+        state.sortDir = "asc";
+
+        const searchEl = document.getElementById("archive-search-input");
+        if (searchEl) searchEl.value = "";
+
+        const sortEl = document.getElementById("archive-sort");
+        if (sortEl) sortEl.value = "";
+
+        Object.keys(filterSelectToKey).forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+        });
+
+        populateFilterDropdowns();
+        applyFilters();
+      });
+    }
+
+    if (prevPageBtn) {
+      prevPageBtn.addEventListener("click", () => {
+        if (!shouldPaginateList() || state.currentPage <= 1) return;
+        state.currentPage -= 1;
+        renderArchiveList();
+      });
+    }
+
+    if (nextPageBtn) {
+      nextPageBtn.addEventListener("click", () => {
+        if (!shouldPaginateList()) return;
+        const totalPages = Math.max(
+          1,
+          Math.ceil(state.filtered.length / state.pageSize),
+        );
+        if (state.currentPage >= totalPages) return;
+        state.currentPage += 1;
+        renderArchiveList();
+      });
+    }
 
     if (list) {
       list.addEventListener("click", (event) => {
@@ -467,6 +995,33 @@
       });
     }
 
+    if (manageDocumentBtn) {
+      manageDocumentBtn.addEventListener("click", openManageConfirmModal);
+    }
+
+    if (manageConfirmCancel) {
+      manageConfirmCancel.addEventListener("click", closeManageConfirmModal);
+    }
+
+    if (manageConfirmProceed) {
+      manageConfirmProceed.addEventListener("click", () => {
+        closeManageConfirmModal();
+        navigateToManageArchivePage();
+      });
+    }
+
+    if (manageConfirmModal) {
+      manageConfirmModal.addEventListener("click", (event) => {
+        if (event.target !== manageConfirmModal) return;
+        closeManageConfirmModal();
+      });
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      closeManageConfirmModal();
+    });
+
     if (viewfullBtn) {
       viewfullBtn.addEventListener("click", () => {
         const archive = state.filtered.find(
@@ -487,6 +1042,7 @@
 
   function initViewArchivesPage() {
     wireEvents();
+    wireSidebarHoverBridge();
     loadArchivesForViewPage();
 
     if (typeof lucide !== "undefined") {
