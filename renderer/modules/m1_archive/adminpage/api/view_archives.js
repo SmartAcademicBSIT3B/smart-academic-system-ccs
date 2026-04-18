@@ -220,21 +220,46 @@
       if (downloadBtn) {
         downloadBtn.dataset.filePath = "";
         downloadBtn.dataset.localFilePath = "";
+        downloadBtn.dataset.archiveTitle = "";
         downloadBtn.disabled = true;
+      }
+      if (window.ViewArchivesFlipCard) {
+        window.ViewArchivesFlipCard.clear();
       }
       return;
     }
 
     previewBox.innerHTML = `
-      <div style="padding:18px; display:flex; flex-direction:column; gap:10px;">
-        <h3 style="font-size:18px; color:#C9CCD1;">${escapeHtml(archive.title || "Untitled")}</h3>
-        <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Authors:</strong> ${escapeHtml(archive.authors || "No author")}</p>
-        <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Section:</strong> ${escapeHtml(archive.section || "N/A")}</p>
-        <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Advisor:</strong> ${escapeHtml(archive.advisor || "N/A")}</p>
-        <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Published:</strong> ${escapeHtml(formatMonthYear(archive.date_published))}</p>
-        <div class="preview-keywords-section">
-          <span class="preview-meta-label">Keywords</span>
-          <div class="preview-keywords">${renderKeywordTagsMarkup(archive.keywords)}</div>
+      <div
+        class="preview-flip-shell"
+        data-archive-id="${escapeHtml(getArchiveId(archive))}"
+        data-archive-title="${escapeHtml(archive.title || "")}" 
+        data-file-path="${escapeHtml(archive.file_path || "")}" 
+        data-local-file-path="${escapeHtml(archive.local_file_path || "")}" 
+      >
+        <div class="preview-flip-card">
+          <div class="preview-flip-face preview-flip-front">
+            <div class="preview-face-content">
+              <h3 style="font-size:18px; color:#C9CCD1;">${escapeHtml(archive.title || "Untitled")}</h3>
+              <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Authors:</strong> ${escapeHtml(archive.authors || "No author")}</p>
+              <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Section:</strong> ${escapeHtml(archive.section || "N/A")}</p>
+              <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Advisor:</strong> ${escapeHtml(archive.advisor || "N/A")}</p>
+              <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Published:</strong> ${escapeHtml(formatMonthYear(archive.date_published))}</p>
+              <div class="preview-keywords-section">
+                <span class="preview-meta-label">Keywords</span>
+                <div class="preview-keywords">${renderKeywordTagsMarkup(archive.keywords)}</div>
+              </div>
+            </div>
+          </div>
+          <div class="preview-flip-face preview-flip-back">
+            <div class="preview-face-content preview-abstract-panel">
+              <div class="preview-paper">
+                <h4 class="preview-abstract-title">${escapeHtml(archive.title || "Untitled")}</h4>
+                <h5 class="preview-abstract-heading">ABSTRACT</h5>
+                <p class="preview-abstract-text">Flip to this side to load the abstract preview.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -244,6 +269,10 @@
       downloadBtn.dataset.localFilePath = String(archive.local_file_path || "");
       downloadBtn.dataset.archiveTitle = String(archive.title || "");
       downloadBtn.disabled = false;
+    }
+
+    if (window.ViewArchivesFlipCard) {
+      window.ViewArchivesFlipCard.hydrateArchive(archive);
     }
   }
 

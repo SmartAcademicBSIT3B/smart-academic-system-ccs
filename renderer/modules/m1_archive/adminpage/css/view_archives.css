@@ -268,7 +268,9 @@ select {
   background: var(--secondary-bg);
   border-radius: 10px;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
+  position: relative;
+  perspective: 1200px;
 }
 
 .preview-box::-webkit-scrollbar {
@@ -322,6 +324,130 @@ select {
   font-size: 13px;
 }
 
+.preview-flip-shell {
+  width: 100%;
+  height: 100%;
+}
+
+.preview-flip-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s ease;
+}
+
+.preview-flip-shell.is-flipped .preview-flip-card {
+  transform: rotateY(180deg);
+}
+
+.preview-flip-face {
+  position: absolute;
+  inset: 0;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.preview-flip-face::-webkit-scrollbar {
+  width: 6px;
+}
+
+.preview-flip-face::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.preview-flip-face::-webkit-scrollbar-thumb {
+  background: var(--border-color, #3a3f46);
+  border-radius: 999px;
+}
+
+.preview-flip-back {
+  transform: rotateY(180deg);
+}
+
+.preview-face-content {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100%;
+}
+
+.preview-abstract-panel {
+  gap: 12px;
+  padding: 22px;
+}
+
+.preview-abstract-text {
+  color: #e6e8ec;
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 14px;
+  line-height: 1.85;
+  text-align: justify;
+  text-indent: 2em;
+  letter-spacing: 0.12px;
+  word-spacing: 0.6px;
+  hyphens: auto;
+  white-space: pre-wrap;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 0;
+}
+
+.preview-paper {
+  width: min(92%, 760px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.preview-abstract-title {
+  margin: 0;
+  text-align: center;
+  color: #f3f5f8;
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.3px;
+  word-break: break-word;
+}
+
+.preview-abstract-heading {
+  margin: 2px 0 0;
+  text-align: center;
+  color: #d7dde6;
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .preview-abstract-panel {
+    padding: 14px;
+  }
+
+  .preview-paper {
+    width: 100%;
+  }
+
+  .preview-abstract-title {
+    font-size: 17px;
+  }
+
+  .preview-abstract-text {
+    font-size: 13px;
+    line-height: 1.7;
+    text-indent: 1.2em;
+    padding: 14px 15px;
+  }
+}
+
 /* Pagination */
 .preview-pagination {
   display: flex;
@@ -372,6 +498,10 @@ select {
 
 .viewfull-btn {
   margin-left: auto;
+  white-space: nowrap;
+}
+
+.flip-card-btn {
   white-space: nowrap;
 }
 
