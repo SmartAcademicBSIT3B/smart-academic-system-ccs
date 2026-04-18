@@ -159,6 +159,10 @@
   margin-top: auto;
 }
 
+#external-export-cancel-btn {
+  margin-top: 8px;
+}
+
 .external-company-profile-fields {
   display: flex;
   flex-direction: column;

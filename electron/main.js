@@ -246,10 +246,13 @@ function cleanExternalPartnerField(value) {
 }
 
 function normalizeExternalPartnerPayload(payload = {}) {
+  const department = String(payload.department || "").trim() || "CCS";
+
   return {
     logo: cleanExternalPartnerField(payload.logo),
     company_name: String(payload.company_name || "").trim(),
     address: String(payload.address || "").trim(),
+    department,
     company_email: cleanExternalPartnerField(payload.company_email),
     company_contact: cleanExternalPartnerField(payload.company_contact),
     representative: cleanExternalPartnerField(payload.representative),
@@ -270,6 +273,7 @@ async function ensureExternalPartnersTable() {
       logo VARCHAR(512) NULL,
       company_name VARCHAR(255) NOT NULL,
       address VARCHAR(255) NOT NULL,
+      department VARCHAR(120) NOT NULL DEFAULT 'CCS',
       company_email VARCHAR(255) NULL,
       company_contact VARCHAR(50) NULL,
       representative VARCHAR(255) NULL,
@@ -282,6 +286,30 @@ async function ensureExternalPartnersTable() {
       INDEX idx_external_partners_representative (representative)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+
+  // Backfill legacy databases where the table already exists without department.
+  const departmentColumn = await query(
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'external_partners'
+       AND COLUMN_NAME = 'department'
+     LIMIT 1`,
+  );
+
+  if (!Array.isArray(departmentColumn) || departmentColumn.length === 0) {
+    await query(
+      `ALTER TABLE external_partners
+       ADD COLUMN department VARCHAR(120) NOT NULL DEFAULT 'CCS'
+       AFTER address`,
+    );
+  }
+
+  await query(
+    `UPDATE external_partners
+     SET department = 'CCS'
+     WHERE department IS NULL OR TRIM(department) = ''`,
+  );
 }
 
 async function authorizeGoogleDriveInteractive() {
@@ -1122,7 +1150,7 @@ ipcMain.handle("deleteArchive", async (event, archiveId) => {
 ipcMain.handle("getExternalPartners", async () => {
   try {
     const rows = await query(
-      `SELECT id, logo, company_name, address, company_email, company_contact,
+      `SELECT id, logo, company_name, address, department, company_email, company_contact,
               representative, job_description, representative_email,
               representative_contact, created_at, updated_at
        FROM external_partners
@@ -1151,14 +1179,15 @@ ipcMain.handle("createExternalPartner", async (event, payload = {}) => {
 
     const result = await query(
       `INSERT INTO external_partners
-      (logo, company_name, address, company_email, company_contact,
+      (logo, company_name, address, department, company_email, company_contact,
        representative, job_description, representative_email,
        representative_contact)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.logo,
         data.company_name,
         data.address,
+        data.department,
         data.company_email,
         data.company_contact,
         data.representative,
@@ -1169,7 +1198,7 @@ ipcMain.handle("createExternalPartner", async (event, payload = {}) => {
     );
 
     const rows = await query(
-      `SELECT id, logo, company_name, address, company_email, company_contact,
+      `SELECT id, logo, company_name, address, department, company_email, company_contact,
               representative, job_description, representative_email,
               representative_contact, created_at, updated_at
        FROM external_partners
@@ -1226,6 +1255,7 @@ ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
        SET logo = ?,
            company_name = ?,
            address = ?,
+           department = ?,
            company_email = ?,
            company_contact = ?,
            representative = ?,
@@ -1237,6 +1267,7 @@ ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
         data.logo,
         data.company_name,
         data.address,
+        data.department,
         data.company_email,
         data.company_contact,
         data.representative,
@@ -1260,7 +1291,7 @@ ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
     }
 
     const rows = await query(
-      `SELECT id, logo, company_name, address, company_email, company_contact,
+      `SELECT id, logo, company_name, address, department, company_email, company_contact,
               representative, job_description, representative_email,
               representative_contact, created_at, updated_at
        FROM external_partners
