@@ -1,116 +1,90 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>View Archives</title>
-    <link rel="stylesheet" href="../css/view_archives.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/view_archives.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://unpkg.com/lucide@latest"></script>
-</head>
+  </head>
 
-<body>
+  <body>
+    <div class="page">
+      <h2 class="title">VIEW ARCHIVES</h2>
 
-<div class="page">
-
-    <h2 class="title">VIEW ARCHIVES</h2>
-
-    <!-- FILTERS -->
-    <div class="controls">
+      <!-- FILTERS -->
+      <div class="controls">
         <div class="left-controls">
-            <div class="search-box">
-                <input type="text" placeholder="Search">
+          <div class="search-box">
+            <input type="text" id="archive-search-input" placeholder="Search" />
+          </div>
+
+          <!-- FILTER -->
+          <div class="filter-group">
+            <button class="filter-toggle">
+              Filter Option
+              <i data-lucide="chevron-down" class="filter-arrow"></i>
+            </button>
+
+            <div class="filter-dropdown">
+              <label
+                ><input type="radio" name="course" value="" /> All
+                Programs</label
+              >
+              <label
+                ><input type="radio" name="course" value="BSIT" /> BSIT</label
+              >
+              <label
+                ><input type="radio" name="course" value="BSCS" /> BSCS</label
+              >
+              <label
+                ><input type="radio" name="sort" value="date" checked /> Date
+                Published</label
+              >
+              <label><input type="radio" name="sort" value="az" /> A-Z</label>
+              <label><input type="radio" name="sort" value="za" /> Z-A</label>
             </div>
+          </div>
 
-            <!-- FILTER -->
-            <div class="filter-group">
-                <button class="filter-toggle">
-                    Filter Option
-                    <i data-lucide="chevron-down" class="filter-arrow"></i>
-                </button>
-
-                <div class="filter-dropdown">
-                    <label><input type="radio" name="course"> BSIT</label>
-                    <label><input type="radio" name="course"> BSCS</label>
-                    <label><input type="radio" name="sort"> A-Z</label>
-                    <label><input type="radio" name="sort"> Z-A</label>
-                    <label><input type="radio" name="sort"> Date Published</label>
-                </div>
-            </div>
-
-            <button class="filter-btn">Filter</button>
+          <button class="filter-btn" id="apply-filter-btn" type="button">
+            Filter
+          </button>
         </div>
-    </div>
+      </div>
 
-    <!-- MAIN CONTENT -->
-    <div class="content">
+      <!-- MAIN CONTENT -->
+      <div class="content">
         <!-- LEFT LIST -->
-        <div class="archive-list">
-            <div class="archive-card active">
-                <h3>Archiving System for CCS Graduating Students</h3>
-                <p>Acosta, D. Montipolca, C. & Sanchez, P.</p>
-                <span>Feb, 2025</span>
-                <p class="desc">Lorem ipsum dolor sit amet...</p>
-            </div>
-
-            <div class="archive-card">
-                <h3>Archiving System for CCS Graduating Students</h3>
-                <p>Acosta, D. Montipolca, C. & Sanchez, P.</p>
-                <span>Feb, 2025</span>
-                <p class="desc">Lorem ipsum dolor sit amet...</p>
-            </div>
-        </div>
+        <div class="archive-list" id="archive-list"></div>
 
         <!-- RIGHT PREVIEW -->
         <div class="preview">
-            <div class="preview-box"></div>
+          <div class="preview-box"></div>
 
-            <div class="preview-pagination">
-                <div class="pagination">
-                    <div class="tooltip">
-                        <button class="download">
-                         <i data-lucide="download"></i>
-                        <span class="tooltip-text">Download File</span>
-                    </div>
-                    </button>
-                    <input type="number" id="pageNumber" value="1" min="1">
-                    <span>of 34</span>
-                </div>
-                <button class="viewfull-btn">See Full Documents</button>
+          <div class="preview-pagination">
+            <div class="pagination">
+              <div class="tooltip">
+                <button
+                  class="download"
+                  id="archive-download-btn"
+                  type="button"
+                >
+                  <i data-lucide="download"></i>
+                </button>
+                <span class="tooltip-text">Download File</span>
+              </div>
             </div>
+            <button class="viewfull-btn">See Full Document</button>
+          </div>
         </div>
+      </div>
     </div>
 
-</div>
-
-<script>
-const toggleBtn = document.querySelector('.filter-toggle');
-const dropdown = document.querySelector('.filter-dropdown');
-const filterGroup = document.querySelector('.filter-group');
-
-toggleBtn.onclick = function(e) {
-    e.stopPropagation();
-    dropdown.classList.toggle('show');
-    filterGroup.classList.toggle('active');
-};
-
-document.addEventListener('click', () => {
-    dropdown.classList.remove('show');
-    filterGroup.classList.remove('active');
-});
-
-// Handle page number change
-document.getElementById('pageNumber').addEventListener('input', function(e) {
-    const page = e.target.value;
-    // Ensure it's within a valid range (e.g., between 1 and 34)
-    if (page >= 1 && page <= 34) {
-        // Scroll or navigate to the specific page in the archive
-        console.log(`Navigate to page ${page}`);
-    }
-});
-
-lucide.createIcons();
-</script>
-
-</body>
+    <script src="../api/view_archives_modal.js"></script>
+    <script src="../api/view_archives.js"></script>
+  </body>
 </html>
