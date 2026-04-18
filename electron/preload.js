@@ -14,6 +14,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("updateArchive", archiveData),
   getArchives: () => ipcRenderer.invoke("getArchives"),
   deleteArchive: (archiveId) => ipcRenderer.invoke("deleteArchive", archiveId),
+  getExternalPartners: () => ipcRenderer.invoke("getExternalPartners"),
+  createExternalPartner: (partnerData) =>
+    ipcRenderer.invoke("createExternalPartner", partnerData),
+  updateExternalPartner: (partnerData) =>
+    ipcRenderer.invoke("updateExternalPartner", partnerData),
+  deleteExternalPartner: (partnerId) =>
+    ipcRenderer.invoke("deleteExternalPartner", partnerId),
   checkGoogleDriveAuth: () => ipcRenderer.invoke("checkGoogleDriveAuth"),
   getGoogleDriveAuthUrl: () => ipcRenderer.invoke("getGoogleDriveAuthUrl"),
   saveGoogleDriveToken: (authCode) =>

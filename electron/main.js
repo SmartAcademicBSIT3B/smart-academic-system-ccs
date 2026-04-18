@@ -238,6 +238,50 @@ function resolveArchiveLocalFileAbsolutePath(storedPath) {
   return path.join(ARCHIVE_UPLOAD_DIR, fileName);
 }
 
+function cleanExternalPartnerField(value) {
+  const normalized = String(value || "").trim();
+  return normalized || null;
+}
+
+function normalizeExternalPartnerPayload(payload = {}) {
+  return {
+    logo: cleanExternalPartnerField(payload.logo),
+    company_name: String(payload.company_name || "").trim(),
+    address: String(payload.address || "").trim(),
+    company_email: cleanExternalPartnerField(payload.company_email),
+    company_contact: cleanExternalPartnerField(payload.company_contact),
+    representative: cleanExternalPartnerField(payload.representative),
+    job_description: cleanExternalPartnerField(payload.job_description),
+    representative_email: cleanExternalPartnerField(
+      payload.representative_email,
+    ),
+    representative_contact: cleanExternalPartnerField(
+      payload.representative_contact,
+    ),
+  };
+}
+
+async function ensureExternalPartnersTable() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS external_partners (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      logo VARCHAR(512) NULL,
+      company_name VARCHAR(255) NOT NULL,
+      address VARCHAR(255) NOT NULL,
+      company_email VARCHAR(255) NULL,
+      company_contact VARCHAR(50) NULL,
+      representative VARCHAR(255) NULL,
+      job_description VARCHAR(255) NULL,
+      representative_email VARCHAR(255) NULL,
+      representative_contact VARCHAR(50) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_external_partners_company_name (company_name),
+      INDEX idx_external_partners_representative (representative)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+}
+
 async function authorizeGoogleDriveInteractive() {
   const redirectUri = String(
     process.env.GOOGLE_OAUTH_REDIRECT_URI || "",
@@ -407,7 +451,13 @@ function createMainWindow() {
   );
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  try {
+    await ensureExternalPartnersTable();
+  } catch (error) {
+    console.error("Failed to ensure external_partners table exists:", error);
+  }
+
   createMainWindow();
 
   // Periodically remove expired and old used OTP rows.
@@ -955,6 +1005,188 @@ ipcMain.handle("deleteArchive", async (event, archiveId) => {
     return {
       success: false,
       message: error?.message || "Failed to delete archive.",
+    };
+  }
+});
+
+ipcMain.handle("getExternalPartners", async () => {
+  try {
+    const rows = await query(
+      `SELECT id, logo, company_name, address, company_email, company_contact,
+              representative, job_description, representative_email,
+              representative_contact, created_at, updated_at
+       FROM external_partners
+       ORDER BY id DESC`,
+    );
+    return { success: true, partners: rows };
+  } catch (error) {
+    console.error("getExternalPartners error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to fetch external partners.",
+    };
+  }
+});
+
+ipcMain.handle("createExternalPartner", async (event, payload = {}) => {
+  try {
+    const data = normalizeExternalPartnerPayload(payload);
+
+    if (!data.company_name || !data.address) {
+      return {
+        success: false,
+        message: "Company Name and Address are required.",
+      };
+    }
+
+    const result = await query(
+      `INSERT INTO external_partners
+      (logo, company_name, address, company_email, company_contact,
+       representative, job_description, representative_email,
+       representative_contact)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        data.logo,
+        data.company_name,
+        data.address,
+        data.company_email,
+        data.company_contact,
+        data.representative,
+        data.job_description,
+        data.representative_email,
+        data.representative_contact,
+      ],
+    );
+
+    const rows = await query(
+      `SELECT id, logo, company_name, address, company_email, company_contact,
+              representative, job_description, representative_email,
+              representative_contact, created_at, updated_at
+       FROM external_partners
+       WHERE id = ?
+       LIMIT 1`,
+      [result.insertId],
+    );
+
+    return {
+      success: true,
+      partner: rows[0],
+      message: "External partner added successfully.",
+    };
+  } catch (error) {
+    console.error("createExternalPartner error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to create external partner.",
+    };
+  }
+});
+
+ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
+  try {
+    const id = Number.parseInt(payload.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return {
+        success: false,
+        message: "A valid external partner ID is required.",
+      };
+    }
+
+    const data = normalizeExternalPartnerPayload(payload);
+
+    if (!data.company_name || !data.address) {
+      return {
+        success: false,
+        message: "Company Name and Address are required.",
+      };
+    }
+
+    const existing = await query(
+      "SELECT id FROM external_partners WHERE id = ? LIMIT 1",
+      [id],
+    );
+    if (!existing || existing.length === 0) {
+      return { success: false, message: "External partner not found." };
+    }
+
+    await query(
+      `UPDATE external_partners
+       SET logo = ?,
+           company_name = ?,
+           address = ?,
+           company_email = ?,
+           company_contact = ?,
+           representative = ?,
+           job_description = ?,
+           representative_email = ?,
+           representative_contact = ?
+       WHERE id = ?`,
+      [
+        data.logo,
+        data.company_name,
+        data.address,
+        data.company_email,
+        data.company_contact,
+        data.representative,
+        data.job_description,
+        data.representative_email,
+        data.representative_contact,
+        id,
+      ],
+    );
+
+    const rows = await query(
+      `SELECT id, logo, company_name, address, company_email, company_contact,
+              representative, job_description, representative_email,
+              representative_contact, created_at, updated_at
+       FROM external_partners
+       WHERE id = ?
+       LIMIT 1`,
+      [id],
+    );
+
+    return {
+      success: true,
+      partner: rows[0],
+      message: "External partner updated successfully.",
+    };
+  } catch (error) {
+    console.error("updateExternalPartner error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to update external partner.",
+    };
+  }
+});
+
+ipcMain.handle("deleteExternalPartner", async (event, partnerId) => {
+  try {
+    const id = Number.parseInt(partnerId, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return {
+        success: false,
+        message: "A valid external partner ID is required.",
+      };
+    }
+
+    const existing = await query(
+      "SELECT id FROM external_partners WHERE id = ? LIMIT 1",
+      [id],
+    );
+    if (!existing || existing.length === 0) {
+      return {
+        success: false,
+        message: "External partner not found or already deleted.",
+      };
+    }
+
+    await query("DELETE FROM external_partners WHERE id = ?", [id]);
+    return { success: true, message: "External partner deleted successfully." };
+  } catch (error) {
+    console.error("deleteExternalPartner error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to delete external partner.",
     };
   }
 });

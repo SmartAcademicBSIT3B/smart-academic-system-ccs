@@ -4,249 +4,474 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>External Partners</title>
+
     <link rel="stylesheet" href="../css/tables.css" />
-    <link rel="stylesheet" href="../css/form_external_partners.css" />
+    <link rel="stylesheet" href="../css/manage_archives.css" />
+    <link rel="stylesheet" href="../css/external_partners_manage.css" />
+
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
       rel="stylesheet"
     />
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
-    />
-    <!-- Font Awesome -->
   </head>
 
   <body>
     <div class="page">
       <h1 class="page-title">EXTERNAL PARTNERS</h1>
 
-      <!-- Controls -->
       <div class="controls">
         <div class="left-controls">
-          <input type="text" placeholder="Search" />
+          <div class="search-wrap">
+            <i data-lucide="search" class="search-icon"></i>
+            <input
+              type="text"
+              id="external-partner-search"
+              class="search-input"
+              placeholder="Search company, representative, email..."
+              autocomplete="off"
+            />
+          </div>
+
           <div class="select-wrapper">
-            <select>
-              <option>Sort By</option>
-              <option>Company Name</option>
-              <option>Representative</option>
+            <select id="external-partner-sort">
+              <option value="">Sort By</option>
+              <option value="id">ID</option>
+              <option value="company_name">Company Name</option>
+              <option value="address">Address</option>
+              <option value="company_email">Company Email</option>
+              <option value="company_contact">Company Contact</option>
+              <option value="representative">Representative</option>
+              <option value="job_description">Job Description</option>
+              <option value="representative_email">Email Address</option>
+              <option value="representative_contact">Contact No.</option>
             </select>
             <span class="arrow"></span>
-            <!-- Arrow Icon for Dropdown -->
           </div>
-          <button class="filter-btn">Filter</button>
+
+          <button
+            class="sort-dir-btn"
+            id="external-partner-sort-dir"
+            type="button"
+            title="Toggle sort direction"
+            style="display: none"
+          >
+            <i data-lucide="arrow-up-narrow-wide"></i>
+          </button>
+
+          <button
+            class="clear-filters-btn"
+            id="external-partner-clear-filters"
+            type="button"
+          >
+            Clear Filters
+          </button>
         </div>
+
         <div class="right-controls">
           <div class="tooltip">
-            <button class="generate-btn">
+            <button class="generate-btn" id="external-partner-generate-btn">
               <i data-lucide="printer"></i>
             </button>
             <span class="tooltip-text">Generate Report</span>
           </div>
+
           <div class="tooltip">
-            <button class="add-btn" id="add-externalpartner-btn">+</button>
+            <button class="add-btn" id="external-partner-open-modal">+</button>
             <span class="tooltip-text">Add External Partner</span>
           </div>
         </div>
       </div>
 
-      <!-- DOWNLOAD OPTIONS MODAL -->
-      <div id="export-modal" class="modal" style="display: none">
+      <div class="filter-bar" id="external-filter-bar">
+        <div class="filter-selects">
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="epf-company">Company</label>
+            <select id="epf-company" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="epf-city">Address</label>
+            <select id="epf-city" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="epf-representative"
+              >Representative</label
+            >
+            <select id="epf-representative" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="epf-job">Job</label>
+            <select id="epf-job" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+        </div>
+        <div
+          class="active-filter-tags-container"
+          id="external-active-filter-tags-container"
+        >
+          <div
+            class="active-filter-tags"
+            id="external-active-filter-tags"
+          ></div>
+        </div>
+      </div>
+
+      <div id="external-export-modal" class="modal" style="display: none">
         <div class="modal-content choice-modal-content">
           <div class="form-header">
             <h4>DOWNLOAD REPORT</h4>
           </div>
           <div class="choice-actions">
-            <button type="button" class="choice-btn" id="export-csv-btn">
+            <button
+              type="button"
+              class="choice-btn"
+              id="external-export-csv-btn"
+            >
               <i data-lucide="file-text"></i>
               CSV
             </button>
-            <button type="button" class="choice-btn" id="export-excel-btn">
+            <button
+              type="button"
+              class="choice-btn"
+              id="external-export-excel-btn"
+            >
               <i data-lucide="sheet"></i>
               Excel
             </button>
-            <button type="button" class="choice-btn" id="export-pdf-btn">
+            <button
+              type="button"
+              class="choice-btn"
+              id="external-export-pdf-btn"
+            >
               <i data-lucide="file-output"></i>
               PDF
             </button>
-            <button type="button" class="choice-btn" id="export-doc-btn">
-              <i data-lucide="file"></i>
-              DOC
-            </button>
           </div>
           <div class="form-actions choice-footer">
-            <button class="cancel-btn" id="export-cancel-btn" type="button">
+            <button
+              class="cancel-btn"
+              id="external-export-cancel-btn"
+              type="button"
+            >
               Cancel
             </button>
           </div>
         </div>
       </div>
 
-      <!-- SELECT ADD MODE MODAL (same container as Manage Archives) -->
-      <div id="select-mode-modal" class="modal" style="display: none">
+      <div
+        id="external-required-fields-modal"
+        class="modal"
+        style="display: none"
+      >
         <div class="modal-content choice-modal-content">
           <div class="form-header">
-            <h4>CHOOSE AN OPTION</h4>
+            <h4>REQUIRED FIELDS</h4>
           </div>
-
-          <div class="choice-actions">
-            <button type="button" class="choice-btn" id="manual-add-btn">
-              <i data-lucide="file-plus-2"></i>
-              Add Manually
-            </button>
-
-            <button type="button" class="choice-btn" id="csv-add-btn">
-              <i data-lucide="upload"></i>
-              Upload CSV File
-            </button>
-
-            <input
-              type="file"
-              id="csv-file-input"
-              accept=".csv,text/csv"
-              style="display: none"
-            />
+          <div class="section-alert-body">
+            <i data-lucide="alert-circle" class="section-alert-icon"></i>
+            <p>Please fill in Company Name and Address before saving.</p>
           </div>
-
           <div class="form-actions choice-footer">
-            <button class="cancel-btn" id="cancel-mode-btn" type="button">
-              Cancel
+            <button
+              class="save-btn"
+              id="external-required-fields-ok-btn"
+              type="button"
+            >
+              OK
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Modal - Add/Update External Partner Form -->
-      <div id="add-externalpartner-modal" class="modal" style="display: none">
-        <div class="modal-content">
+      <div
+        id="external-delete-confirm-modal"
+        class="modal"
+        style="display: none"
+      >
+        <div class="modal-content delete-confirm-modal-content">
           <div class="form-header">
-            <h4 id="modal-title">ADDING NEW EXTERNAL PARTNER</h4>
-            <!-- Default title is "Adding New Coordinator" -->
+            <h4>CONFIRM DELETE</h4>
+          </div>
+          <div class="delete-confirm-body">
+            <i data-lucide="trash-2" class="delete-confirm-icon"></i>
+            <p id="external-delete-confirm-target"></p>
+            <p class="delete-confirm-helper">
+              Type <strong>DELETE</strong> to continue.
+            </p>
+            <input
+              type="text"
+              id="external-delete-confirm-input"
+              class="delete-confirm-input"
+              placeholder="Type DELETE"
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-actions choice-footer delete-confirm-actions">
+            <button
+              class="cancel-btn"
+              id="external-delete-confirm-cancel"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              class="save-btn"
+              id="external-delete-confirm-submit"
+              type="button"
+              disabled
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="external-partner-modal" class="modal" style="display: none">
+        <div class="modal-content external-partner-modal-content">
+          <div class="form-header">
+            <h4 id="external-partner-modal-title">
+              ADDING NEW EXTERNAL PARTNER
+            </h4>
           </div>
 
-          <div class="form-body">
+          <div class="form-body external-form-body">
             <div class="grid-4">
               <div class="input-group">
                 <label>NAME OF COMPANY</label>
                 <input
-                  id="company-name"
+                  id="ep-company-name"
+                  class="required-field"
                   placeholder="Company Name"
-                  class="required-field"
                 />
               </div>
 
               <div class="input-group">
-                <label>CONTACT NO</label>
+                <label>ADDRESS</label>
                 <input
-                  id="company-contact"
-                  type="text"
-                  placeholder="Type here"
+                  id="ep-address"
                   class="required-field"
+                  placeholder="Address"
                 />
               </div>
 
               <div class="input-group">
-                <label>EMAIL ADDRESS</label>
+                <label>COMPANY EMAIL</label>
                 <input
-                  id="company-email"
+                  id="ep-company-email"
                   type="email"
-                  placeholder="Type here"
-                  class="required-field"
+                  placeholder="Company Email"
                 />
               </div>
 
               <div class="input-group">
-                <label for="profile">
-                  <i class="fa fa-upload" aria-hidden="true"></i> UPLOAD LOGO
-                </label>
-              </div>
-            </div>
-
-            <h4 class="section-title">ADDRESS</h4>
-
-            <div class="grid-4">
-              <div class="input-group">
-                <label>Bldg./Floor No./Street No.</label>
+                <label>COMPANY CONTACT NO.</label>
                 <input
-                  id="bldg"
+                  id="ep-company-contact"
                   type="text"
-                  placeholder="Type here"
-                  class="required-field"
-                />
-              </div>
-
-              <div class="input-group">
-                <label>Street</label>
-                <input
-                  id="street"
-                  type="text"
-                  placeholder="Type here"
-                  class="required-field"
-                />
-              </div>
-
-              <div class="input-group">
-                <label>Barangay</label>
-                <input
-                  id="barangay"
-                  type="text"
-                  placeholder="Type here"
-                  class="required-field"
-                />
-              </div>
-
-              <div class="input-group">
-                <label>Province/City</label>
-                <input
-                  id="cityprovince"
-                  type="text"
-                  placeholder="Type here"
-                  class="required-field"
+                  placeholder="Contact Number"
                 />
               </div>
             </div>
 
-            <!-- REPRESENTATIVE -->
-            <h4 class="section-title">COMPANY REPRESENTATIVE</h4>
+            <h4 class="section-title">REPRESENTATIVE</h4>
 
             <div class="grid-4">
               <div class="input-group">
-                <label>NAME OF REPRESENTATIVE</label>
-                <input id="rep-name" type="text" placeholder="Type here" />
+                <label>REPRESENTATIVE</label>
+                <input
+                  id="ep-representative"
+                  type="text"
+                  placeholder="Representative Name"
+                />
               </div>
 
               <div class="input-group">
                 <label>JOB DESCRIPTION</label>
-                <input id="rep-job" type="text" placeholder="Type here" />
-              </div>
-
-              <div class="input-group">
-                <label>CONTACT NO.</label>
-                <input id="rep-contact" type="text" placeholder="Type here" />
+                <input
+                  id="ep-job-description"
+                  type="text"
+                  placeholder="Job Description"
+                />
               </div>
 
               <div class="input-group">
                 <label>EMAIL ADDRESS</label>
-                <input id="rep-email" type="email" placeholder="Type here" />
+                <input
+                  id="ep-representative-email"
+                  type="email"
+                  placeholder="Representative Email"
+                />
+              </div>
+
+              <div class="input-group">
+                <label>CONTACT NO.</label>
+                <input
+                  id="ep-representative-contact"
+                  type="text"
+                  placeholder="Representative Contact"
+                />
+              </div>
+            </div>
+
+            <div class="grid-4">
+              <div class="input-group">
+                <label>LOGO URL</label>
+                <input id="ep-logo" type="url" placeholder="https://..." />
               </div>
             </div>
           </div>
 
           <div class="form-actions">
-            <button class="cancel-btn" id="cancel-btn">Cancel</button>
-            <button class="save-btn" id="save-btn">Save</button>
+            <button
+              class="cancel-btn"
+              id="external-partner-cancel-btn"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              class="save-btn"
+              id="external-partner-save-btn"
+              type="button"
+            >
+              Save
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Table -->
+      <div id="external-partner-view-modal" class="modal" style="display: none">
+        <div
+          class="modal-content view-archive-modal-content external-view-modal-content"
+        >
+          <div class="form-header">
+            <h4>EXTERNAL PARTNER DETAILS</h4>
+          </div>
+          <div class="view-archive-body">
+            <div class="va-grid two-col">
+              <div class="va-field">
+                <label>ID</label>
+                <p id="epv-id">-</p>
+              </div>
+              <div class="va-field">
+                <label>Company Name</label>
+                <p id="epv-company-name">-</p>
+              </div>
+              <div class="va-field">
+                <label>Address</label>
+                <p id="epv-address">-</p>
+              </div>
+              <div class="va-field">
+                <label>Company Email</label>
+                <p id="epv-company-email">-</p>
+              </div>
+              <div class="va-field">
+                <label>Company Contact</label>
+                <p id="epv-company-contact">-</p>
+              </div>
+              <div class="va-field">
+                <label>Representative</label>
+                <p id="epv-representative">-</p>
+              </div>
+              <div class="va-field">
+                <label>Job Description</label>
+                <p id="epv-job-description">-</p>
+              </div>
+              <div class="va-field">
+                <label>Email Address</label>
+                <p id="epv-representative-email">-</p>
+              </div>
+              <div class="va-field">
+                <label>Contact No.</label>
+                <p id="epv-representative-contact">-</p>
+              </div>
+              <div class="va-field">
+                <label>Logo</label>
+                <img
+                  id="epv-logo"
+                  class="external-logo-preview"
+                  alt="Partner logo"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="form-actions choice-footer">
+            <button
+              class="cancel-btn"
+              id="external-view-close-btn"
+              type="button"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="archive-action-menu"
+        class="archive-actions-menu"
+        style="display: none"
+        role="menu"
+      >
+        <button class="menu-action view-btn" type="button">
+          <i data-lucide="eye"></i><span>View</span>
+        </button>
+        <button class="menu-action edit-btn" type="button">
+          <i data-lucide="square-pen"></i><span>Edit</span>
+        </button>
+        <button class="menu-action delete-btn danger" type="button">
+          <i data-lucide="trash-2"></i><span>Delete</span>
+        </button>
+      </div>
+
       <div class="table-card">
+        <div
+          id="bulk-action-bar"
+          class="bulk-action-bar"
+          style="visibility: hidden; opacity: 0; pointer-events: none"
+        >
+          <span id="bulk-action-count" class="bulk-action-count"
+            >0 selected</span
+          >
+          <div class="bulk-action-btns">
+            <button
+              class="bulk-action-btn danger"
+              id="bulk-delete-btn"
+              type="button"
+            >
+              <i data-lucide="trash-2"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+          <button
+            class="bulk-action-clear"
+            id="bulk-clear-btn"
+            type="button"
+            title="Clear selection"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
         <div class="table-wrapper">
-          <table>
+          <table id="archives-table">
             <thead>
               <tr>
-                <th><input type="checkbox" /></th>
+                <th class="col-check">
+                  <input
+                    type="checkbox"
+                    id="select-all-archives"
+                    class="archive-checkbox"
+                  />
+                </th>
                 <th>ID</th>
                 <th>Logo</th>
                 <th>Company Name</th>
@@ -257,259 +482,21 @@
                 <th>Job Description</th>
                 <th>Email Address</th>
                 <th>Contact No.</th>
-                <th></th>
+                <th class="col-actions"></th>
               </tr>
             </thead>
-
-            <tbody>
-              <tr id="row-001">
-                <td><input type="checkbox" /></td>
-                <td>001</td>
-                <td>
-                  <img src="../images/company1.png" class="company-logo" alt="Company logo" />
-                </td>
-                <td>IT Res Incorporated</td>
-                <td>Pasig City</td>
-                <td>info@itres.com</td>
-                <td>0912-345-6789</td>
-                <td>Aaron Valiente</td>
-                <td>HR</td>
-                <td>a_valiente@gmail.com</td>
-                <td>0998-765-4321</td>
-                <td class="action-cell">
-                  <div class="dropdown">
-                    <button class="dots-btn">
-                      <i data-lucide="more-vertical"></i>
-                    </button>
-                    <div class="dropdown-menu">
-                      <button onclick="openEditModal('001')">Edit</button>
-                      <button class="danger">Delete</button>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
+            <tbody id="external-partners-table-body"></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <script>
-      lucide.createIcons();
+    <div id="toast-container"></div>
 
-      document.querySelectorAll(".dots-btn").forEach((btn) => {
-        btn.addEventListener("click", function (e) {
-          e.stopPropagation();
-
-          document.querySelectorAll(".dropdown-menu").forEach((menu) => {
-            menu.classList.remove("show");
-          });
-
-          this.nextElementSibling.classList.toggle("show");
-        });
-      });
-
-      document.addEventListener("click", () => {
-        document.querySelectorAll(".dropdown-menu").forEach((menu) => {
-          menu.classList.remove("show");
-        });
-      });
-
-      // Export modal + downloads
-      const exportModal = document.getElementById("export-modal");
-      const exportCancelBtn = document.getElementById("export-cancel-btn");
-      const exportCsvBtn = document.getElementById("export-csv-btn");
-      const exportExcelBtn = document.getElementById("export-excel-btn");
-      const exportPdfBtn = document.getElementById("export-pdf-btn");
-      const exportDocBtn = document.getElementById("export-doc-btn");
-
-      function openModal(el) {
-        el.style.display = "flex";
-      }
-      function closeModal(el) {
-        el.style.display = "none";
-      }
-
-      function getReportName() {
-        const title = (
-          document.querySelector(".page-title")?.textContent || "report"
-        )
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, "_");
-        const date = new Date().toISOString().slice(0, 10);
-        return `${title}_${date}`;
-      }
-
-      function getTable() {
-        return document.querySelector("table");
-      }
-
-      function escapeCsvCell(value) {
-        const s = String(value ?? "");
-        if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-        return s;
-      }
-
-      function tableToCsv(table) {
-        const rows = Array.from(table.querySelectorAll("tr"));
-        return rows
-          .map((row) => {
-            const cells = Array.from(row.querySelectorAll("th,td")).map(
-              (cell) => {
-                return escapeCsvCell(cell.textContent.trim());
-              },
-            );
-            return cells.join(",");
-          })
-          .join("\n");
-      }
-
-      function downloadBlob(content, mime, filename) {
-        const blob =
-          content instanceof Blob
-            ? content
-            : new Blob([content], { type: mime });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      }
-
-      function downloadTableAsHtmlDoc(table, filename, mime) {
-        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${table.outerHTML}</body></html>`;
-        downloadBlob(html, mime, filename);
-      }
-
-      document.querySelector(".generate-btn").addEventListener("click", () => {
-        openModal(exportModal);
-        lucide.createIcons();
-      });
-
-      exportCancelBtn.addEventListener("click", () => closeModal(exportModal));
-      exportModal.addEventListener("click", (e) => {
-        if (e.target === exportModal) closeModal(exportModal);
-      });
-
-      exportCsvBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        const csv = tableToCsv(table);
-        downloadBlob(csv, "text/csv;charset=utf-8", `${getReportName()}.csv`);
-        closeModal(exportModal);
-      });
-
-      exportExcelBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        downloadTableAsHtmlDoc(
-          table,
-          `${getReportName()}.xls`,
-          "application/vnd.ms-excel",
-        );
-        closeModal(exportModal);
-      });
-
-      exportDocBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        downloadTableAsHtmlDoc(
-          table,
-          `${getReportName()}.doc`,
-          "application/msword",
-        );
-        closeModal(exportModal);
-      });
-
-      exportPdfBtn.addEventListener("click", () => {
-        closeModal(exportModal);
-        window.print();
-      });
-
-      // Toggle modal visibility when the "Add" button is clicked
-      document
-        .getElementById("add-externalpartner-btn")
-        .addEventListener("click", () => {
-          document.getElementById("select-mode-modal").style.display = "flex";
-          // Change header title when opening the Add form
-        });
-
-      // Close the modal when the cancel button is clicked
-      document.getElementById("cancel-btn").addEventListener("click", () => {
-        const modal = document.getElementById("add-externalpartner-modal");
-        modal.style.display = "none";
-      });
-
-      // Edit modal functionality (if needed)
-      function openEditModal(rowId) {
-        const modal = document.getElementById("add-externalpartner-modal");
-        const row = document.getElementById("row-" + rowId);
-
-        document.getElementById("modal-title").innerText =
-          "EDIT EXTERNAL PARTNER";
-
-        // Table cells mapping
-        document.getElementById("company-name").value = row.cells[3].innerText;
-        document.getElementById("company-email").value = row.cells[5].innerText;
-        document.getElementById("company-contact").value =
-          row.cells[6].innerText;
-
-        document.getElementById("rep-name").value = row.cells[7].innerText;
-        document.getElementById("rep-job").value = row.cells[8].innerText;
-        document.getElementById("rep-email").value = row.cells[9].innerText;
-        document.getElementById("rep-contact").value = row.cells[10].innerText;
-
-        // Address (example only since your table only has 1 column)
-        document.getElementById("cityprovince").value = row.cells[4].innerText;
-
-        modal.style.display = "flex";
-      }
-
-      // Close modal after saving
-      document.getElementById("save-btn").addEventListener("click", () => {
-        const modal = document.getElementById("add-externalpartner-modal");
-        modal.style.display = "none";
-      });
-
-      // SELECT MODE BUTTONS
-
-      // Add Manually
-      document
-        .getElementById("manual-add-btn")
-        .addEventListener("click", () => {
-          document.getElementById("select-mode-modal").style.display = "none";
-          document.getElementById("add-externalpartner-modal").style.display =
-            "flex";
-        });
-
-      // Upload CSV
-      document.getElementById("csv-add-btn").addEventListener("click", () => {
-        document.getElementById("csv-file-input").click();
-      });
-
-      // When file selected
-      document
-        .getElementById("csv-file-input")
-        .addEventListener("change", function () {
-          const file = this.files[0];
-
-          if (file) {
-            alert("CSV File Selected: " + file.name);
-
-            // later you will send this to PHP using AJAX / FormData
-          }
-        });
-
-      // Cancel Select Mode Modal
-      document
-        .getElementById("cancel-mode-btn")
-        .addEventListener("click", () => {
-          document.getElementById("select-mode-modal").style.display = "none";
-        });
-    </script>
+    <script src="../api/external_partners_modal.js"></script>
+    <script src="../api/fetch_external_partners.js"></script>
+    <script src="../api/external_partners_search_filter.js"></script>
+    <script src="../api/external_partners_export.js"></script>
+    <script src="../api/external_partners_crud.js"></script>
   </body>
 </html>
