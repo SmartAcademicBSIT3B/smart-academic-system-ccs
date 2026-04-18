@@ -1,7 +1,245 @@
 (function () {
   // ── Markup injection ──────────────────────────────────────────────────────
 
+  function ensureStyles() {
+    if (document.getElementById("va-modal-style-bundle")) return;
+
+    const styleEl = document.createElement("style");
+    styleEl.id = "va-modal-style-bundle";
+    styleEl.textContent = `
+      #va-toast-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
+      .va-toast {
+        background: #181c22;
+        border: 1px solid #3a3f46;
+        color: #c9ccd1;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-size: 13.5px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        pointer-events: auto;
+        max-width: 320px;
+      }
+
+      .va-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .va-toast-success { border-left: 3px solid #4caf7d; }
+      .va-toast-error { border-left: 3px solid #e06c75; }
+      .va-toast-info { border-left: 3px solid #9dc6ff; }
+
+      .va-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.72);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9000;
+        padding: 24px;
+      }
+
+      .va-modal-overlay.show { display: flex; }
+
+      .va-modal-box {
+        background: #12151a;
+        border: 1px solid #3a3f46;
+        border-radius: 14px;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 920px;
+        height: 90vh;
+        overflow: hidden;
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+      }
+
+      .va-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+        border-bottom: 1px solid #3a3f46;
+        flex-shrink: 0;
+        gap: 12px;
+      }
+
+      .va-modal-title {
+        font-size: 14.5px;
+        font-weight: 600;
+        color: #c9ccd1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .va-modal-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+
+      .va-modal-close {
+        background: transparent;
+        border: 1px solid #3a3f46;
+        color: #c9ccd1;
+        cursor: pointer;
+        border-radius: 8px;
+        padding: 4px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: background 0.15s;
+      }
+
+      .va-modal-close:hover { background: rgba(255, 255, 255, 0.07); }
+
+      .va-modal-body {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .va-modal-loading {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9aa0a6;
+        font-size: 14px;
+        background: #12151a;
+      }
+
+      .va-pdf-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+        transition: opacity 0.2s ease;
+      }
+
+      .va-modal-box:fullscreen,
+      .va-modal-box:-webkit-full-screen {
+        max-width: 100%;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        border: none;
+      }
+
+      .va-error-overlay { z-index: 9100; }
+      .va-error-box { max-width: 520px; height: auto; }
+
+      .va-error-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #e06c75;
+      }
+
+      .va-error-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        color: #e06c75;
+      }
+
+      .va-error-body {
+        padding: 18px 20px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .va-error-message {
+        font-size: 13.5px;
+        color: #c9ccd1;
+        line-height: 1.55;
+      }
+
+      .va-error-hints {
+        list-style: disc;
+        padding-left: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12.5px;
+        color: #9aa0a6;
+        line-height: 1.5;
+      }
+
+      .va-error-hints strong { color: #c9ccd1; }
+
+      .va-error-url-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .va-error-url-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        color: #9aa0a6;
+        font-weight: 600;
+      }
+
+      .va-error-url {
+        font-family: "Courier New", Courier, monospace;
+        font-size: 11.5px;
+        color: #9dc6ff;
+        background: rgba(157, 198, 255, 0.07);
+        border: 1px solid rgba(157, 198, 255, 0.18);
+        border-radius: 6px;
+        padding: 6px 10px;
+        word-break: break-all;
+        display: block;
+        max-height: 72px;
+        overflow-y: auto;
+      }
+
+      .va-error-footer {
+        display: flex;
+        justify-content: flex-end;
+        padding: 12px 20px 16px;
+        border-top: 1px solid #3a3f46;
+      }
+
+      .va-error-ok-btn {
+        background: #181c22;
+        border: 1px solid #3a3f46;
+        color: #c9ccd1;
+        padding: 8px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13.5px;
+        transition: background 0.15s;
+      }
+
+      .va-error-ok-btn:hover { background: rgba(255, 255, 255, 0.07); }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
   function injectMarkup() {
+    ensureStyles();
     if (!document.getElementById("va-toast-container")) {
       const el = document.createElement("div");
       el.id = "va-toast-container";

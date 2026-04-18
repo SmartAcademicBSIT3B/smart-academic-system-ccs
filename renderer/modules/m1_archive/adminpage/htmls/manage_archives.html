@@ -30,6 +30,7 @@
     <script src="../api/update_archive.js"></script>
     <script src="../api/multi_select.js"></script>
     <script src="../api/search_filter.js"></script>
+    <script src="../api/view_archives_modal.js"></script>
   </head>
 
   <body>
@@ -442,6 +443,36 @@
             </div>
           </div>
           <div class="form-actions choice-footer">
+            <button class="cancel-btn" id="view-archive-view-doc" type="button">
+              View Document
+            </button>
+            <button
+              class="cancel-btn view-archive-icon-btn"
+              id="view-archive-download"
+              type="button"
+              aria-label="Download"
+              title="Download"
+            >
+              <i data-lucide="download"></i>
+            </button>
+            <button
+              class="save-btn view-archive-icon-btn"
+              id="view-archive-edit"
+              type="button"
+              aria-label="Edit"
+              title="Edit"
+            >
+              <i data-lucide="pencil"></i>
+            </button>
+            <button
+              class="cancel-btn view-archive-delete-btn view-archive-icon-btn"
+              id="view-archive-delete"
+              type="button"
+              aria-label="Delete"
+              title="Delete"
+            >
+              <i data-lucide="trash-2"></i>
+            </button>
             <button class="cancel-btn" id="view-archive-cancel" type="button">
               Close
             </button>
@@ -1167,6 +1198,7 @@
       let pendingDeleteRow = null;
       let pendingDeleteRows = null;
       let pendingDownloadRows = [];
+      let _activeViewModalRow = null;
 
       const titleEl = document.getElementById("archive-title");
       const sectionEl = document.getElementById("archive-section");
@@ -2742,6 +2774,100 @@
       // All five handlers read the active row from _activeActionRow (set when
       // the menu is opened) so they work with the shared fixed-position menu.
 
+      function getArchiveRowDocumentPayload(row) {
+        if (!row) return null;
+        return {
+          title: row.dataset.title || "Untitled",
+          file_path: row.dataset.filePath || "",
+          local_file_path: row.dataset.localFilePath || "",
+        };
+      }
+
+      function openArchiveRowDocumentPreview(row) {
+        if (!row) return;
+        const payload = getArchiveRowDocumentPayload(row);
+        const hasAnyFile = payload.file_path || payload.local_file_path;
+        if (!hasAnyFile) {
+          showToast("No file link available for this record.", "error");
+          return;
+        }
+
+        if (window.ViewArchivesModal?.openPdfModal) {
+          window.ViewArchivesModal.openPdfModal(payload);
+          return;
+        }
+
+        const driveUrl = toGoogleDriveFileViewUrl(payload.file_path);
+        openGoogleDriveUrl(driveUrl || payload.file_path);
+      }
+
+      async function downloadArchiveRow(row) {
+        if (!row) return;
+        const sourceUrl = String(row.dataset.filePath || "").trim();
+        const localFilePath = String(row.dataset.localFilePath || "").trim();
+        const fileName =
+          String(row.dataset.fileName || "").trim() ||
+          String(row.dataset.title || "archive").trim() ||
+          "archive";
+
+        if (!sourceUrl && !localFilePath) {
+          showToast("No file link available for this record.", "error");
+          return;
+        }
+
+        const api = getElectronAPI();
+        if (api && typeof api.downloadArchivesToDownloads === "function") {
+          const loadingToast = showToast(
+            "Downloading archive to Downloads...",
+            "loading",
+            0,
+          );
+          try {
+            await api.downloadArchivesToDownloads([
+              { sourceUrl, localFilePath, fileName },
+            ]);
+            dismissToast(loadingToast);
+            showToast("Archive downloaded successfully.", "success", 2600);
+          } catch (error) {
+            dismissToast(loadingToast);
+            showToast(
+              error?.message || "Download failed for this archive.",
+              "error",
+            );
+          }
+          return;
+        }
+
+        // Browser fallback if IPC download API is unavailable.
+        const href = sourceUrl || localFilePath;
+        const a = document.createElement("a");
+        a.href = href;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      function openEditModalFromViewRow(row) {
+        if (!row) return;
+        closeModal(viewArchiveModal);
+        openEditModalForRow(row).catch((error) => {
+          console.error("Failed to open edit modal:", error);
+          showArchiveAlert(
+            "Edit Error",
+            error?.message || "Failed to open archive edit mode.",
+          );
+        });
+      }
+
+      function openDeleteConfirmFromViewRow(row) {
+        if (!row) return;
+        closeModal(viewArchiveModal);
+        openDeleteConfirmModal(row);
+      }
+
       archiveActionMenu.addEventListener("click", (e) => {
         const btn = e.target.closest(".menu-action");
         if (!btn) return;
@@ -2765,37 +2891,19 @@
 
         // DOWNLOAD
         if (btn.classList.contains("download-btn")) {
-          const url = row.dataset.filePath;
-          if (!url) {
-            alert("No file link available for this record.");
-            return;
-          }
-          const a = document.createElement("a");
-          a.href = url;
-          a.target = "_blank";
-          a.rel = "noopener noreferrer";
-          a.download = row.dataset.fileName || "archive.pdf";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
+          downloadArchiveRow(row);
           return;
         }
 
         // EDIT
         if (btn.classList.contains("edit-btn")) {
-          openEditModalForRow(row).catch((error) => {
-            console.error("Failed to open edit modal:", error);
-            showArchiveAlert(
-              "Edit Error",
-              error?.message || "Failed to open archive edit mode.",
-            );
-          });
+          openEditModalFromViewRow(row);
           return;
         }
 
         // DELETE
         if (btn.classList.contains("delete-btn")) {
-          openDeleteConfirmModal(row);
+          openDeleteConfirmFromViewRow(row);
           return;
         }
       });
@@ -2857,6 +2965,16 @@
       // View archive modal close buttons
       const viewArchiveModal = document.getElementById("view-archive-modal");
       const viewArchiveFiles = document.getElementById("va-files");
+      const viewArchiveViewDocBtn = document.getElementById(
+        "view-archive-view-doc",
+      );
+      const viewArchiveDownloadBtn = document.getElementById(
+        "view-archive-download",
+      );
+      const viewArchiveEditBtn = document.getElementById("view-archive-edit");
+      const viewArchiveDeleteBtn = document.getElementById(
+        "view-archive-delete",
+      );
       document
         .getElementById("view-archive-close")
         .addEventListener("click", () => closeModal(viewArchiveModal));
@@ -2865,6 +2983,22 @@
         .addEventListener("click", () => closeModal(viewArchiveModal));
       viewArchiveModal.addEventListener("click", (e) => {
         if (e.target === viewArchiveModal) closeModal(viewArchiveModal);
+      });
+
+      viewArchiveViewDocBtn?.addEventListener("click", () => {
+        openArchiveRowDocumentPreview(_activeViewModalRow);
+      });
+
+      viewArchiveDownloadBtn?.addEventListener("click", () => {
+        downloadArchiveRow(_activeViewModalRow);
+      });
+
+      viewArchiveEditBtn?.addEventListener("click", () => {
+        openEditModalFromViewRow(_activeViewModalRow);
+      });
+
+      viewArchiveDeleteBtn?.addEventListener("click", () => {
+        openDeleteConfirmFromViewRow(_activeViewModalRow);
       });
 
       viewArchiveFiles.addEventListener("click", (e) => {
@@ -3089,6 +3223,7 @@
 
       function renderArchiveDetailsModal(row) {
         const d = row.dataset;
+        _activeViewModalRow = row;
         const statusLabel = normalizeArchiveStatus(d.status || "Pending");
         const statusRawV = statusLabel.toLowerCase();
         const dotClassV =

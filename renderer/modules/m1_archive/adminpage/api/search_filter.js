@@ -218,7 +218,11 @@
     el.innerHTML =
       `<option value="">${allLabel}</option>` +
       options
-        .map((o) => `<option value="${_esc(o)}">${_esc(o)}</option>`)
+        .map((o) => {
+          const isSelected = selected.includes(o);
+          const label = isSelected ? `${o} [selected]` : o;
+          return `<option value="${_esc(o)}" data-selected="${isSelected ? "true" : "false"}">${_esc(label)}</option>`;
+        })
         .join("");
 
     // Keep placeholder selected so each pick can add another tag.
@@ -237,10 +241,12 @@
     el.innerHTML =
       `<option value="">${allLabel}</option>` +
       yyyyMMValues
-        .map(
-          (v) =>
-            `<option value="${_esc(v)}">${_esc(_formatMonthYear(v))}</option>`,
-        )
+        .map((v) => {
+          const isSelected = selected.includes(v);
+          const formatted = _formatMonthYear(v);
+          const label = isSelected ? `${formatted} [selected]` : formatted;
+          return `<option value="${_esc(v)}" data-selected="${isSelected ? "true" : "false"}">${_esc(label)}</option>`;
+        })
         .join("");
 
     // Keep placeholder selected so each pick can add another tag.

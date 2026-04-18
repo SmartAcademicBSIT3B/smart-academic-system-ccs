@@ -205,6 +205,12 @@ body {
   color: var(--text-primary);
 }
 
+.filter-pill-select option[data-selected="true"] {
+  color: var(--accent, #9dc6ff);
+  font-weight: 600;
+  background: #202731;
+}
+
 /* ── ACTIVE FILTER TAGS ──────────────────────────────────────────────────── */
 .active-filter-tags-container {
   width: 100%;
@@ -1499,6 +1505,35 @@ body {
   padding: 14px 20px;
   border-top: 1px solid var(--border, #3a3f46);
   justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#view-archive-view-doc {
+  margin-right: auto;
+}
+
+.view-archive-delete-btn {
+  border-color: rgba(224, 108, 117, 0.4) !important;
+  color: #f39aa1 !important;
+}
+
+.view-archive-delete-btn:hover {
+  background: rgba(224, 108, 117, 0.12) !important;
+}
+
+.view-archive-icon-btn {
+  min-width: 42px;
+  width: 42px;
+  min-height: 42px;
+  height: 42px;
+  padding: 0;
+}
+
+.view-archive-icon-btn i,
+.view-archive-icon-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* z-index */
