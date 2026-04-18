@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("uploadProfileImage", fileInfo),
   uploadExternalPartnerLogo: (fileInfo) =>
     ipcRenderer.invoke("uploadExternalPartnerLogo", fileInfo),
+  fetchAndUploadExternalPartnerLogo: (opts) =>
+    ipcRenderer.invoke("fetchAndUploadExternalPartnerLogo", opts),
   createArchive: (archiveData) =>
     ipcRenderer.invoke("createArchive", archiveData),
   updateArchive: (archiveData) =>

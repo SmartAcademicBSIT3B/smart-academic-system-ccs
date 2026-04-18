@@ -1102,6 +1102,13 @@ body {
   padding: 12px 14px;
 }
 
+#archives-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #2a2f36;
+}
+
 /* Override td:nth-child(2) center/width from tables.css
    (ID column removed; Title is now the 2nd child) */
 #archives-table td:nth-child(2),

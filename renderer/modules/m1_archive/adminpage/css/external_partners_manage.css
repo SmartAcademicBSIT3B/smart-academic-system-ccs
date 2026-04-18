@@ -87,6 +87,23 @@
   text-transform: uppercase;
 }
 
+/* Keep Add-button tooltip above controls/table area */
+.controls,
+.right-controls,
+.tooltip-add-partner {
+  overflow: visible;
+}
+
+.tooltip-add-partner {
+  position: relative;
+  z-index: 2005;
+}
+
+.tooltip-add-partner .tooltip-text {
+  bottom: calc(100% + 10px);
+  z-index: 2010;
+}
+
 .external-company-profile-meta {
   text-align: center;
   border-top: 1px solid rgba(157, 198, 255, 0.25);
@@ -197,6 +214,13 @@
 
 #archives-table {
   min-width: 1200px;
+}
+
+#archives-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #2a2f36;
 }
 
 #archives-table td {

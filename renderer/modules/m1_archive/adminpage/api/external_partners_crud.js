@@ -201,7 +201,24 @@
     `;
   }
 
-  function addExternalPartnerRow(partner) {
+  function flashInsertedPartnerRow(row) {
+    if (!row) return;
+
+    row.classList.remove("row-inserted");
+    void row.offsetWidth;
+    row.classList.add("row-inserted");
+
+    if (row.offsetParent !== null) {
+      row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    window.setTimeout(() => {
+      row.classList.remove("row-inserted");
+    }, 2400);
+  }
+
+  function addExternalPartnerRow(partner, options = {}) {
+    const highlight = Boolean(options.highlight);
     const tbody = document.getElementById("external-partners-table-body");
     if (!tbody) return;
 
@@ -224,6 +241,10 @@
       tbody.insertBefore(row, firstDataRow);
     } else {
       tbody.appendChild(row);
+    }
+
+    if (highlight) {
+      flashInsertedPartnerRow(row);
     }
   }
 
@@ -645,7 +666,7 @@
       return;
     }
 
-    addExternalPartnerRow(result.partner);
+    addExternalPartnerRow(result.partner, { highlight: !isEdit });
     ui.closeModal(document.getElementById("external-partner-modal"));
     ui.showToast(
       isEdit
@@ -996,7 +1017,7 @@
       }
 
       createdRows.push(result.partner);
-      addExternalPartnerRow(result.partner);
+      addExternalPartnerRow(result.partner, { highlight: true });
     }
 
     if (loadingOverlay) loadingOverlay.style.display = "none";

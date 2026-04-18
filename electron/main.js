@@ -9,6 +9,7 @@ const { query } = require("../database/dbconnect");
 const {
   uploadProfileImageToCloudinary,
   uploadExternalPartnerLogoToCloudinary,
+  deleteCloudinaryAssetByUrl,
 } = require("../services/cloudinary_config");
 const {
   uploadProfileImage: uploadFileToGoogleDrive,
@@ -664,6 +665,59 @@ ipcMain.handle(
 );
 
 ipcMain.handle(
+  "fetchAndUploadExternalPartnerLogo",
+  async (event, { url, partnerId }) => {
+    try {
+      const rawUrl = String(url || "").trim();
+      if (
+        !rawUrl ||
+        (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://"))
+      ) {
+        return {
+          success: false,
+          message: "A valid http/https URL is required.",
+        };
+      }
+
+      // Fetch the image from the external URL
+      const response = await fetch(rawUrl);
+      if (!response.ok) {
+        return {
+          success: false,
+          message: `Failed to fetch image: HTTP ${response.status}`,
+        };
+      }
+
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      if (!contentType.startsWith("image/")) {
+        return { success: false, message: "URL does not point to an image." };
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const fileBuffer = Buffer.from(arrayBuffer);
+
+      const ext = contentType.split("/")[1]?.split(";")[0] || "jpg";
+      const fileName = `fetched_logo.${ext}`;
+
+      const uploadedUrl = await uploadExternalPartnerLogoToCloudinary(
+        fileBuffer,
+        fileName,
+        contentType,
+        partnerId,
+      );
+
+      return { success: true, path: uploadedUrl };
+    } catch (error) {
+      console.error("fetchAndUploadExternalPartnerLogo error:", error);
+      return {
+        success: false,
+        message: error.message || "Failed to fetch and upload logo.",
+      };
+    }
+  },
+);
+
+ipcMain.handle(
   "updateProfile",
   async (event, { userId, name, profileImagePath }) => {
     try {
@@ -1158,12 +1212,14 @@ ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
     }
 
     const existing = await query(
-      "SELECT id FROM external_partners WHERE id = ? LIMIT 1",
+      "SELECT id, logo FROM external_partners WHERE id = ? LIMIT 1",
       [id],
     );
     if (!existing || existing.length === 0) {
       return { success: false, message: "External partner not found." };
     }
+
+    const oldLogoUrl = existing[0]?.logo || "";
 
     await query(
       `UPDATE external_partners
@@ -1190,6 +1246,18 @@ ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
         id,
       ],
     );
+
+    // Delete old Cloudinary logo if it was replaced with a different URL
+    if (oldLogoUrl && data.logo !== oldLogoUrl) {
+      try {
+        await deleteCloudinaryAssetByUrl(oldLogoUrl);
+      } catch (cloudinaryErr) {
+        console.warn(
+          "Could not delete old logo from Cloudinary:",
+          cloudinaryErr.message,
+        );
+      }
+    }
 
     const rows = await query(
       `SELECT id, logo, company_name, address, company_email, company_contact,
@@ -1226,7 +1294,7 @@ ipcMain.handle("deleteExternalPartner", async (event, partnerId) => {
     }
 
     const existing = await query(
-      "SELECT id FROM external_partners WHERE id = ? LIMIT 1",
+      "SELECT id, logo FROM external_partners WHERE id = ? LIMIT 1",
       [id],
     );
     if (!existing || existing.length === 0) {
@@ -1236,7 +1304,22 @@ ipcMain.handle("deleteExternalPartner", async (event, partnerId) => {
       };
     }
 
+    const logoUrl = existing[0]?.logo || "";
+
     await query("DELETE FROM external_partners WHERE id = ?", [id]);
+
+    // Delete logo from Cloudinary after successful DB delete
+    if (logoUrl) {
+      try {
+        await deleteCloudinaryAssetByUrl(logoUrl);
+      } catch (cloudinaryErr) {
+        console.warn(
+          "Could not delete logo from Cloudinary:",
+          cloudinaryErr.message,
+        );
+      }
+    }
+
     return { success: true, message: "External partner deleted successfully." };
   } catch (error) {
     console.error("deleteExternalPartner error:", error);

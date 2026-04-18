@@ -159,11 +159,40 @@ async function uploadExternalPartnerLogoToCloudinary(
   return finalUrl;
 }
 
+function extractCloudinaryPublicId(url) {
+  const str = String(url || "");
+  const idx = str.indexOf("/upload/");
+  if (idx < 0) return null;
+  let assetPath = str.slice(idx + 8);
+  // strip optional version prefix like v1234567890/
+  assetPath = assetPath.replace(/^v\d+\//, "");
+  // strip file extension
+  assetPath = assetPath.replace(/\.[^./]+$/, "");
+  return assetPath || null;
+}
+
+async function deleteCloudinaryAssetByUrl(url) {
+  if (!isCloudinaryConfigured()) {
+    return { success: false, message: "Cloudinary not configured." };
+  }
+  const publicId = extractCloudinaryPublicId(url);
+  if (!publicId) {
+    return { success: false, message: "Could not extract public_id from URL." };
+  }
+  const result = await cloudinary.uploader.destroy(publicId, {
+    resource_type: "image",
+    invalidate: true,
+  });
+  const ok = result && result.result === "ok";
+  return { success: ok, result: result?.result };
+}
+
 module.exports = {
   cloudinary,
   isCloudinaryConfigured,
   uploadProfileImageToCloudinary,
   uploadExternalPartnerLogoToCloudinary,
+  deleteCloudinaryAssetByUrl,
   buildProfilePublicId,
   buildExternalPartnerLogoPublicId,
   CLOUDINARY_PROFILE_FOLDER,
