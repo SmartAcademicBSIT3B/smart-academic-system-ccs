@@ -50,12 +50,12 @@
 
 .tooltip-add-ojt {
   position: relative;
-  z-index: 2005;
+  z-index: 5;
 }
 
 .tooltip-add-ojt .tooltip-text {
   bottom: calc(100% + 10px);
-  z-index: 2010;
+  z-index: 10;
 }
 
 #ojt-export-cancel-btn {
