@@ -726,7 +726,13 @@ function createMainWindow() {
 
 app.whenReady().then(async () => {
   try {
-    await loadAppSettings();
+    const initialSettings = await loadAppSettings();
+    const initialDeptCode = String(
+      initialSettings?.department?.department_code || "",
+    ).trim();
+    if (initialDeptCode) {
+      api.setDepartmentCode(initialDeptCode);
+    }
   } catch (error) {
     console.error("Failed to initialize app settings:", error);
   }
@@ -818,6 +824,12 @@ ipcMain.handle("getBackendDiagnostics", async () => {
 ipcMain.handle("saveAppSettings", async (event, settingsPatch = {}) => {
   try {
     const settings = await saveAppSettingsPatch(settingsPatch);
+    const savedDeptCode = String(
+      settings?.department?.department_code || "",
+    ).trim();
+    if (savedDeptCode) {
+      api.setDepartmentCode(savedDeptCode);
+    }
     return { success: true, settings };
   } catch (error) {
     return {

@@ -530,7 +530,8 @@
         gdriveSigninBtn.addEventListener("click", async function () {
           if (
             !electronAPI ||
-            typeof electronAPI.authorizeGoogleDriveInteractive !== "function"
+            typeof electronAPI.getGoogleDriveAuthUrl !== "function" ||
+            typeof electronAPI.openExternalUrl !== "function"
           ) {
             showSettingsFeedback(
               "Google Drive auth API is unavailable.",
@@ -539,19 +540,25 @@
             return;
           }
 
-          showSettingsFeedback("Opening Google sign-in...", "");
-          const result = await electronAPI.authorizeGoogleDriveInteractive();
-          if (!result || !result.success) {
+          showSettingsFeedback("Getting Google sign-in URL...", "");
+          const authUrlResult = await electronAPI.getGoogleDriveAuthUrl();
+          if (
+            !authUrlResult ||
+            !authUrlResult.success ||
+            !authUrlResult.authUrl
+          ) {
             showSettingsFeedback(
-              result?.message || "Google Drive sign-in was not completed.",
+              authUrlResult?.message || "Could not get auth URL from backend.",
               "error",
             );
-          } else {
-            showSettingsFeedback(
-              "Google Drive connected successfully.",
-              "success",
-            );
+            return;
           }
+
+          await electronAPI.openExternalUrl(authUrlResult.authUrl);
+          showSettingsFeedback(
+            "Browser opened for Google sign-in. Complete the flow, then check the status.",
+            "success",
+          );
 
           await refreshGoogleDriveAuthStatus();
         });

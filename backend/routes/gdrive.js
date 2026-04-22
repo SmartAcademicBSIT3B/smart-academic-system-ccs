@@ -5,7 +5,8 @@ const gdriveService = require("../services/gdrive");
 const router = express.Router();
 
 // ── GET /api/gdrive/status ────────────────────────────────────────────────────
-router.get("/status", requireAuth, (_req, res) => {
+// Public so landing page settings can show Google Drive state before login.
+router.get("/status", (_req, res) => {
   try {
     return res.json({ success: true, isAuthorized: gdriveService.hasToken() });
   } catch (error) {
@@ -16,7 +17,8 @@ router.get("/status", requireAuth, (_req, res) => {
 });
 
 // ── GET /api/gdrive/auth-url ──────────────────────────────────────────────────
-router.get("/auth-url", requireAuth, (_req, res) => {
+// Public so landing page settings can start OAuth before login.
+router.get("/auth-url", (_req, res) => {
   try {
     const authUrl = gdriveService.getAuthUrl();
     return res.json({ success: true, authUrl });
