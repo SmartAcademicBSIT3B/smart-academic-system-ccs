@@ -163,6 +163,45 @@ npm start
 
 ---
 
+## 📦 Build Windows Installer (Testing)
+
+Use these commands to generate a Windows installer with Electron Builder.
+
+1. Install dependencies (first time only):
+
+```bash
+npm install
+```
+
+1. Build installer using the current version from `package.json`:
+
+```bash
+npm run dist:current
+```
+
+1. Build installer as fixed Alpha 1 version (`1.0.0-alpha.1`):
+
+```bash
+npm run dist:alpha1
+```
+
+Generated installer files are placed in the `release/` folder.
+
+If Windows SmartScreen shows a warning, click **More info** then **Run anyway** for internal testing builds.
+
+### Runtime Secrets for Installed App
+
+For online features (Aiven MySQL, Cloudinary, Google OAuth), the installed app must still have access to your `.env` values.
+
+Use either location:
+
+1. `%APPDATA%\\smart-academic-system-ccs\\.env` (recommended)
+2. `<Install Folder>\\resources\\.env`
+
+The app now checks both locations automatically at startup.
+
+---
+
 # 🛠️ Project Structure
 
 ```

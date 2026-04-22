@@ -4,7 +4,10 @@
   "description": "",
   "main": "electron/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist:current": "electron-builder --win nsis",
+    "dist:alpha1": "electron-builder --win nsis -c.extraMetadata.version=1.0.0-alpha.1"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +23,35 @@
     "nodemailer": "^6.9.7"
   },
   "devDependencies": {
-    "electron": "^40.6.1"
+    "electron": "^40.6.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.smartacademic.ccs",
+    "productName": "Smart Academic System CCS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "services/**/*",
+      "database/**/*",
+      "assets/**/*",
+      "package.json",
+      ".env.example"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Smart Academic CCS"
+    }
   }
 }

@@ -5,6 +5,34 @@ const fsSync = require("node:fs");
 const fs = require("node:fs/promises");
 const { pipeline } = require("node:stream/promises");
 const { fileURLToPath } = require("node:url");
+const dotenv = require("dotenv");
+
+function loadRuntimeEnv() {
+  const candidates = [
+    process.env.SAS_ENV_PATH,
+    path.join(process.cwd(), ".env"),
+    path.join(__dirname, "..", ".env"),
+    process.resourcesPath ? path.join(process.resourcesPath, ".env") : "",
+    process.env.APPDATA
+      ? path.join(process.env.APPDATA, "smart-academic-system-ccs", ".env")
+      : "",
+    path.join(path.dirname(process.execPath), ".env"),
+  ].filter(Boolean);
+
+  const seen = new Set();
+  for (const envPath of candidates) {
+    const normalized = path.normalize(envPath);
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+
+    if (fsSync.existsSync(normalized)) {
+      dotenv.config({ path: normalized, override: false });
+    }
+  }
+}
+
+loadRuntimeEnv();
+
 const { query } = require("../database/dbconnect");
 const {
   uploadProfileImageToCloudinary,

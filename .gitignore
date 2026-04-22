@@ -3,4 +3,5 @@ node_modules/
 .tokens/
 dist/
 build/
-database/ca.pem
+release/
+database/ca.pemrelease-alpha1-fix/
