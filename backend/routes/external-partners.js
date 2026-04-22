@@ -8,7 +8,11 @@ const router = express.Router();
 
 const DEPT_HEADER = "x-department";
 function getDept(req) {
-  return String(req.headers[DEPT_HEADER] || req.user?.department_code || "CCS").trim() || "CCS";
+  return (
+    String(
+      req.headers[DEPT_HEADER] || req.user?.department_code || "CCS",
+    ).trim() || "CCS"
+  );
 }
 
 // ── GET /api/external-partners ────────────────────────────────────────────────
@@ -29,7 +33,10 @@ router.get("/", requireAuth, async (req, res) => {
     console.error("getExternalPartners error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to fetch external partners." });
+      .json({
+        success: false,
+        message: error.message || "Failed to fetch external partners.",
+      });
   }
 });
 
@@ -45,7 +52,10 @@ router.post("/", requireAuth, async (req, res) => {
     if (!data.company_name || !data.address) {
       return res
         .status(400)
-        .json({ success: false, message: "Company Name and Address are required." });
+        .json({
+          success: false,
+          message: "Company Name and Address are required.",
+        });
     }
 
     const result = await query(
@@ -54,9 +64,16 @@ router.post("/", requireAuth, async (req, res) => {
         representative, job_description, representative_email, representative_contact)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        data.logo, data.company_name, data.address, data.department,
-        data.company_email, data.company_contact, data.representative,
-        data.job_description, data.representative_email, data.representative_contact,
+        data.logo,
+        data.company_name,
+        data.address,
+        data.department,
+        data.company_email,
+        data.company_contact,
+        data.representative,
+        data.job_description,
+        data.representative_email,
+        data.representative_contact,
       ],
     );
 
@@ -77,7 +94,10 @@ router.post("/", requireAuth, async (req, res) => {
     console.error("createExternalPartner error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to create external partner." });
+      .json({
+        success: false,
+        message: error.message || "Failed to create external partner.",
+      });
   }
 });
 
@@ -100,7 +120,10 @@ router.patch("/:id", requireAuth, async (req, res) => {
     if (!data.company_name || !data.address) {
       return res
         .status(400)
-        .json({ success: false, message: "Company Name and Address are required." });
+        .json({
+          success: false,
+          message: "Company Name and Address are required.",
+        });
     }
 
     const existing = await query(
@@ -122,10 +145,17 @@ router.patch("/:id", requireAuth, async (req, res) => {
            representative_email=?, representative_contact=?
        WHERE id=?`,
       [
-        data.logo, data.company_name, data.address, data.department,
-        data.company_email, data.company_contact, data.representative,
-        data.job_description, data.representative_email,
-        data.representative_contact, id,
+        data.logo,
+        data.company_name,
+        data.address,
+        data.department,
+        data.company_email,
+        data.company_contact,
+        data.representative,
+        data.job_description,
+        data.representative_email,
+        data.representative_contact,
+        id,
       ],
     );
 
@@ -133,7 +163,10 @@ router.patch("/:id", requireAuth, async (req, res) => {
       try {
         await cloudinaryService.deleteByUrl(oldLogoUrl);
       } catch (cloudinaryErr) {
-        console.warn("Could not delete old logo from Cloudinary:", cloudinaryErr.message);
+        console.warn(
+          "Could not delete old logo from Cloudinary:",
+          cloudinaryErr.message,
+        );
       }
     }
 
@@ -145,12 +178,19 @@ router.patch("/:id", requireAuth, async (req, res) => {
       [id, department],
     );
 
-    return res.json({ success: true, partner: rows[0], message: "Partner updated successfully." });
+    return res.json({
+      success: true,
+      partner: rows[0],
+      message: "Partner updated successfully.",
+    });
   } catch (error) {
     console.error("updateExternalPartner error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to update external partner." });
+      .json({
+        success: false,
+        message: error.message || "Failed to update external partner.",
+      });
   }
 });
 
@@ -172,26 +212,41 @@ router.delete("/:id", requireAuth, async (req, res) => {
     if (!existing || existing.length === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "External partner not found or already deleted." });
+        .json({
+          success: false,
+          message: "External partner not found or already deleted.",
+        });
     }
 
     const logoUrl = existing[0]?.logo || "";
-    await query("DELETE FROM external_partners WHERE id = ? AND department = ?", [id, department]);
+    await query(
+      "DELETE FROM external_partners WHERE id = ? AND department = ?",
+      [id, department],
+    );
 
     if (logoUrl) {
       try {
         await cloudinaryService.deleteByUrl(logoUrl);
       } catch (cloudinaryErr) {
-        console.warn("Could not delete logo from Cloudinary:", cloudinaryErr.message);
+        console.warn(
+          "Could not delete logo from Cloudinary:",
+          cloudinaryErr.message,
+        );
       }
     }
 
-    return res.json({ success: true, message: "External partner deleted successfully." });
+    return res.json({
+      success: true,
+      message: "External partner deleted successfully.",
+    });
   } catch (error) {
     console.error("deleteExternalPartner error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to delete external partner." });
+      .json({
+        success: false,
+        message: error.message || "Failed to delete external partner.",
+      });
   }
 });
 

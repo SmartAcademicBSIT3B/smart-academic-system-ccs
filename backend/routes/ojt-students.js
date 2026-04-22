@@ -7,7 +7,11 @@ const router = express.Router();
 
 const DEPT_HEADER = "x-department";
 function getDept(req) {
-  return String(req.headers[DEPT_HEADER] || req.user?.department_code || "CCS").trim() || "CCS";
+  return (
+    String(
+      req.headers[DEPT_HEADER] || req.user?.department_code || "CCS",
+    ).trim() || "CCS"
+  );
 }
 
 // ── GET /api/ojt-students ─────────────────────────────────────────────────────
@@ -28,7 +32,10 @@ router.get("/", requireAuth, async (req, res) => {
     console.error("getOjtStudents error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to fetch OJT students." });
+      .json({
+        success: false,
+        message: error.message || "Failed to fetch OJT students.",
+      });
   }
 });
 
@@ -36,12 +43,18 @@ router.get("/", requireAuth, async (req, res) => {
 router.post("/", requireAuth, async (req, res) => {
   try {
     const department = getDept(req);
-    const data = normalizeOjtStudentPayload({ ...req.body, department }, department);
+    const data = normalizeOjtStudentPayload(
+      { ...req.body, department },
+      department,
+    );
 
     if (!data.student_id || !data.name || !data.section) {
       return res
         .status(400)
-        .json({ success: false, message: "Student ID, Name, and Section are required." });
+        .json({
+          success: false,
+          message: "Student ID, Name, and Section are required.",
+        });
     }
 
     const result = await query(
@@ -50,9 +63,15 @@ router.post("/", requireAuth, async (req, res) => {
         external_partner_assigned, nature_of_business)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        data.student_id, data.name, data.section, data.department,
-        data.email, data.contact_no, data.status,
-        data.external_partner_assigned, data.nature_of_business,
+        data.student_id,
+        data.name,
+        data.section,
+        data.department,
+        data.email,
+        data.contact_no,
+        data.status,
+        data.external_partner_assigned,
+        data.nature_of_business,
       ],
     );
 
@@ -73,7 +92,10 @@ router.post("/", requireAuth, async (req, res) => {
     console.error("createOjtStudent error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to create OJT student." });
+      .json({
+        success: false,
+        message: error.message || "Failed to create OJT student.",
+      });
   }
 });
 
@@ -84,16 +106,25 @@ router.patch("/:id", requireAuth, async (req, res) => {
     if (!Number.isInteger(id) || id <= 0) {
       return res
         .status(400)
-        .json({ success: false, message: "A valid OJT student ID is required." });
+        .json({
+          success: false,
+          message: "A valid OJT student ID is required.",
+        });
     }
 
     const department = getDept(req);
-    const data = normalizeOjtStudentPayload({ ...req.body, department }, department);
+    const data = normalizeOjtStudentPayload(
+      { ...req.body, department },
+      department,
+    );
 
     if (!data.student_id || !data.name || !data.section) {
       return res
         .status(400)
-        .json({ success: false, message: "Student ID, Name, and Section are required." });
+        .json({
+          success: false,
+          message: "Student ID, Name, and Section are required.",
+        });
     }
 
     const existing = await query(
@@ -112,9 +143,16 @@ router.patch("/:id", requireAuth, async (req, res) => {
            contact_no=?, status=?, external_partner_assigned=?, nature_of_business=?
        WHERE id=?`,
       [
-        data.student_id, data.name, data.section, data.department,
-        data.email, data.contact_no, data.status,
-        data.external_partner_assigned, data.nature_of_business, id,
+        data.student_id,
+        data.name,
+        data.section,
+        data.department,
+        data.email,
+        data.contact_no,
+        data.status,
+        data.external_partner_assigned,
+        data.nature_of_business,
+        id,
       ],
     );
 
@@ -126,12 +164,19 @@ router.patch("/:id", requireAuth, async (req, res) => {
       [id, department],
     );
 
-    return res.json({ success: true, student: rows[0], message: "OJT student updated successfully." });
+    return res.json({
+      success: true,
+      student: rows[0],
+      message: "OJT student updated successfully.",
+    });
   } catch (error) {
     console.error("updateOjtStudent error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to update OJT student." });
+      .json({
+        success: false,
+        message: error.message || "Failed to update OJT student.",
+      });
   }
 });
 
@@ -142,7 +187,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
     if (!Number.isInteger(id) || id <= 0) {
       return res
         .status(400)
-        .json({ success: false, message: "A valid OJT student ID is required." });
+        .json({
+          success: false,
+          message: "A valid OJT student ID is required.",
+        });
     }
 
     const department = getDept(req);
@@ -153,16 +201,28 @@ router.delete("/:id", requireAuth, async (req, res) => {
     if (!existing || existing.length === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "OJT student not found or already deleted." });
+        .json({
+          success: false,
+          message: "OJT student not found or already deleted.",
+        });
     }
 
-    await query("DELETE FROM ojt_students WHERE id = ? AND department = ?", [id, department]);
-    return res.json({ success: true, message: "OJT student deleted successfully." });
+    await query("DELETE FROM ojt_students WHERE id = ? AND department = ?", [
+      id,
+      department,
+    ]);
+    return res.json({
+      success: true,
+      message: "OJT student deleted successfully.",
+    });
   } catch (error) {
     console.error("deleteOjtStudent error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to delete OJT student." });
+      .json({
+        success: false,
+        message: error.message || "Failed to delete OJT student.",
+      });
   }
 });
 

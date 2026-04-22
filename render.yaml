@@ -2,7 +2,7 @@ services:
   - type: web
     name: smart-academic-backend
     runtime: node
-    region: singapore          # closest to Philippines; change if needed
+    region: singapore # closest to Philippines; change if needed
     plan: free
     buildCommand: npm install
     startCommand: node server.js

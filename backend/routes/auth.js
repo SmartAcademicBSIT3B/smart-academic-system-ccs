@@ -26,7 +26,9 @@ function otpKey(email, purpose) {
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 router.post("/login", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
     const password = String(req.body.password || "");
 
     if (!email || !password) {
@@ -155,7 +157,9 @@ router.patch("/profile", requireAuth, async (req, res) => {
 // ── POST /api/auth/send-otp ───────────────────────────────────────────────────
 router.post("/send-otp", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
     const purpose = String(req.body.purpose || "reset_password");
 
     if (!email) {
@@ -202,7 +206,9 @@ router.post("/send-otp", async (req, res) => {
 // ── POST /api/auth/verify-otp ─────────────────────────────────────────────────
 router.post("/verify-otp", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
     const otp = String(req.body.otp || "").trim();
     const purpose = String(req.body.purpose || "reset_password");
 
@@ -229,13 +235,18 @@ router.post("/verify-otp", async (req, res) => {
 // ── POST /api/auth/reset-password ─────────────────────────────────────────────
 router.post("/reset-password", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
     const newPassword = String(req.body.newPassword || "");
 
     if (!email || !newPassword) {
       return res
         .status(400)
-        .json({ success: false, message: "Email and new password are required." });
+        .json({
+          success: false,
+          message: "Email and new password are required.",
+        });
     }
 
     // Require the OTP to have been verified first.
@@ -243,7 +254,10 @@ router.post("/reset-password", async (req, res) => {
     if (!entry || !entry.used) {
       return res
         .status(403)
-        .json({ success: false, message: "OTP verification required before resetting password." });
+        .json({
+          success: false,
+          message: "OTP verification required before resetting password.",
+        });
     }
 
     const hashed = crypto

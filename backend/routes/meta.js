@@ -17,25 +17,37 @@ router.get("/departments", requireAuth, async (req, res) => {
         "SELECT id, department_name, department_code, logo_url, created_at FROM departments ORDER BY department_name ASC",
       );
     }
-    return res.json({ success: true, departments: Array.isArray(departments) ? departments : [] });
+    return res.json({
+      success: true,
+      departments: Array.isArray(departments) ? departments : [],
+    });
   } catch (error) {
     console.error("getDepartments error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to fetch departments.", departments: [] });
+      .json({
+        success: false,
+        message: error.message || "Failed to fetch departments.",
+        departments: [],
+      });
   }
 });
 
 // ── GET /api/meta/sections ────────────────────────────────────────────────────
 router.get("/sections", requireAuth, async (req, res) => {
   try {
-    const rows = await query("SELECT * FROM sections ORDER BY section_name ASC");
+    const rows = await query(
+      "SELECT * FROM sections ORDER BY section_name ASC",
+    );
     return res.json({ success: true, sections: rows });
   } catch (error) {
     console.error("getSections error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to fetch sections." });
+      .json({
+        success: false,
+        message: error.message || "Failed to fetch sections.",
+      });
   }
 });
 
@@ -50,7 +62,10 @@ router.get("/professors", requireAuth, async (req, res) => {
     console.error("getProfessors error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to fetch professors." });
+      .json({
+        success: false,
+        message: error.message || "Failed to fetch professors.",
+      });
   }
 });
 

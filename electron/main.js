@@ -747,7 +747,10 @@ ipcMain.handle("getProfile", async (event, userId) => {
     return await api.get(`/auth/profile/${userId}`);
   } catch (error) {
     console.error("Get profile error:", error);
-    return { success: false, message: "An error occurred while fetching profile." };
+    return {
+      success: false,
+      message: "An error occurred while fetching profile.",
+    };
   }
 });
 
@@ -756,7 +759,11 @@ ipcMain.handle("getDepartments", async () => {
     return await api.get("/meta/departments");
   } catch (error) {
     console.error("getDepartments error:", error);
-    return { success: false, message: error.message || "Failed to fetch departments.", departments: [] };
+    return {
+      success: false,
+      message: error.message || "Failed to fetch departments.",
+      departments: [],
+    };
   }
 });
 
@@ -892,10 +899,19 @@ ipcMain.handle(
   async (event, { localPath, fileName, mimeType, userId }) => {
     try {
       const fileBuffer = await fs.readFile(localPath);
-      return await api.postFile("/upload/profile-image", fileBuffer, fileName, mimeType, { userId });
+      return await api.postFile(
+        "/upload/profile-image",
+        fileBuffer,
+        fileName,
+        mimeType,
+        { userId },
+      );
     } catch (error) {
       console.error("Profile upload error:", error);
-      return { success: false, message: error.message || "Upload failed. Please try again." };
+      return {
+        success: false,
+        message: error.message || "Upload failed. Please try again.",
+      };
     }
   },
 );
@@ -905,10 +921,19 @@ ipcMain.handle(
   async (event, { localPath, fileName, mimeType, partnerId }) => {
     try {
       const fileBuffer = await fs.readFile(localPath);
-      return await api.postFile("/upload/partner-logo", fileBuffer, fileName, mimeType, { partnerId });
+      return await api.postFile(
+        "/upload/partner-logo",
+        fileBuffer,
+        fileName,
+        mimeType,
+        { partnerId },
+      );
     } catch (error) {
       console.error("Partner logo upload error:", error);
-      return { success: false, message: error.message || "Upload failed. Please try again." };
+      return {
+        success: false,
+        message: error.message || "Upload failed. Please try again.",
+      };
     }
   },
 );
@@ -920,7 +945,10 @@ ipcMain.handle(
       return await api.post("/upload/partner-logo-url", { url, partnerId });
     } catch (error) {
       console.error("fetchAndUploadExternalPartnerLogo error:", error);
-      return { success: false, message: error.message || "Failed to fetch and upload logo." };
+      return {
+        success: false,
+        message: error.message || "Failed to fetch and upload logo.",
+      };
     }
   },
 );
@@ -929,10 +957,17 @@ ipcMain.handle(
   "updateProfile",
   async (event, { userId, name, profileImagePath }) => {
     try {
-      return await api.patch("/auth/profile", { userId, name, profileImagePath });
+      return await api.patch("/auth/profile", {
+        userId,
+        name,
+        profileImagePath,
+      });
     } catch (error) {
       console.error("Update profile error:", error);
-      return { success: false, message: "An error occurred while saving profile." };
+      return {
+        success: false,
+        message: "An error occurred while saving profile.",
+      };
     }
   },
 );
@@ -959,13 +994,26 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
     }
 
     if (!fileBuffer) {
-      return { success: false, message: "Failed to read the uploaded file. Please select the PDF again." };
+      return {
+        success: false,
+        message:
+          "Failed to read the uploaded file. Please select the PDF again.",
+      };
     }
 
-    return await api.postFile("/archives", fileBuffer, storedFileName, mimeType, fields);
+    return await api.postFile(
+      "/archives",
+      fileBuffer,
+      storedFileName,
+      mimeType,
+      fields,
+    );
   } catch (error) {
     console.error("Create archive error:", error);
-    return { success: false, message: error.message || "Failed to save archive." };
+    return {
+      success: false,
+      message: error.message || "Failed to save archive.",
+    };
   }
 });
 
@@ -974,7 +1022,10 @@ ipcMain.handle("getArchives", async () => {
     return await api.get("/archives");
   } catch (error) {
     console.error("getArchives error:", error);
-    return { success: false, message: error.message || "Failed to fetch archives." };
+    return {
+      success: false,
+      message: error.message || "Failed to fetch archives.",
+    };
   }
 });
 
@@ -984,7 +1035,10 @@ ipcMain.handle("updateArchive", async (event, payload = {}) => {
     return await api.patch(`/archives/${id}`, rest);
   } catch (error) {
     console.error("Update archive error:", error);
-    return { success: false, message: error.message || "Failed to update archive." };
+    return {
+      success: false,
+      message: error.message || "Failed to update archive.",
+    };
   }
 });
 
@@ -993,7 +1047,10 @@ ipcMain.handle("deleteArchive", async (event, archiveId) => {
     return await api.del(`/archives/${archiveId}`);
   } catch (error) {
     console.error("Delete archive error:", error);
-    return { success: false, message: error?.message || "Failed to delete archive." };
+    return {
+      success: false,
+      message: error?.message || "Failed to delete archive.",
+    };
   }
 });
 
@@ -1002,7 +1059,9 @@ ipcMain.handle("getExternalPartners", async () => {
     return await api.get("/external-partners");
   } catch (error) {
     console.error("getExternalPartners error:", error);
-    return { success: false, message: error.message || "Failed to fetch external partners.",
+    return {
+      success: false,
+      message: error.message || "Failed to fetch external partners.",
     };
   }
 });
@@ -1012,7 +1071,10 @@ ipcMain.handle("createExternalPartner", async (event, payload = {}) => {
     return await api.post("/external-partners", payload);
   } catch (error) {
     console.error("createExternalPartner error:", error);
-    return { success: false, message: error.message || "Failed to create external partner." };
+    return {
+      success: false,
+      message: error.message || "Failed to create external partner.",
+    };
   }
 });
 
@@ -1022,7 +1084,10 @@ ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
     return await api.patch(`/external-partners/${id}`, rest);
   } catch (error) {
     console.error("updateExternalPartner error:", error);
-    return { success: false, message: error.message || "Failed to update external partner." };
+    return {
+      success: false,
+      message: error.message || "Failed to update external partner.",
+    };
   }
 });
 
@@ -1031,7 +1096,10 @@ ipcMain.handle("deleteExternalPartner", async (event, partnerId) => {
     return await api.del(`/external-partners/${partnerId}`);
   } catch (error) {
     console.error("deleteExternalPartner error:", error);
-    return { success: false, message: error.message || "Failed to delete external partner." };
+    return {
+      success: false,
+      message: error.message || "Failed to delete external partner.",
+    };
   }
 });
 
@@ -1040,7 +1108,10 @@ ipcMain.handle("getOjtStudents", async () => {
     return await api.get("/ojt-students");
   } catch (error) {
     console.error("getOjtStudents error:", error);
-    return { success: false, message: error.message || "Failed to fetch OJT students." };
+    return {
+      success: false,
+      message: error.message || "Failed to fetch OJT students.",
+    };
   }
 });
 
@@ -1049,7 +1120,10 @@ ipcMain.handle("createOjtStudent", async (event, payload = {}) => {
     return await api.post("/ojt-students", payload);
   } catch (error) {
     console.error("createOjtStudent error:", error);
-    return { success: false, message: error.message || "Failed to create OJT student." };
+    return {
+      success: false,
+      message: error.message || "Failed to create OJT student.",
+    };
   }
 });
 
@@ -1059,7 +1133,10 @@ ipcMain.handle("updateOjtStudent", async (event, payload = {}) => {
     return await api.patch(`/ojt-students/${id}`, rest);
   } catch (error) {
     console.error("updateOjtStudent error:", error);
-    return { success: false, message: error.message || "Failed to update OJT student." };
+    return {
+      success: false,
+      message: error.message || "Failed to update OJT student.",
+    };
   }
 });
 
@@ -1068,7 +1145,10 @@ ipcMain.handle("deleteOjtStudent", async (event, studentId) => {
     return await api.del(`/ojt-students/${studentId}`);
   } catch (error) {
     console.error("deleteOjtStudent error:", error);
-    return { success: false, message: error.message || "Failed to delete OJT student." };
+    return {
+      success: false,
+      message: error.message || "Failed to delete OJT student.",
+    };
   }
 });
 
@@ -1084,21 +1164,30 @@ ipcMain.handle("getGoogleDriveAuthUrl", async () => {
   try {
     return await api.get("/gdrive/auth-url");
   } catch (error) {
-    return { success: false, message: error.message || "Failed to generate Google auth URL." };
+    return {
+      success: false,
+      message: error.message || "Failed to generate Google auth URL.",
+    };
   }
 });
 
 // saveGoogleDriveToken is no longer needed — backend handles OAuth callback directly.
 // Kept for backward compatibility but is a no-op.
 ipcMain.handle("saveGoogleDriveToken", async () => {
-  return { success: true, message: "Token management is handled by the backend." };
+  return {
+    success: true,
+    message: "Token management is handled by the backend.",
+  };
 });
 
 ipcMain.handle("clearGoogleDriveAuth", async () => {
   try {
     return await api.del("/gdrive/token");
   } catch (error) {
-    return { success: false, message: error.message || "Failed to clear Google Drive authentication." };
+    return {
+      success: false,
+      message: error.message || "Failed to clear Google Drive authentication.",
+    };
   }
 });
 
@@ -1122,7 +1211,10 @@ ipcMain.handle("downloadArchivesToDownloads", async (event, files = []) => {
   try {
     const requestedFiles = Array.isArray(files) ? files : [];
     if (!requestedFiles.length) {
-      return { success: false, message: "No files were selected for download." };
+      return {
+        success: false,
+        message: "No files were selected for download.",
+      };
     }
 
     const downloadsDir = app.getPath("downloads");
@@ -1131,15 +1223,24 @@ ipcMain.handle("downloadArchivesToDownloads", async (event, files = []) => {
 
     for (const file of requestedFiles) {
       try {
-        const { buffer, fileName } = await api.downloadFile(file.sourceUrl || file.file_path || "");
+        const { buffer, fileName } = await api.downloadFile(
+          file.sourceUrl || file.file_path || "",
+        );
         const destPath = path.join(downloadsDir, fileName);
         await fs.writeFile(destPath, buffer);
         downloaded.push({ fileName, savedPath: destPath });
       } catch (error) {
         if (error?.requiresAuth) {
-          return { success: false, requiresAuth: true, message: error.message || "Google Drive authorization is required." };
+          return {
+            success: false,
+            requiresAuth: true,
+            message: error.message || "Google Drive authorization is required.",
+          };
         }
-        failed.push({ fileName: file?.fileName || "archive.pdf", message: error.message || "Download failed." });
+        failed.push({
+          fileName: file?.fileName || "archive.pdf",
+          message: error.message || "Download failed.",
+        });
       }
     }
 
@@ -1151,18 +1252,32 @@ ipcMain.handle("downloadArchivesToDownloads", async (event, files = []) => {
       totalRequested: requestedFiles.length,
     };
   } catch (error) {
-    return { success: false, message: error.message || "Failed to download selected archives." };
+    return {
+      success: false,
+      message: error.message || "Failed to download selected archives.",
+    };
   }
 });
 
 ipcMain.handle("authorizeGoogleDriveInteractive", async () => {
   try {
     const result = await api.get("/gdrive/auth-url");
-    if (!result?.authUrl) return { success: false, message: "Could not get auth URL from backend." };
+    if (!result?.authUrl)
+      return {
+        success: false,
+        message: "Could not get auth URL from backend.",
+      };
     await shell.openExternal(result.authUrl);
-    return { success: true, message: "Browser opened for Google Drive authorization. Complete the flow, then retry." };
+    return {
+      success: true,
+      message:
+        "Browser opened for Google Drive authorization. Complete the flow, then retry.",
+    };
   } catch (error) {
-    return { success: false, message: error.message || "Google interactive authorization failed." };
+    return {
+      success: false,
+      message: error.message || "Google interactive authorization failed.",
+    };
   }
 });
 
@@ -1178,7 +1293,10 @@ ipcMain.handle("logout", async () => {
 
 ipcMain.handle("sendOTP", async (event, email) => {
   try {
-    return await api.post("/auth/send-otp", { email, purpose: "reset_password" });
+    return await api.post("/auth/send-otp", {
+      email,
+      purpose: "reset_password",
+    });
   } catch (error) {
     return { success: false, message: error.message || "Failed to send OTP." };
   }
@@ -1186,9 +1304,16 @@ ipcMain.handle("sendOTP", async (event, email) => {
 
 ipcMain.handle("verifyOTP", async (event, email, otp) => {
   try {
-    return await api.post("/auth/verify-otp", { email, otp, purpose: "reset_password" });
+    return await api.post("/auth/verify-otp", {
+      email,
+      otp,
+      purpose: "reset_password",
+    });
   } catch (error) {
-    return { success: false, message: error.message || "Failed to verify OTP." };
+    return {
+      success: false,
+      message: error.message || "Failed to verify OTP.",
+    };
   }
 });
 
@@ -1196,7 +1321,10 @@ ipcMain.handle("resetPassword", async (event, email, newPassword) => {
   try {
     return await api.post("/auth/reset-password", { email, newPassword });
   } catch (error) {
-    return { success: false, message: error.message || "Failed to reset password." };
+    return {
+      success: false,
+      message: error.message || "Failed to reset password.",
+    };
   }
 });
 

@@ -23,7 +23,10 @@ router.get("/auth-url", requireAuth, (_req, res) => {
   } catch (error) {
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to generate auth URL." });
+      .json({
+        success: false,
+        message: error.message || "Failed to generate auth URL.",
+      });
   }
 });
 
@@ -34,7 +37,9 @@ router.get("/oauth/callback", async (req, res) => {
   if (error) {
     return res
       .status(400)
-      .send("<h3>Google authorization was canceled.</h3><p>You may close this tab.</p>");
+      .send(
+        "<h3>Google authorization was canceled.</h3><p>You may close this tab.</p>",
+      );
   }
 
   const code = String(req.query.code || "").trim();
@@ -55,7 +60,9 @@ router.get("/oauth/callback", async (req, res) => {
     console.error("Token exchange failed:", tokenError);
     return res
       .status(500)
-      .send("<h3>Failed to finalize authorization.</h3><p>Please return to the app and try again.</p>");
+      .send(
+        "<h3>Failed to finalize authorization.</h3><p>Please return to the app and try again.</p>",
+      );
   }
 });
 
@@ -67,7 +74,10 @@ router.delete("/token", requireAuth, (_req, res) => {
   } catch (error) {
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to clear Google Drive auth." });
+      .json({
+        success: false,
+        message: error.message || "Failed to clear Google Drive auth.",
+      });
   }
 });
 
@@ -77,11 +87,14 @@ router.delete("/token", requireAuth, (_req, res) => {
 router.get("/download", requireAuth, async (req, res) => {
   const fileUrl = String(req.query.fileUrl || "").trim();
   if (!fileUrl) {
-    return res.status(400).json({ success: false, message: "fileUrl is required." });
+    return res
+      .status(400)
+      .json({ success: false, message: "fileUrl is required." });
   }
 
   try {
-    const { stream, mimeType, fileName } = await gdriveService.downloadFile(fileUrl);
+    const { stream, mimeType, fileName } =
+      await gdriveService.downloadFile(fileUrl);
 
     res.setHeader("Content-Type", mimeType || "application/octet-stream");
     res.setHeader(
@@ -92,12 +105,17 @@ router.get("/download", requireAuth, async (req, res) => {
     stream.pipe(res);
   } catch (error) {
     if (error?.code === "AUTH_REQUIRED") {
-      return res.status(403).json({ success: false, requiresAuth: true, message: error.message });
+      return res
+        .status(403)
+        .json({ success: false, requiresAuth: true, message: error.message });
     }
     console.error("Drive download error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to download file." });
+      .json({
+        success: false,
+        message: error.message || "Failed to download file.",
+      });
   }
 });
 

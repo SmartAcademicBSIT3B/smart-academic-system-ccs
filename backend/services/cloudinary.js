@@ -40,7 +40,8 @@ async function uploadProfileImage(fileBuffer, fileName, _mimeType, userId) {
   });
 
   const url = result?.secure_url || result?.url || "";
-  if (!url) throw new Error("Cloudinary upload succeeded but no URL was returned.");
+  if (!url)
+    throw new Error("Cloudinary upload succeeded but no URL was returned.");
   return url;
 }
 
@@ -62,7 +63,8 @@ async function uploadPartnerLogo(fileBuffer, fileName, _mimeType, partnerId) {
   });
 
   const url = result?.secure_url || result?.url || "";
-  if (!url) throw new Error("Cloudinary upload succeeded but no URL was returned.");
+  if (!url)
+    throw new Error("Cloudinary upload succeeded but no URL was returned.");
   return url;
 }
 

@@ -1,10 +1,14 @@
 function normalizeArchiveType(type) {
-  const normalized = String(type || "").trim().toLowerCase();
+  const normalized = String(type || "")
+    .trim()
+    .toLowerCase();
   return { thesis: "Thesis", capstone: "Capstone" }[normalized] || null;
 }
 
 function normalizeArchiveStatus(status) {
-  const normalized = String(status || "").trim().toLowerCase();
+  const normalized = String(status || "")
+    .trim()
+    .toLowerCase();
   return (
     { pending: "Pending", approved: "Approved", rejected: "Rejected" }[
       normalized
@@ -21,9 +25,13 @@ function cleanField(value) {
   return normalized || null;
 }
 
-function normalizeExternalPartnerPayload(payload = {}, defaultDepartment = "CCS") {
+function normalizeExternalPartnerPayload(
+  payload = {},
+  defaultDepartment = "CCS",
+) {
   const department =
-    String(payload.department || "").trim() || String(defaultDepartment || "CCS");
+    String(payload.department || "").trim() ||
+    String(defaultDepartment || "CCS");
   return {
     logo: cleanField(payload.logo),
     company_name: String(payload.company_name || "").trim(),
@@ -40,7 +48,8 @@ function normalizeExternalPartnerPayload(payload = {}, defaultDepartment = "CCS"
 
 function normalizeOjtStudentPayload(payload = {}, defaultDepartment = "CCS") {
   const department =
-    String(payload.department || "").trim() || String(defaultDepartment || "CCS");
+    String(payload.department || "").trim() ||
+    String(defaultDepartment || "CCS");
   return {
     student_id: String(payload.student_id || "").trim(),
     name: String(payload.name || "").trim(),

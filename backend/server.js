@@ -51,7 +51,10 @@ app.use("/api/upload", uploadRoutes);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, version: process.env.npm_package_version || "1.0.0-alpha.1" });
+  res.json({
+    ok: true,
+    version: process.env.npm_package_version || "1.0.0-alpha.1",
+  });
 });
 
 // ── 404 ───────────────────────────────────────────────────────────────────────

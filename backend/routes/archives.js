@@ -10,12 +10,19 @@ const {
 const gdriveService = require("../services/gdrive");
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
 
 const DEPT_HEADER = "x-department";
 
 function getDept(req) {
-  return String(req.headers[DEPT_HEADER] || req.user?.department_code || "CCS").trim() || "CCS";
+  return (
+    String(
+      req.headers[DEPT_HEADER] || req.user?.department_code || "CCS",
+    ).trim() || "CCS"
+  );
 }
 
 function sanitizeDriveFolderSegment(value) {
@@ -41,7 +48,10 @@ router.get("/", requireAuth, async (req, res) => {
     console.error("getArchives error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to fetch archives." });
+      .json({
+        success: false,
+        message: error.message || "Failed to fetch archives.",
+      });
   }
 });
 
@@ -63,7 +73,10 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
     if (!title || !authors || !keywords) {
       return res
         .status(400)
-        .json({ success: false, message: "Title, Authors, and Keywords are required." });
+        .json({
+          success: false,
+          message: "Title, Authors, and Keywords are required.",
+        });
     }
     if (!type) {
       return res
@@ -73,7 +86,10 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
     if (!status) {
       return res
         .status(400)
-        .json({ success: false, message: "Status must be pending, approved, or rejected." });
+        .json({
+          success: false,
+          message: "Status must be pending, approved, or rejected.",
+        });
     }
 
     if (!req.file) {
@@ -101,7 +117,10 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
           message: `Google Drive authorization is required. Please authorize via /api/gdrive/auth-url.`,
         });
       }
-      console.error("Drive upload failed, proceeding without file URL:", driveError);
+      console.error(
+        "Drive upload failed, proceeding without file URL:",
+        driveError,
+      );
       usedFallback = true;
     }
 
@@ -112,10 +131,18 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
         department, file_path, local_file_path, status, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        title, authors, section, advisor,
-        datePublished || null, keywords, type,
-        department, filePath || null, null,
-        status, createdAt,
+        title,
+        authors,
+        section,
+        advisor,
+        datePublished || null,
+        keywords,
+        type,
+        department,
+        filePath || null,
+        null,
+        status,
+        createdAt,
       ],
     );
 
@@ -138,7 +165,10 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
     console.error("createArchive error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to save archive." });
+      .json({
+        success: false,
+        message: error.message || "Failed to save archive.",
+      });
   }
 });
 
@@ -164,18 +194,28 @@ router.patch("/:id", requireAuth, async (req, res) => {
     if (!title || !authors || !keywords) {
       return res
         .status(400)
-        .json({ success: false, message: "Title, Authors, and Keywords are required." });
+        .json({
+          success: false,
+          message: "Title, Authors, and Keywords are required.",
+        });
     }
     if (!type) {
       return res.status(400).json({ success: false, message: "Invalid type." });
     }
     if (!status) {
-      return res.status(400).json({ success: false, message: "Invalid status." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid status." });
     }
 
-    const existing = await query("SELECT id FROM archives WHERE id = ? LIMIT 1", [id]);
+    const existing = await query(
+      "SELECT id FROM archives WHERE id = ? LIMIT 1",
+      [id],
+    );
     if (!existing || existing.length === 0) {
-      return res.status(404).json({ success: false, message: "Archive not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Archive not found." });
     }
 
     await query(
@@ -183,7 +223,17 @@ router.patch("/:id", requireAuth, async (req, res) => {
        SET title=?, authors=?, section=?, advisor=?, date_published=?,
            keywords=?, type=?, status=?
        WHERE id=?`,
-      [title, authors, section, advisor, datePublished || null, keywords, type, status, id],
+      [
+        title,
+        authors,
+        section,
+        advisor,
+        datePublished || null,
+        keywords,
+        type,
+        status,
+        id,
+      ],
     );
 
     const rows = await query(
@@ -193,12 +243,19 @@ router.patch("/:id", requireAuth, async (req, res) => {
       [id],
     );
 
-    return res.json({ success: true, archive: rows[0], message: "Archive updated successfully." });
+    return res.json({
+      success: true,
+      archive: rows[0],
+      message: "Archive updated successfully.",
+    });
   } catch (error) {
     console.error("updateArchive error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to update archive." });
+      .json({
+        success: false,
+        message: error.message || "Failed to update archive.",
+      });
   }
 });
 
@@ -219,7 +276,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
     if (!rows || rows.length === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "Archive not found or already deleted." });
+        .json({
+          success: false,
+          message: "Archive not found or already deleted.",
+        });
     }
 
     const archive = rows[0];
@@ -243,12 +303,18 @@ router.delete("/:id", requireAuth, async (req, res) => {
     }
 
     await query("DELETE FROM archives WHERE id = ?", [id]);
-    return res.json({ success: true, message: "Archive deleted successfully." });
+    return res.json({
+      success: true,
+      message: "Archive deleted successfully.",
+    });
   } catch (error) {
     console.error("deleteArchive error:", error);
     return res
       .status(500)
-      .json({ success: false, message: error.message || "Failed to delete archive." });
+      .json({
+        success: false,
+        message: error.message || "Failed to delete archive.",
+      });
   }
 });
 

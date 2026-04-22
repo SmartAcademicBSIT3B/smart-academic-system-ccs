@@ -16,7 +16,10 @@ const { net } = require("electron");
 const { FormData, Blob } = require("node:buffer");
 
 // ── Config ────────────────────────────────────────────────────────────────────
-let BASE_URL = (process.env.BACKEND_URL || "http://localhost:3000").replace(/\/$/, "");
+let BASE_URL = (process.env.BACKEND_URL || "http://localhost:3000").replace(
+  /\/$/,
+  "",
+);
 let authToken = null;
 let departmentCode = "CCS";
 
@@ -126,7 +129,9 @@ async function downloadFile(fileUrl) {
       const json = await response.json();
       msg = json?.message || msg;
     } catch (_) {}
-    throw Object.assign(new Error(msg), { requiresAuth: response.status === 403 });
+    throw Object.assign(new Error(msg), {
+      requiresAuth: response.status === 403,
+    });
   }
 
   const contentDisposition = response.headers.get("content-disposition") || "";

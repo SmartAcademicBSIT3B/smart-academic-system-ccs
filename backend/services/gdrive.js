@@ -54,7 +54,9 @@ function clearToken() {
 
 function getAuthenticatedClient() {
   if (!hasToken()) {
-    const err = new Error("No valid OAuth token. Authorize via /api/gdrive/auth-url.");
+    const err = new Error(
+      "No valid OAuth token. Authorize via /api/gdrive/auth-url.",
+    );
     err.code = "AUTH_REQUIRED";
     throw err;
   }
@@ -99,7 +101,11 @@ async function findOrCreateFolder(drive, parentId, folderName) {
   if (res.data.files?.[0]) return res.data.files[0].id;
 
   const created = await drive.files.create({
-    requestBody: { name: folderName, mimeType: "application/vnd.google-apps.folder", parents: [parentId] },
+    requestBody: {
+      name: folderName,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [parentId],
+    },
     fields: "id",
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
@@ -152,17 +158,25 @@ async function deleteFileByUrl(fileUrl) {
     await drive.files.delete({ fileId, supportsAllDrives: true });
     return { success: true, fileId };
   } catch (error) {
-    if (error?.code === 404) return { success: true, fileId, alreadyDeleted: true };
+    if (error?.code === 404)
+      return { success: true, fileId, alreadyDeleted: true };
     throw error;
   }
 }
 
 async function downloadFile(fileUrl) {
   const fileId = extractFileId(fileUrl);
-  if (!fileId) throw Object.assign(new Error("Invalid Drive URL."), { code: "INVALID_URL" });
+  if (!fileId)
+    throw Object.assign(new Error("Invalid Drive URL."), {
+      code: "INVALID_URL",
+    });
 
   const drive = getDriveClient();
-  const meta = await drive.files.get({ fileId, fields: "name,mimeType", supportsAllDrives: true });
+  const meta = await drive.files.get({
+    fileId,
+    fields: "name,mimeType",
+    supportsAllDrives: true,
+  });
   const fileName = meta.data.name || "archive.pdf";
   const mimeType = meta.data.mimeType || "application/octet-stream";
 
