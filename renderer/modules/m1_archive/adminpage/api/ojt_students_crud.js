@@ -4,6 +4,13 @@
   let pendingDeleteRows = [];
   let activeActionRow = null;
   let viewingRow = null;
+  let appDefaultDepartment = "CCS";
+  const partnerAutocomplete = {
+    partners: [],
+    filtered: [],
+    activeIndex: -1,
+    eventsBound: false,
+  };
 
   function getElectronAPI() {
     if (typeof window.getOjtStudentsElectronApiBridge === "function") {
@@ -20,6 +27,10 @@
     return String(value || "").replace(/\D+/g, "");
   }
 
+  function normalizeSearch(value) {
+    return asText(value).toLowerCase();
+  }
+
   function esc(value) {
     return String(value || "")
       .replace(/&/g, "&amp;")
@@ -27,6 +38,36 @@
       .replace(/>/g, "&gt;")
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function resolveDepartmentFallback(value) {
+    return asText(value) || appDefaultDepartment;
+  }
+
+  async function loadDefaultDepartmentSetting() {
+    try {
+      const cached = localStorage.getItem("sas.app.settings");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const candidate = asText(parsed?.department?.department_code);
+        if (candidate) {
+          appDefaultDepartment = candidate;
+        }
+      }
+    } catch (_error) {}
+
+    const electronAPI = getElectronAPI();
+    if (!electronAPI || typeof electronAPI.getAppSettings !== "function") {
+      return;
+    }
+
+    try {
+      const response = await electronAPI.getAppSettings();
+      const candidate = asText(response?.settings?.department?.department_code);
+      if (candidate) {
+        appDefaultDepartment = candidate;
+      }
+    } catch (_error) {}
   }
 
   function renderNoDataPlaceholderIfEmpty() {
@@ -45,6 +86,246 @@
           </div>
         </td>
       </tr>`;
+  }
+
+  function getPartnerAutocompleteElements() {
+    return {
+      input: document.getElementById("ojt-external-partner-assigned"),
+      panel: document.getElementById("ojt-partner-suggestions"),
+      group: document.querySelector(".ojt-partner-autocomplete-group"),
+    };
+  }
+
+  function closePartnerSuggestions() {
+    const { input, panel } = getPartnerAutocompleteElements();
+    if (!panel) return;
+
+    panel.classList.remove("open");
+    panel.innerHTML = "";
+    partnerAutocomplete.filtered = [];
+    partnerAutocomplete.activeIndex = -1;
+
+    if (input) {
+      input.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  function setActivePartnerOption(nextIndex) {
+    const { panel } = getPartnerAutocompleteElements();
+    if (!panel) return;
+
+    const options = Array.from(panel.querySelectorAll(".ojt-partner-option"));
+    if (!options.length) {
+      partnerAutocomplete.activeIndex = -1;
+      return;
+    }
+
+    const normalized =
+      ((nextIndex % options.length) + options.length) % options.length;
+    partnerAutocomplete.activeIndex = normalized;
+
+    options.forEach((option, index) => {
+      option.classList.toggle("is-active", index === normalized);
+      option.setAttribute(
+        "aria-selected",
+        index === normalized ? "true" : "false",
+      );
+    });
+
+    options[normalized].scrollIntoView({ block: "nearest" });
+  }
+
+  function applyPartnerSelection(partner) {
+    const { input } = getPartnerAutocompleteElements();
+    if (!input || !partner) return;
+
+    input.value = asText(partner.company_name);
+    closePartnerSuggestions();
+  }
+
+  function getPartnerMatches(rawQuery) {
+    const query = normalizeSearch(rawQuery);
+    const allPartners = Array.isArray(partnerAutocomplete.partners)
+      ? partnerAutocomplete.partners
+      : [];
+
+    if (!query) return allPartners.slice(0, 8);
+
+    const starts = [];
+    const contains = [];
+
+    allPartners.forEach((partner) => {
+      const name = normalizeSearch(partner.company_name);
+      if (!name) return;
+
+      if (name.startsWith(query)) {
+        starts.push(partner);
+      } else if (name.includes(query)) {
+        contains.push(partner);
+      }
+    });
+
+    return starts.concat(contains).slice(0, 8);
+  }
+
+  function renderPartnerSuggestions(matches) {
+    const { input, panel } = getPartnerAutocompleteElements();
+    if (!panel || !input) return;
+
+    panel.innerHTML = "";
+    partnerAutocomplete.filtered = matches;
+    partnerAutocomplete.activeIndex = -1;
+
+    if (!Array.isArray(matches) || !matches.length) {
+      const empty = document.createElement("div");
+      empty.className = "ojt-partner-empty";
+      empty.textContent = "No matching external partners";
+      panel.appendChild(empty);
+      panel.classList.add("open");
+      input.setAttribute("aria-expanded", "true");
+      return;
+    }
+
+    matches.forEach((partner, index) => {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.className = "ojt-partner-option";
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", "false");
+      option.dataset.index = String(index);
+
+      const name = document.createElement("span");
+      name.className = "ojt-partner-option-name";
+      name.textContent = asText(partner.company_name);
+
+      const meta = document.createElement("span");
+      meta.className = "ojt-partner-option-meta";
+      const address = asText(partner.address);
+      const representative = asText(partner.representative);
+      const metaBits = [address, representative].filter(Boolean);
+      meta.textContent = metaBits.join(" • ") || "External partner";
+
+      option.appendChild(name);
+      option.appendChild(meta);
+
+      option.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+        applyPartnerSelection(partner);
+      });
+
+      panel.appendChild(option);
+    });
+
+    panel.classList.add("open");
+    input.setAttribute("aria-expanded", "true");
+  }
+
+  async function loadExternalPartnerSuggestions() {
+    const electronAPI = getElectronAPI();
+    if (!electronAPI || typeof electronAPI.getExternalPartners !== "function") {
+      partnerAutocomplete.partners = [];
+      return;
+    }
+
+    try {
+      const result = await electronAPI.getExternalPartners();
+      if (!result || !result.success) {
+        partnerAutocomplete.partners = [];
+        return;
+      }
+
+      const seen = new Set();
+      const uniquePartners = [];
+      const partners = Array.isArray(result.partners) ? result.partners : [];
+
+      partners.forEach((partner) => {
+        const companyName = asText(partner?.company_name);
+        if (!companyName) return;
+
+        const key = companyName.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        uniquePartners.push({
+          company_name: companyName,
+          address: asText(partner?.address),
+          representative: asText(partner?.representative),
+        });
+      });
+
+      uniquePartners.sort((a, b) =>
+        a.company_name.localeCompare(b.company_name),
+      );
+      partnerAutocomplete.partners = uniquePartners;
+    } catch (_error) {
+      partnerAutocomplete.partners = [];
+    }
+  }
+
+  function bindPartnerAutocomplete() {
+    if (partnerAutocomplete.eventsBound) return;
+
+    const { input, group } = getPartnerAutocompleteElements();
+    if (!input || !group) return;
+
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("aria-controls", "ojt-partner-suggestions");
+
+    input.addEventListener("focus", () => {
+      renderPartnerSuggestions(getPartnerMatches(input.value));
+    });
+
+    input.addEventListener("input", () => {
+      renderPartnerSuggestions(getPartnerMatches(input.value));
+    });
+
+    input.addEventListener("keydown", (event) => {
+      const panelOpen = document
+        .getElementById("ojt-partner-suggestions")
+        ?.classList.contains("open");
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (!panelOpen) {
+          renderPartnerSuggestions(getPartnerMatches(input.value));
+        }
+        setActivePartnerOption(partnerAutocomplete.activeIndex + 1);
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (!panelOpen) {
+          renderPartnerSuggestions(getPartnerMatches(input.value));
+        }
+        setActivePartnerOption(partnerAutocomplete.activeIndex - 1);
+        return;
+      }
+
+      if (event.key === "Enter" && panelOpen) {
+        if (partnerAutocomplete.activeIndex >= 0) {
+          event.preventDefault();
+          applyPartnerSelection(
+            partnerAutocomplete.filtered[partnerAutocomplete.activeIndex],
+          );
+        }
+        return;
+      }
+
+      if (event.key === "Escape") {
+        closePartnerSuggestions();
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".ojt-partner-autocomplete-group")) {
+        closePartnerSuggestions();
+      }
+    });
+
+    partnerAutocomplete.eventsBound = true;
   }
 
   function studentFromRow(row) {
@@ -67,7 +348,7 @@
     row.dataset.studentId = asText(student.student_id);
     row.dataset.name = asText(student.name);
     row.dataset.section = asText(student.section);
-    row.dataset.department = asText(student.department || "CCS");
+    row.dataset.department = resolveDepartmentFallback(student.department);
     row.dataset.email = asText(student.email);
     row.dataset.contactNo = asText(student.contact_no);
     row.dataset.status = asText(student.status);
@@ -89,7 +370,7 @@
       <td>${esc(student.student_id)}</td>
       <td>${esc(student.name)}</td>
       <td>${esc(student.section)}</td>
-      <td>${esc(student.department || "CCS")}</td>
+      <td>${esc(resolveDepartmentFallback(student.department))}</td>
       <td>${esc(student.email)}</td>
       <td>${esc(student.contact_no)}</td>
       <td>${esc(student.status)}</td>
@@ -148,7 +429,8 @@
       name: asText(document.getElementById("ojt-name")?.value),
       section: asText(document.getElementById("ojt-section")?.value),
       department:
-        asText(document.getElementById("ojt-department")?.value) || "CCS",
+        asText(document.getElementById("ojt-department")?.value) ||
+        appDefaultDepartment,
       email: asText(document.getElementById("ojt-email")?.value),
       contact_no: normalizeDigits(
         document.getElementById("ojt-contact-no")?.value,
@@ -224,7 +506,7 @@
     document.getElementById("ojt-name").value = asText(student.name);
     document.getElementById("ojt-section").value = asText(student.section);
     document.getElementById("ojt-department").value = asText(
-      student.department || "CCS",
+      resolveDepartmentFallback(student.department),
     );
     document.getElementById("ojt-email").value = asText(student.email);
     document.getElementById("ojt-contact-no").value = asText(
@@ -245,7 +527,7 @@
       student_id: "",
       name: "",
       section: "",
-      department: "CCS",
+      department: appDefaultDepartment,
       email: "",
       contact_no: "",
       status: "Deployed",
@@ -253,6 +535,7 @@
       nature_of_business: "",
     });
     clearAllFieldErrors();
+    closePartnerSuggestions();
   }
 
   function openFormForAdd() {
@@ -263,6 +546,7 @@
     window.OjtStudentsUI?.openModal(
       document.getElementById("ojt-student-modal"),
     );
+    loadExternalPartnerSuggestions();
     if (typeof lucide !== "undefined") lucide.createIcons();
   }
 
@@ -277,6 +561,7 @@
     window.OjtStudentsUI?.openModal(
       document.getElementById("ojt-student-modal"),
     );
+    loadExternalPartnerSuggestions();
     if (typeof lucide !== "undefined") lucide.createIcons();
   }
 
@@ -290,7 +575,7 @@
     document.getElementById("ojtv-section").textContent =
       asText(student.section) || "-";
     document.getElementById("ojtv-department").textContent =
-      asText(student.department) || "CCS";
+      asText(student.department) || appDefaultDepartment;
     document.getElementById("ojtv-email").textContent =
       asText(student.email) || "-";
     document.getElementById("ojtv-contact-no").textContent =
@@ -584,7 +869,7 @@
       "2021-0001",
       "Juan Dela Cruz",
       "BSIT-4A",
-      "CCS",
+      appDefaultDepartment,
       "juan.delacruz@plpasig.edu.ph",
       "09171234567",
       "Deployed",
@@ -620,7 +905,7 @@
       student_id: asText(record.student_id),
       name: asText(record.name),
       section: asText(record.section),
-      department: asText(record.department) || "CCS",
+      department: asText(record.department) || appDefaultDepartment,
       email: asText(record.email),
       contact_no: normalizeDigits(record.contact_no),
       status: asText(record.status) || "Deployed",
@@ -636,7 +921,7 @@
       <td><input type="text" class="ojt-bulk-student-id" value="${esc(record.student_id || "")}" /></td>
       <td><input type="text" class="ojt-bulk-name" value="${esc(record.name || "")}" /></td>
       <td><input type="text" class="ojt-bulk-section" value="${esc(record.section || "")}" /></td>
-      <td><input type="text" class="ojt-bulk-department" value="${esc(record.department || "CCS")}" /></td>
+      <td><input type="text" class="ojt-bulk-department" value="${esc(record.department || appDefaultDepartment)}" /></td>
       <td><input type="text" class="ojt-bulk-email" value="${esc(record.email || "")}" /></td>
       <td><input type="text" class="ojt-bulk-contact-no" value="${esc(record.contact_no || "")}" /></td>
       <td><input type="text" class="ojt-bulk-status" value="${esc(record.status || "Deployed")}" /></td>
@@ -666,7 +951,8 @@
       student_id: tr.querySelector(".ojt-bulk-student-id")?.value || "",
       name: tr.querySelector(".ojt-bulk-name")?.value || "",
       section: tr.querySelector(".ojt-bulk-section")?.value || "",
-      department: tr.querySelector(".ojt-bulk-department")?.value || "CCS",
+      department:
+        tr.querySelector(".ojt-bulk-department")?.value || appDefaultDepartment,
       email: tr.querySelector(".ojt-bulk-email")?.value || "",
       contact_no: tr.querySelector(".ojt-bulk-contact-no")?.value || "",
       status: tr.querySelector(".ojt-bulk-status")?.value || "Deployed",
@@ -814,7 +1100,9 @@
         name: rowData[columnIndex.name] || "",
         section: rowData[columnIndex.section] || "",
         department:
-          columnIndex.department >= 0 ? rowData[columnIndex.department] : "CCS",
+          columnIndex.department >= 0
+            ? rowData[columnIndex.department]
+            : appDefaultDepartment,
         email: columnIndex.email >= 0 ? rowData[columnIndex.email] : "",
         contact_no:
           columnIndex.contact_no >= 0 ? rowData[columnIndex.contact_no] : "",
@@ -1060,6 +1348,9 @@
     }
 
     bindEvents();
+    bindPartnerAutocomplete();
+    loadDefaultDepartmentSetting();
+    loadExternalPartnerSuggestions();
 
     if (typeof window.loadOjtStudents === "function") {
       window.loadOjtStudents();

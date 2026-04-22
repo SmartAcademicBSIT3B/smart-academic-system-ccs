@@ -1,18 +1,195 @@
 /* OJT Students page styles aligned with External Partners page */
 
 #ojt-student-modal .modal-content {
-  max-width: 1100px;
-  width: min(1100px, 92vw);
+  max-width: 980px;
+  width: min(980px, 94vw);
 }
 
 .ojt-form-body {
-  gap: 14px;
+  gap: 16px;
 }
 
-.ojt-form-grid-three {
+#ojt-student-modal .ojt-student-modal-content {
+  background: linear-gradient(160deg, #11161d 0%, #171d26 55%, #131922 100%);
+  border: 1px solid rgba(144, 169, 204, 0.24);
+}
+
+.ojt-id-card-frame {
+  border-radius: 16px;
+  border: 1px solid rgba(155, 179, 210, 0.3);
+  background:
+    radial-gradient(
+      circle at 20% -10%,
+      rgba(123, 176, 238, 0.16),
+      transparent 50%
+    ),
+    linear-gradient(175deg, #111923 0%, #151f2a 55%, #101922 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 12px 30px rgba(0, 0, 0, 0.28);
+  overflow: visible;
+}
+
+.ojt-id-card-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(
+    95deg,
+    rgba(143, 184, 236, 0.24) 0%,
+    rgba(91, 126, 173, 0.16) 100%
+  );
+  border-bottom: 1px solid rgba(160, 184, 216, 0.2);
+}
+
+.ojt-id-card-chip {
+  width: 26px;
+  height: 18px;
+  border-radius: 5px;
+  background: linear-gradient(145deg, #f3dfa2 0%, #d7b767 60%, #b79349 100%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+
+.ojt-id-card-banner-text {
+  min-width: 0;
+}
+
+.ojt-id-card-eyebrow {
+  margin: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #9fb4cc;
+}
+
+.ojt-id-card-heading {
+  margin: 4px 0 0;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e7edf7;
+}
+
+.ojt-id-card-layout {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+}
+
+.ojt-id-card-column {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(157, 183, 217, 0.2);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.02)
+  );
+}
+
+.ojt-id-card-section-title {
+  margin: 0 0 3px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #bed2ed;
+}
+
+#ojt-student-modal .input-group {
+  gap: 6px;
+}
+
+#ojt-student-modal .input-group label {
+  letter-spacing: 0.04em;
+}
+
+#ojt-student-modal .input-group input,
+#ojt-student-modal .input-group select {
+  border-radius: 10px;
+  border: 1px solid rgba(120, 138, 160, 0.7);
+  background: #f5f9ff;
+  color: #122338;
+  font-size: 14px;
+  min-height: 42px;
+  padding: 10px 12px;
+}
+
+#ojt-student-modal .input-group input::placeholder {
+  color: #6a7f98;
+}
+
+.ojt-partner-autocomplete-group {
+  position: relative;
+}
+
+.ojt-partner-suggestions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(105, 137, 174, 0.5);
+  background: #f9fbff;
+  box-shadow: 0 10px 24px rgba(8, 20, 37, 0.24);
+  z-index: 18;
+}
+
+.ojt-partner-suggestions.open {
+  display: flex;
+}
+
+.ojt-partner-option {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ojt-partner-option:hover,
+.ojt-partner-option.is-active {
+  background: linear-gradient(180deg, #e6f1ff 0%, #dcecff 100%);
+}
+
+.ojt-partner-option-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f243c;
+}
+
+.ojt-partner-option-meta {
+  font-size: 11px;
+  color: #5f7690;
+}
+
+.ojt-partner-empty {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #5f7690;
+}
+
+#ojt-student-modal .input-group input:focus,
+#ojt-student-modal .input-group select:focus {
+  outline: none;
+  border-color: #4e9eff;
+  box-shadow: 0 0 0 3px rgba(78, 158, 255, 0.2);
 }
 
 .required-asterisk {
@@ -213,13 +390,27 @@
 }
 
 @media (max-width: 980px) {
-  .ojt-form-grid-three {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .ojt-id-card-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 700px) {
-  .ojt-form-grid-three {
-    grid-template-columns: minmax(0, 1fr);
+  #ojt-student-modal .modal-content {
+    width: min(980px, 96vw);
+    padding: 16px;
+  }
+
+  .ojt-id-card-banner {
+    padding: 12px 14px;
+  }
+
+  .ojt-id-card-layout {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .ojt-id-card-column {
+    padding: 12px;
   }
 }

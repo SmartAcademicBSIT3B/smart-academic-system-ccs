@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   login: (email, password) => ipcRenderer.invoke("login", email, password),
   getProfile: (userId) => ipcRenderer.invoke("getProfile", userId),
   getSections: () => ipcRenderer.invoke("getSections"),
+  getDepartments: () => ipcRenderer.invoke("getDepartments"),
   getProfessors: () => ipcRenderer.invoke("getProfessors"),
   selectProfileImage: () => ipcRenderer.invoke("selectProfileImage"),
   selectExternalPartnerLogo: () =>
@@ -43,6 +44,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("downloadArchivesToDownloads", files),
   authorizeGoogleDriveInteractive: () =>
     ipcRenderer.invoke("authorizeGoogleDriveInteractive"),
+  clearGoogleDriveAuth: () => ipcRenderer.invoke("clearGoogleDriveAuth"),
+  getAppSettings: () => ipcRenderer.invoke("getAppSettings"),
+  saveAppSettings: (settingsPatch) =>
+    ipcRenderer.invoke("saveAppSettings", settingsPatch),
+  selectLocalDocumentsDirectory: () =>
+    ipcRenderer.invoke("selectLocalDocumentsDirectory"),
   updateProfile: (profileData) =>
     ipcRenderer.invoke("updateProfile", profileData),
   logout: () => ipcRenderer.invoke("logout"),

@@ -21,6 +21,7 @@ const {
   getAuthUrl,
   saveTokenFromCode,
   hasValidToken,
+  clearToken,
 } = require("../services/gdrive_oauth");
 const crypto = require("crypto");
 const {
@@ -46,8 +47,121 @@ const ARCHIVE_UPLOAD_DIR = path.join(
   "documents",
 );
 
-function getDownloadsDirectory() {
+const DEFAULT_APP_SETTINGS = {
+  department: {
+    id: null,
+    department_name: "",
+    department_code: "CCS",
+    logo_url: "",
+  },
+  localDocumentsPath: "",
+};
+
+let cachedAppSettings = null;
+
+function getAppSettingsPath() {
+  return path.join(app.getPath("userData"), "app-settings.json");
+}
+
+function normalizeDepartmentSetting(department) {
+  const normalized =
+    department && typeof department === "object" ? department : {};
+
+  const idNumber = Number.parseInt(normalized.id, 10);
+  const department_name = String(normalized.department_name || "").trim();
+  const department_code =
+    String(normalized.department_code || "").trim() ||
+    String(DEFAULT_APP_SETTINGS.department.department_code);
+  const logo_url = String(normalized.logo_url || "").trim();
+
+  return {
+    id: Number.isInteger(idNumber) ? idNumber : null,
+    department_name,
+    department_code,
+    logo_url,
+  };
+}
+
+function normalizeSettingsData(value) {
+  const raw = value && typeof value === "object" ? value : {};
+  const localDocumentsPath = String(raw.localDocumentsPath || "").trim();
+
+  return {
+    department: normalizeDepartmentSetting(raw.department),
+    localDocumentsPath,
+  };
+}
+
+async function loadAppSettings() {
+  if (cachedAppSettings) return cachedAppSettings;
+
+  const settingsPath = getAppSettingsPath();
+
+  try {
+    const raw = await fs.readFile(settingsPath, "utf8");
+    const parsed = JSON.parse(raw);
+    cachedAppSettings = {
+      ...DEFAULT_APP_SETTINGS,
+      ...normalizeSettingsData(parsed),
+    };
+    return cachedAppSettings;
+  } catch (_error) {
+    cachedAppSettings = { ...DEFAULT_APP_SETTINGS };
+    return cachedAppSettings;
+  }
+}
+
+async function writeAppSettings(nextSettings) {
+  const settingsPath = getAppSettingsPath();
+  const normalized = {
+    ...DEFAULT_APP_SETTINGS,
+    ...normalizeSettingsData(nextSettings),
+  };
+
+  await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+  await fs.writeFile(settingsPath, JSON.stringify(normalized, null, 2), "utf8");
+
+  cachedAppSettings = normalized;
+  return normalized;
+}
+
+async function saveAppSettingsPatch(settingsPatch = {}) {
+  const current = await loadAppSettings();
+  const patch =
+    settingsPatch && typeof settingsPatch === "object" ? settingsPatch : {};
+
+  const next = {
+    ...current,
+    ...(Object.prototype.hasOwnProperty.call(patch, "localDocumentsPath")
+      ? { localDocumentsPath: String(patch.localDocumentsPath || "").trim() }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(patch, "department")
+      ? {
+          department: normalizeDepartmentSetting({
+            ...current.department,
+            ...(patch.department && typeof patch.department === "object"
+              ? patch.department
+              : {}),
+          }),
+        }
+      : {}),
+  };
+
+  return writeAppSettings(next);
+}
+
+async function getConfiguredDocumentsDirectory() {
+  const settings = await loadAppSettings();
+  const configured = String(settings.localDocumentsPath || "").trim();
+  if (configured) return configured;
+
   return app.getPath("downloads");
+}
+
+async function getActiveDepartmentCode() {
+  const settings = await loadAppSettings();
+  const code = String(settings?.department?.department_code || "").trim();
+  return code || DEFAULT_APP_SETTINGS.department.department_code;
 }
 
 function sanitizeDownloadFileName(fileName) {
@@ -105,7 +219,7 @@ async function copyLocalArchiveToDownloads(localFilePath, preferredFileName) {
 
   await fs.access(sourcePath);
 
-  const downloadsDir = getDownloadsDirectory();
+  const downloadsDir = await getConfiguredDocumentsDirectory();
   await fs.mkdir(downloadsDir, { recursive: true });
 
   const resolvedName =
@@ -144,7 +258,7 @@ async function downloadDriveArchiveToDownloads(fileUrl, preferredFileName) {
     throw error;
   }
 
-  const downloadsDir = getDownloadsDirectory();
+  const downloadsDir = await getConfiguredDocumentsDirectory();
   await fs.mkdir(downloadsDir, { recursive: true });
 
   const metadataResponse = await drive.files.get({
@@ -230,10 +344,14 @@ function toSqlDateTime(date = new Date()) {
 }
 
 function resolveArchiveLocalFileAbsolutePath(storedPath) {
-  const raw = String(storedPath || "").trim();
-  if (!raw) return "";
+  const resolved = resolveLocalPath(storedPath);
+  if (!resolved) return "";
 
-  const normalized = raw.replace(/\\/g, "/");
+  if (path.isAbsolute(resolved)) {
+    return resolved;
+  }
+
+  const normalized = resolved.replace(/\\/g, "/");
   const fileName = path.basename(normalized);
   if (!fileName) return "";
 
@@ -245,8 +363,13 @@ function cleanExternalPartnerField(value) {
   return normalized || null;
 }
 
-function normalizeExternalPartnerPayload(payload = {}) {
-  const department = String(payload.department || "").trim() || "CCS";
+function normalizeExternalPartnerPayload(
+  payload = {},
+  defaultDepartment = "CCS",
+) {
+  const department =
+    String(payload.department || "").trim() ||
+    String(defaultDepartment || "CCS");
 
   return {
     logo: cleanExternalPartnerField(payload.logo),
@@ -271,8 +394,10 @@ function cleanOjtStudentField(value) {
   return normalized || null;
 }
 
-function normalizeOjtStudentPayload(payload = {}) {
-  const department = String(payload.department || "").trim() || "CCS";
+function normalizeOjtStudentPayload(payload = {}, defaultDepartment = "CCS") {
+  const department =
+    String(payload.department || "").trim() ||
+    String(defaultDepartment || "CCS");
   const status = String(payload.status || "").trim() || "Deployed";
 
   return {
@@ -555,6 +680,12 @@ function createMainWindow() {
 
 app.whenReady().then(async () => {
   try {
+    await loadAppSettings();
+  } catch (error) {
+    console.error("Failed to initialize app settings:", error);
+  }
+
+  try {
     await ensureExternalPartnersTable();
   } catch (error) {
     console.error("Failed to ensure external_partners table exists:", error);
@@ -631,6 +762,84 @@ ipcMain.handle("getProfile", async (event, userId) => {
     return {
       success: false,
       message: "An error occurred while fetching profile.",
+    };
+  }
+});
+
+ipcMain.handle("getDepartments", async () => {
+  try {
+    let departments = [];
+
+    try {
+      departments = await query(
+        `SELECT id, department_name, department_code, logo_url, created_at
+         FROM department
+         ORDER BY department_name ASC`,
+      );
+    } catch (_primaryError) {
+      departments = await query(
+        `SELECT id, department_name, department_code, logo_url, created_at
+         FROM departments
+         ORDER BY department_name ASC`,
+      );
+    }
+
+    return {
+      success: true,
+      departments: Array.isArray(departments) ? departments : [],
+    };
+  } catch (error) {
+    console.error("getDepartments error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to fetch departments.",
+      departments: [],
+    };
+  }
+});
+
+ipcMain.handle("getAppSettings", async () => {
+  try {
+    const settings = await loadAppSettings();
+    return { success: true, settings };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to load app settings.",
+      settings: { ...DEFAULT_APP_SETTINGS },
+    };
+  }
+});
+
+ipcMain.handle("saveAppSettings", async (event, settingsPatch = {}) => {
+  try {
+    const settings = await saveAppSettingsPatch(settingsPatch);
+    return { success: true, settings };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to save app settings.",
+    };
+  }
+});
+
+ipcMain.handle("selectLocalDocumentsDirectory", async () => {
+  try {
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    const { canceled, filePaths } = await dialog.showOpenDialog(focusedWindow, {
+      title: "Select local documents folder",
+      properties: ["openDirectory", "createDirectory", "promptToCreate"],
+    });
+
+    if (canceled || !Array.isArray(filePaths) || filePaths.length === 0) {
+      return { success: false, canceled: true };
+    }
+
+    return { success: true, path: String(filePaths[0] || "") };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to open folder picker.",
     };
   }
 });
@@ -853,6 +1062,9 @@ ipcMain.handle(
 
 ipcMain.handle("createArchive", async (event, payload = {}) => {
   try {
+    const activeDepartment = await getActiveDepartmentCode();
+    const archiveStorageDir = await getConfiguredDocumentsDirectory();
+
     const title = String(payload.title || "").trim();
     const authors = String(payload.authors || "").trim();
     const section = String(payload.section || "").trim();
@@ -900,16 +1112,16 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
     }
 
     if (localSourcePath) {
-      await fs.mkdir(ARCHIVE_UPLOAD_DIR, { recursive: true });
+      await fs.mkdir(archiveStorageDir, { recursive: true });
 
       const safeName = path.basename(
         uploadedFileName || path.basename(localSourcePath),
       );
       const storedFileName = `archive_${Date.now()}_${safeName}`;
-      const destinationPath = path.join(ARCHIVE_UPLOAD_DIR, storedFileName);
+      const destinationPath = path.join(archiveStorageDir, storedFileName);
 
       await fs.copyFile(localSourcePath, destinationPath);
-      localFilePath = `uploads/documents/${storedFileName}`;
+      localFilePath = destinationPath;
 
       try {
         const fileBuffer = await fs.readFile(localSourcePath);
@@ -936,15 +1148,15 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
         console.error("Archive Google Drive upload failed:", driveError);
       }
     } else if (fileContentBase64) {
-      await fs.mkdir(ARCHIVE_UPLOAD_DIR, { recursive: true });
+      await fs.mkdir(archiveStorageDir, { recursive: true });
 
       const safeName = path.basename(uploadedFileName);
       const storedFileName = `archive_${Date.now()}_${safeName}`;
-      const destinationPath = path.join(ARCHIVE_UPLOAD_DIR, storedFileName);
+      const destinationPath = path.join(archiveStorageDir, storedFileName);
       const fileBuffer = Buffer.from(fileContentBase64, "base64");
 
       await fs.writeFile(destinationPath, fileBuffer);
-      localFilePath = `uploads/documents/${storedFileName}`;
+      localFilePath = destinationPath;
 
       try {
         filePath = await uploadFileToGoogleDrive(
@@ -996,7 +1208,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
         datePublished || null,
         keywords,
         type,
-        "CCS",
+        activeDepartment,
         filePath || null,
         localFilePath || null,
         status,
@@ -1246,7 +1458,8 @@ ipcMain.handle("getExternalPartners", async () => {
 
 ipcMain.handle("createExternalPartner", async (event, payload = {}) => {
   try {
-    const data = normalizeExternalPartnerPayload(payload);
+    const activeDepartment = await getActiveDepartmentCode();
+    const data = normalizeExternalPartnerPayload(payload, activeDepartment);
 
     if (!data.company_name || !data.address) {
       return {
@@ -1309,7 +1522,8 @@ ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
       };
     }
 
-    const data = normalizeExternalPartnerPayload(payload);
+    const activeDepartment = await getActiveDepartmentCode();
+    const data = normalizeExternalPartnerPayload(payload, activeDepartment);
 
     if (!data.company_name || !data.address) {
       return {
@@ -1461,7 +1675,8 @@ ipcMain.handle("getOjtStudents", async () => {
 
 ipcMain.handle("createOjtStudent", async (event, payload = {}) => {
   try {
-    const data = normalizeOjtStudentPayload(payload);
+    const activeDepartment = await getActiveDepartmentCode();
+    const data = normalizeOjtStudentPayload(payload, activeDepartment);
 
     if (!data.student_id || !data.name || !data.section) {
       return {
@@ -1522,7 +1737,8 @@ ipcMain.handle("updateOjtStudent", async (event, payload = {}) => {
       };
     }
 
-    const data = normalizeOjtStudentPayload(payload);
+    const activeDepartment = await getActiveDepartmentCode();
+    const data = normalizeOjtStudentPayload(payload, activeDepartment);
 
     if (!data.student_id || !data.name || !data.section) {
       return {
@@ -1658,6 +1874,18 @@ ipcMain.handle("saveGoogleDriveToken", async (event, authCode) => {
   }
 });
 
+ipcMain.handle("clearGoogleDriveAuth", async () => {
+  try {
+    clearToken();
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to clear Google Drive authentication.",
+    };
+  }
+});
+
 ipcMain.handle("openExternalUrl", async (event, url) => {
   try {
     if (!url || !String(url).trim()) {
@@ -1734,7 +1962,7 @@ ipcMain.handle("downloadArchivesToDownloads", async (event, files = []) => {
       success: downloaded.length > 0 && failed.length === 0,
       downloaded,
       failed,
-      downloadDirectory: getDownloadsDirectory(),
+      downloadDirectory: await getConfiguredDocumentsDirectory(),
       totalRequested: requestedFiles.length,
     };
   } catch (error) {

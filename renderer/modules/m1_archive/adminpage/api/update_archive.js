@@ -55,8 +55,14 @@ function applyArchiveRowUpdate(
     archive.date_published || fallbackData.date_published || "",
   );
   const savedType = String(archive.type || fallbackData.type || "");
+  let appDefaultDepartment = "CCS";
+  try {
+    const cached = JSON.parse(localStorage.getItem("sas.app.settings") || "{}");
+    appDefaultDepartment =
+      String(cached?.department?.department_code || "").trim() || "CCS";
+  } catch (_error) {}
   const savedDepartment = String(
-    archive.department || fallbackData.department || "CCS",
+    archive.department || fallbackData.department || appDefaultDepartment,
   );
   const savedStatus = String(archive.status || fallbackData.status || "");
   const formatMonthYear =

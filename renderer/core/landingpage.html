@@ -96,6 +96,131 @@
       </div>
     </div>
 
+    <div
+      id="settings-modal"
+      class="settings-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-modal-title"
+    >
+      <div class="settings-modal-content">
+        <div class="settings-modal-header">
+          <div>
+            <p class="settings-kicker">System Preferences</p>
+            <h3 id="settings-modal-title">Application Settings</h3>
+          </div>
+          <button
+            id="settings-close-btn"
+            class="settings-close-btn"
+            type="button"
+            aria-label="Close settings"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div class="settings-modal-body">
+          <section class="settings-section-card">
+            <h4>Active Department</h4>
+            <p class="settings-help-text">
+              This department will be used as the default context across pages.
+            </p>
+            <label for="settings-department-select" class="settings-label"
+              >Department</label
+            >
+            <select id="settings-department-select" class="settings-select">
+              <option value="">Loading departments...</option>
+            </select>
+          </section>
+
+          <section class="settings-section-card">
+            <h4>Local Document Storage</h4>
+            <p class="settings-help-text">
+              Choose where local archive documents and downloads are stored.
+            </p>
+            <label for="settings-local-path" class="settings-label"
+              >Storage Path</label
+            >
+            <div class="settings-path-row">
+              <input
+                id="settings-local-path"
+                class="settings-input"
+                type="text"
+                readonly
+                placeholder="Using default Downloads folder"
+              />
+              <button
+                id="settings-browse-path-btn"
+                class="settings-secondary-btn"
+                type="button"
+              >
+                Browse
+              </button>
+            </div>
+            <button
+              id="settings-reset-path-btn"
+              class="settings-link-btn"
+              type="button"
+            >
+              Use default Downloads folder
+            </button>
+          </section>
+
+          <section class="settings-section-card">
+            <h4>Google Drive</h4>
+            <p class="settings-help-text">
+              Connect, switch, or sign out your Google Drive account.
+            </p>
+            <div class="settings-auth-row">
+              <span id="settings-gdrive-status" class="settings-status-chip"
+                >Checking status...</span
+              >
+              <div class="settings-auth-actions">
+                <button
+                  id="settings-gdrive-signin-btn"
+                  class="settings-secondary-btn"
+                  type="button"
+                >
+                  Sign In / Change Account
+                </button>
+                <button
+                  id="settings-gdrive-signout-btn"
+                  class="settings-link-btn danger"
+                  type="button"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="settings-modal-footer">
+          <p
+            id="settings-feedback"
+            class="settings-feedback"
+            aria-live="polite"
+          ></p>
+          <div class="settings-footer-actions">
+            <button
+              id="settings-cancel-btn"
+              class="settings-cancel-btn"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              id="settings-save-btn"
+              class="settings-save-btn"
+              type="button"
+            >
+              Save Settings
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ⏳ SCRIPT -->
     <script>
       window.addEventListener("load", function () {
@@ -104,7 +229,224 @@
         const loginBtn = document.querySelector(".login-btn");
         const offlineModal = document.getElementById("offline-modal");
         const offlineRetryBtn = document.getElementById("offline-retry-btn");
+        const settingsBtn = document.getElementById("landing-settings-btn");
+        const settingsModal = document.getElementById("settings-modal");
+        const settingsCloseBtn = document.getElementById("settings-close-btn");
+        const settingsCancelBtn = document.getElementById(
+          "settings-cancel-btn",
+        );
+        const settingsSaveBtn = document.getElementById("settings-save-btn");
+        const departmentSelect = document.getElementById(
+          "settings-department-select",
+        );
+        const localPathInput = document.getElementById("settings-local-path");
+        const browsePathBtn = document.getElementById(
+          "settings-browse-path-btn",
+        );
+        const resetPathBtn = document.getElementById("settings-reset-path-btn");
+        const gdriveStatusChip = document.getElementById(
+          "settings-gdrive-status",
+        );
+        const gdriveSigninBtn = document.getElementById(
+          "settings-gdrive-signin-btn",
+        );
+        const gdriveSignoutBtn = document.getElementById(
+          "settings-gdrive-signout-btn",
+        );
+        const settingsFeedback = document.getElementById("settings-feedback");
+        const electronAPI = window.electronAPI || null;
         let revealTimer = null;
+        let availableDepartments = [];
+        let settingsDraft = {
+          department: null,
+          localDocumentsPath: "",
+        };
+
+        function showSettingsFeedback(message, tone) {
+          settingsFeedback.textContent = String(message || "");
+          settingsFeedback.classList.remove("success", "error");
+          if (tone === "success" || tone === "error") {
+            settingsFeedback.classList.add(tone);
+          }
+        }
+
+        function renderDepartmentOptions(selectedDepartment) {
+          const selectedId = Number.parseInt(selectedDepartment?.id, 10);
+
+          if (
+            !Array.isArray(availableDepartments) ||
+            !availableDepartments.length
+          ) {
+            departmentSelect.innerHTML =
+              '<option value="">No departments available</option>';
+            return;
+          }
+
+          const optionsMarkup = availableDepartments
+            .map((dept) => {
+              const id = Number.parseInt(dept.id, 10);
+              const isSelected =
+                Number.isInteger(selectedId) && id === selectedId;
+              const code = String(dept.department_code || "").trim();
+              const name = String(dept.department_name || "").trim();
+              const label = code ? `${code} - ${name}` : name;
+              return `<option value="${id}" ${isSelected ? "selected" : ""}>${label}</option>`;
+            })
+            .join("");
+
+          departmentSelect.innerHTML = optionsMarkup;
+
+          if (
+            (!Number.isInteger(selectedId) || !departmentSelect.value) &&
+            availableDepartments[0]
+          ) {
+            departmentSelect.value = String(availableDepartments[0].id);
+          }
+        }
+
+        function getSelectedDepartmentObject() {
+          const selectedId = Number.parseInt(departmentSelect.value, 10);
+          const match = availableDepartments.find(
+            (dept) => Number.parseInt(dept.id, 10) === selectedId,
+          );
+          return match || null;
+        }
+
+        async function loadDepartments() {
+          if (
+            !electronAPI ||
+            typeof electronAPI.getDepartments !== "function"
+          ) {
+            departmentSelect.innerHTML =
+              '<option value="">Department API unavailable</option>';
+            return;
+          }
+
+          const result = await electronAPI.getDepartments();
+          if (!result || !result.success) {
+            availableDepartments = [];
+            departmentSelect.innerHTML =
+              '<option value="">Failed to load departments</option>';
+            return;
+          }
+
+          availableDepartments = Array.isArray(result.departments)
+            ? result.departments
+            : [];
+        }
+
+        async function loadSettingsDraft() {
+          if (
+            !electronAPI ||
+            typeof electronAPI.getAppSettings !== "function"
+          ) {
+            settingsDraft = { department: null, localDocumentsPath: "" };
+            return;
+          }
+
+          const result = await electronAPI.getAppSettings();
+          const loaded =
+            result?.settings && typeof result.settings === "object"
+              ? result.settings
+              : {};
+
+          settingsDraft = {
+            department:
+              loaded.department && typeof loaded.department === "object"
+                ? loaded.department
+                : null,
+            localDocumentsPath: String(loaded.localDocumentsPath || "").trim(),
+          };
+        }
+
+        function syncSettingsForm() {
+          renderDepartmentOptions(settingsDraft.department);
+          localPathInput.value = settingsDraft.localDocumentsPath || "";
+        }
+
+        function openSettingsModal() {
+          settingsModal.classList.add("is-open");
+          showSettingsFeedback("", "");
+        }
+
+        function closeSettingsModal() {
+          settingsModal.classList.remove("is-open");
+        }
+
+        async function refreshGoogleDriveAuthStatus() {
+          if (
+            !electronAPI ||
+            typeof electronAPI.checkGoogleDriveAuth !== "function"
+          ) {
+            gdriveStatusChip.textContent = "Google Drive API unavailable";
+            gdriveStatusChip.classList.remove("connected");
+            gdriveStatusChip.classList.add("disconnected");
+            return;
+          }
+
+          const authResult = await electronAPI.checkGoogleDriveAuth();
+          const connected = Boolean(
+            authResult && authResult.success && authResult.isAuthorized,
+          );
+
+          gdriveStatusChip.textContent = connected
+            ? "Connected"
+            : "Not Connected";
+          gdriveStatusChip.classList.toggle("connected", connected);
+          gdriveStatusChip.classList.toggle("disconnected", !connected);
+        }
+
+        async function bootstrapSettingsModal() {
+          await Promise.all([loadDepartments(), loadSettingsDraft()]);
+          syncSettingsForm();
+          await refreshGoogleDriveAuthStatus();
+        }
+
+        async function saveSettings() {
+          if (
+            !electronAPI ||
+            typeof electronAPI.saveAppSettings !== "function"
+          ) {
+            showSettingsFeedback("Settings API is unavailable.", "error");
+            return;
+          }
+
+          const selectedDepartment = getSelectedDepartmentObject();
+          if (!selectedDepartment) {
+            showSettingsFeedback("Please select a department.", "error");
+            return;
+          }
+
+          const payload = {
+            department: {
+              id: selectedDepartment.id,
+              department_name: selectedDepartment.department_name,
+              department_code: selectedDepartment.department_code,
+              logo_url: selectedDepartment.logo_url || "",
+            },
+            localDocumentsPath: String(localPathInput.value || "").trim(),
+          };
+
+          const result = await electronAPI.saveAppSettings(payload);
+          if (!result || !result.success) {
+            showSettingsFeedback(
+              result?.message || "Failed to save settings.",
+              "error",
+            );
+            return;
+          }
+
+          settingsDraft = result.settings || payload;
+          try {
+            localStorage.setItem(
+              "sas.app.settings",
+              JSON.stringify(settingsDraft),
+            );
+          } catch (_error) {}
+
+          showSettingsFeedback("Settings saved successfully.", "success");
+          window.setTimeout(closeSettingsModal, 320);
+        }
 
         function showOfflineBlocker() {
           if (revealTimer) {
@@ -140,10 +482,108 @@
         }
 
         enforceConnectivity();
+        bootstrapSettingsModal();
 
         window.addEventListener("offline", showOfflineBlocker);
         window.addEventListener("online", enforceConnectivity);
         offlineRetryBtn.addEventListener("click", enforceConnectivity);
+
+        settingsBtn.addEventListener("click", async function () {
+          await bootstrapSettingsModal();
+          openSettingsModal();
+        });
+
+        settingsCloseBtn.addEventListener("click", closeSettingsModal);
+        settingsCancelBtn.addEventListener("click", closeSettingsModal);
+
+        settingsModal.addEventListener("click", function (event) {
+          if (event.target === settingsModal) {
+            closeSettingsModal();
+          }
+        });
+
+        browsePathBtn.addEventListener("click", async function () {
+          if (
+            !electronAPI ||
+            typeof electronAPI.selectLocalDocumentsDirectory !== "function"
+          ) {
+            showSettingsFeedback("Folder picker API is unavailable.", "error");
+            return;
+          }
+
+          const picker = await electronAPI.selectLocalDocumentsDirectory();
+          if (picker && picker.success && picker.path) {
+            localPathInput.value = String(picker.path);
+            showSettingsFeedback("Storage path selected.", "success");
+          }
+        });
+
+        resetPathBtn.addEventListener("click", function () {
+          localPathInput.value = "";
+          showSettingsFeedback(
+            "Storage path reset to default Downloads.",
+            "success",
+          );
+        });
+
+        gdriveSigninBtn.addEventListener("click", async function () {
+          if (
+            !electronAPI ||
+            typeof electronAPI.authorizeGoogleDriveInteractive !== "function"
+          ) {
+            showSettingsFeedback(
+              "Google Drive auth API is unavailable.",
+              "error",
+            );
+            return;
+          }
+
+          showSettingsFeedback("Opening Google sign-in...", "");
+          const result = await electronAPI.authorizeGoogleDriveInteractive();
+          if (!result || !result.success) {
+            showSettingsFeedback(
+              result?.message || "Google Drive sign-in was not completed.",
+              "error",
+            );
+          } else {
+            showSettingsFeedback(
+              "Google Drive connected successfully.",
+              "success",
+            );
+          }
+
+          await refreshGoogleDriveAuthStatus();
+        });
+
+        gdriveSignoutBtn.addEventListener("click", async function () {
+          if (
+            !electronAPI ||
+            typeof electronAPI.clearGoogleDriveAuth !== "function"
+          ) {
+            showSettingsFeedback(
+              "Google Drive auth API is unavailable.",
+              "error",
+            );
+            return;
+          }
+
+          const result = await electronAPI.clearGoogleDriveAuth();
+          if (!result || !result.success) {
+            showSettingsFeedback(
+              result?.message || "Failed to sign out from Google Drive.",
+              "error",
+            );
+          } else {
+            showSettingsFeedback(
+              "Google Drive account disconnected.",
+              "success",
+            );
+          }
+
+          await refreshGoogleDriveAuthStatus();
+        });
+
+        settingsSaveBtn.addEventListener("click", saveSettings);
 
         loginBtn.addEventListener("click", function (event) {
           if (!navigator.onLine) {

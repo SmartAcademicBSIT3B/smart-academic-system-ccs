@@ -245,83 +245,120 @@
           </div>
 
           <div class="form-body ojt-form-body">
-            <div class="ojt-form-grid-three">
-              <div class="input-group">
-                <label
-                  >STUDENT ID <span class="required-asterisk">*</span></label
+            <div class="ojt-id-card-frame">
+              <div class="ojt-id-card-banner">
+                <span class="ojt-id-card-chip" aria-hidden="true"></span>
+                <div class="ojt-id-card-banner-text">
+                  <p class="ojt-id-card-eyebrow">College of Computer Studies</p>
+                  <h5 class="ojt-id-card-heading">
+                    OJT Student Information Card
+                  </h5>
+                </div>
+              </div>
+
+              <div class="ojt-id-card-layout">
+                <section
+                  class="ojt-id-card-column"
+                  aria-label="Identity details"
                 >
-                <input
-                  id="ojt-student-id"
-                  class="required-field"
-                  placeholder="Student ID"
-                />
-                <div class="field-error" id="ojt-student-id-error"></div>
-              </div>
+                  <h6 class="ojt-id-card-section-title">Identity Details</h6>
 
-              <div class="input-group">
-                <label>NAME <span class="required-asterisk">*</span></label>
-                <input
-                  id="ojt-name"
-                  class="required-field"
-                  placeholder="Student Name"
-                />
-                <div class="field-error" id="ojt-name-error"></div>
-              </div>
+                  <div class="input-group">
+                    <label
+                      >STUDENT ID
+                      <span class="required-asterisk">*</span></label
+                    >
+                    <input
+                      id="ojt-student-id"
+                      class="required-field"
+                      placeholder="Student ID"
+                    />
+                    <div class="field-error" id="ojt-student-id-error"></div>
+                  </div>
 
-              <div class="input-group">
-                <label>SECTION <span class="required-asterisk">*</span></label>
-                <input
-                  id="ojt-section"
-                  class="required-field"
-                  placeholder="Section"
-                />
-                <div class="field-error" id="ojt-section-error"></div>
-              </div>
+                  <div class="input-group">
+                    <label>NAME <span class="required-asterisk">*</span></label>
+                    <input
+                      id="ojt-name"
+                      class="required-field"
+                      placeholder="Student Name"
+                    />
+                    <div class="field-error" id="ojt-name-error"></div>
+                  </div>
 
-              <div class="input-group">
-                <label>DEPARTMENT</label>
-                <input id="ojt-department" placeholder="CCS" />
-              </div>
+                  <div class="input-group">
+                    <label
+                      >SECTION <span class="required-asterisk">*</span></label
+                    >
+                    <input
+                      id="ojt-section"
+                      class="required-field"
+                      placeholder="Section"
+                    />
+                    <div class="field-error" id="ojt-section-error"></div>
+                  </div>
 
-              <div class="input-group">
-                <label>EMAIL</label>
-                <input id="ojt-email" type="email" placeholder="Email" />
-                <div class="field-error" id="ojt-email-error"></div>
-              </div>
+                  <div class="input-group">
+                    <label>DEPARTMENT</label>
+                    <input id="ojt-department" placeholder="CCS" />
+                  </div>
+                </section>
 
-              <div class="input-group">
-                <label>CONTACT NO.</label>
-                <input
-                  id="ojt-contact-no"
-                  type="text"
-                  placeholder="Contact No."
-                />
-                <div class="field-error" id="ojt-contact-no-error"></div>
-              </div>
+                <section
+                  class="ojt-id-card-column"
+                  aria-label="Placement and contact details"
+                >
+                  <h6 class="ojt-id-card-section-title">
+                    Placement and Contact
+                  </h6>
 
-              <div class="input-group">
-                <label>STATUS</label>
-                <select id="ojt-status">
-                  <option>Deployed</option>
-                  <option>Pre-Deployment</option>
-                  <option>Pending Requirements</option>
-                </select>
-              </div>
+                  <div class="input-group">
+                    <label>EMAIL</label>
+                    <input id="ojt-email" type="email" placeholder="Email" />
+                    <div class="field-error" id="ojt-email-error"></div>
+                  </div>
 
-              <div class="input-group">
-                <label>EXTERNAL PARTNER ASSIGNED</label>
-                <input
-                  id="ojt-external-partner-assigned"
-                  placeholder="External Partner"
-                />
-              </div>
+                  <div class="input-group">
+                    <label>CONTACT NO.</label>
+                    <input
+                      id="ojt-contact-no"
+                      type="text"
+                      placeholder="Contact No."
+                    />
+                    <div class="field-error" id="ojt-contact-no-error"></div>
+                  </div>
 
-              <div class="input-group">
-                <label>NATURE OF BUSINESS</label>
-                <input
-                  id="ojt-nature-of-business"
-                  placeholder="Nature of Business"
-                />
+                  <div class="input-group">
+                    <label>STATUS</label>
+                    <select id="ojt-status">
+                      <option>Deployed</option>
+                      <option>Pre-Deployment</option>
+                      <option>Pending Requirements</option>
+                    </select>
+                  </div>
+
+                  <div class="input-group ojt-partner-autocomplete-group">
+                    <label>EXTERNAL PARTNER ASSIGNED</label>
+                    <input
+                      id="ojt-external-partner-assigned"
+                      placeholder="External Partner"
+                    />
+                    <div
+                      id="ojt-partner-suggestions"
+                      class="ojt-partner-suggestions"
+                      role="listbox"
+                      aria-label="External partner suggestions"
+                    ></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label>NATURE OF BUSINESS</label>
+                    <input
+                      id="ojt-nature-of-business"
+                      placeholder="Nature of Business"
+                    />
+                  </div>
+                </section>
               </div>
             </div>
           </div>
