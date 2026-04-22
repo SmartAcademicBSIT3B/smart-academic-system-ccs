@@ -16,7 +16,10 @@ const { net } = require("electron");
 const { FormData, Blob } = require("node:buffer");
 
 // ── Config ────────────────────────────────────────────────────────────────────
-let BASE_URL = (process.env.BACKEND_URL || "http://localhost:3000").replace(
+let BASE_URL = (
+  process.env.BACKEND_URL ||
+  "https://smart-academic-system-ccs.onrender.com"
+).replace(
   /\/$/,
   "",
 );

@@ -6,6 +6,7 @@ build/
 release/
 release-alpha1-fix/
 release-alpha1-fix2/
+release-render-test/
 database/ca.pem
 
 # Backend
