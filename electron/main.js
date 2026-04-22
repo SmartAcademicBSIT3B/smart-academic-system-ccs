@@ -189,12 +189,47 @@ async function saveAppSettingsPatch(settingsPatch = {}) {
   return writeAppSettings(next);
 }
 
+function getDefaultLocalDocumentsDirectory() {
+  return path.join(app.getPath("userData"), "local-archives");
+}
+
+async function isWritableDirectory(dirPath) {
+  const target = String(dirPath || "").trim();
+  if (!target) return false;
+
+  try {
+    await fs.mkdir(target, { recursive: true });
+    const probePath = path.join(
+      target,
+      `.sas-write-test-${Date.now()}-${Math.random().toString(16).slice(2)}.tmp`,
+    );
+    await fs.writeFile(probePath, "ok", "utf8");
+    await fs.unlink(probePath);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
 async function getConfiguredDocumentsDirectory() {
   const settings = await loadAppSettings();
   const configured = String(settings.localDocumentsPath || "").trim();
-  if (configured) return configured;
+  if (configured && (await isWritableDirectory(configured))) {
+    return configured;
+  }
 
-  return app.getPath("downloads");
+  const fallbackCandidates = [
+    getDefaultLocalDocumentsDirectory(),
+    app.getPath("downloads"),
+  ];
+
+  for (const candidate of fallbackCandidates) {
+    if (await isWritableDirectory(candidate)) {
+      return candidate;
+    }
+  }
+
+  return getDefaultLocalDocumentsDirectory();
 }
 
 async function getActiveDepartmentCode() {
@@ -842,8 +877,10 @@ ipcMain.handle("saveAppSettings", async (event, settingsPatch = {}) => {
 ipcMain.handle("selectLocalDocumentsDirectory", async () => {
   try {
     const focusedWindow = BrowserWindow.getFocusedWindow();
+    const defaultPath = await getConfiguredDocumentsDirectory();
     const { canceled, filePaths } = await dialog.showOpenDialog(focusedWindow, {
       title: "Select local documents folder",
+      defaultPath,
       properties: ["openDirectory", "createDirectory", "promptToCreate"],
     });
 

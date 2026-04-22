@@ -527,7 +527,7 @@
         resetPathBtn.addEventListener("click", function () {
           localPathInput.value = "";
           showSettingsFeedback(
-            "Storage path reset to default Downloads.",
+            "Storage path reset to default app storage folder.",
             "success",
           );
         });
@@ -535,7 +535,8 @@
         gdriveSigninBtn.addEventListener("click", async function () {
           if (
             !electronAPI ||
-            typeof electronAPI.authorizeGoogleDriveInteractive !== "function"
+            typeof electronAPI.getGoogleDriveAuthUrl !== "function" ||
+            typeof electronAPI.openExternalUrl !== "function"
           ) {
             showSettingsFeedback(
               "Google Drive auth API is unavailable.",
@@ -544,16 +545,37 @@
             return;
           }
 
-          showSettingsFeedback("Opening Google sign-in...", "");
-          const result = await electronAPI.authorizeGoogleDriveInteractive();
-          if (!result || !result.success) {
+          showSettingsFeedback("Getting Google sign-in URL...", "");
+          const authUrlResult = await electronAPI.getGoogleDriveAuthUrl();
+          if (
+            !authUrlResult ||
+            !authUrlResult.success ||
+            !authUrlResult.authUrl
+          ) {
+            const backendMessage = String(authUrlResult?.message || "");
+            if (/unauthorized/i.test(backendMessage)) {
+              showSettingsFeedback(
+                "Google auth endpoint is still protected on backend. Deploy latest backend, then retry.",
+                "error",
+              );
+            } else {
+              showSettingsFeedback(
+                authUrlResult?.message || "Could not get auth URL from backend.",
+                "error",
+              );
+            }
+            return;
+          }
+
+          await electronAPI.openExternalUrl(authUrlResult.authUrl);
+          if (!authUrlResult || !authUrlResult.success) {
             showSettingsFeedback(
-              result?.message || "Google Drive sign-in was not completed.",
+              "Google Drive sign-in was not completed.",
               "error",
             );
           } else {
             showSettingsFeedback(
-              "Google Drive connected successfully.",
+              "Browser opened for Google sign-in. Complete the flow, then check the status.",
               "success",
             );
           }

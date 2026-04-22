@@ -522,7 +522,7 @@
         resetPathBtn.addEventListener("click", function () {
           localPathInput.value = "";
           showSettingsFeedback(
-            "Storage path reset to default Downloads.",
+            "Storage path reset to default app storage folder.",
             "success",
           );
         });
@@ -547,10 +547,18 @@
             !authUrlResult.success ||
             !authUrlResult.authUrl
           ) {
-            showSettingsFeedback(
-              authUrlResult?.message || "Could not get auth URL from backend.",
-              "error",
-            );
+            const backendMessage = String(authUrlResult?.message || "");
+            if (/unauthorized/i.test(backendMessage)) {
+              showSettingsFeedback(
+                "Google auth endpoint is still protected on backend. Deploy latest backend, then retry.",
+                "error",
+              );
+            } else {
+              showSettingsFeedback(
+                authUrlResult?.message || "Could not get auth URL from backend.",
+                "error",
+              );
+            }
             return;
           }
 
