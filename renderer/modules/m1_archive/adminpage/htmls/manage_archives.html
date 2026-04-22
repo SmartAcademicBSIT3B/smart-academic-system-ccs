@@ -765,6 +765,26 @@
     <script>
       lucide.createIcons();
 
+      const APP_SETTINGS_KEY = "sas.app.settings";
+      const DEFAULT_DEPARTMENT_CODE = "CCS";
+      let ACTIVE_DEPARTMENT_CODE = DEFAULT_DEPARTMENT_CODE;
+
+      function resolveActiveDepartmentCode() {
+        try {
+          const raw = localStorage.getItem(APP_SETTINGS_KEY);
+          if (!raw) return DEFAULT_DEPARTMENT_CODE;
+          const parsed = JSON.parse(raw);
+          const code = String(parsed?.department?.department_code || "")
+            .trim()
+            .toUpperCase();
+          return code || DEFAULT_DEPARTMENT_CODE;
+        } catch (_error) {
+          return DEFAULT_DEPARTMENT_CODE;
+        }
+      }
+
+      ACTIVE_DEPARTMENT_CODE = resolveActiveDepartmentCode();
+
       if (typeof window.loadArchiveDropdownOptions === "function") {
         window.loadArchiveDropdownOptions();
       }
@@ -962,7 +982,7 @@
         }
 
         alert(
-          "Authorize Google Drive in your browser for My Drive/CTA Files/Documents, then copy either the code OR the full callback URL.",
+          `Authorize Google Drive in your browser for My Drive/CTA Files/Documents/${ACTIVE_DEPARTMENT_CODE}, then copy either the code OR the full callback URL.`,
         );
 
         const authInput = prompt(
@@ -1832,6 +1852,7 @@
             keywords: row.keywords,
             type: row.type,
             status: row.status,
+            department: ACTIVE_DEPARTMENT_CODE,
             fileName: row.fileName,
             localSourcePath,
             fileContentBase64,
@@ -1848,7 +1869,7 @@
 
             if (!authorized) {
               showToast(
-                "Google Drive upload was cancelled. Authorize OAuth to continue.",
+                `Google Drive upload was cancelled. Authorize OAuth to continue for My Drive/CTA Files/Documents/${ACTIVE_DEPARTMENT_CODE}.`,
                 "error",
               );
               bulkLoadingOverlay.style.display = "none";
@@ -2389,7 +2410,7 @@
         tr.dataset.keywords = data.keywords || "";
         tr.dataset.type = type;
         tr.dataset.status = statusLabel;
-        tr.dataset.department = data.department || "CCS";
+        tr.dataset.department = data.department || ACTIVE_DEPARTMENT_CODE;
         tr.dataset.filePath = driveUrl;
         tr.dataset.fileName = displayFileName;
         tr.dataset.localFilePath =
@@ -2735,6 +2756,7 @@
                 keywords,
                 type,
                 status,
+                department: ACTIVE_DEPARTMENT_CODE,
                 fileName,
                 localSourcePath,
                 fileContentBase64,
@@ -2748,7 +2770,7 @@
                 if (!authorized) {
                   showArchiveAlert(
                     "Upload Cancelled",
-                    "Google Drive upload was cancelled. Authorize OAuth to upload to My Drive/CTA Files/Documents.",
+                    `Google Drive upload was cancelled. Authorize OAuth to upload to My Drive/CTA Files/Documents/${ACTIVE_DEPARTMENT_CODE}.`,
                   );
                   return;
                 }

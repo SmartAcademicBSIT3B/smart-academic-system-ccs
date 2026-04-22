@@ -5,7 +5,7 @@ const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
 const DRIVE_FOLDER_PATH =
   process.env.GOOGLE_DRIVE_FOLDER_PATH || "CTA Files/Documents";
 
-let cachedResolvedFolderId = "";
+const cachedResolvedFolderIds = new Map();
 
 function getDriveClient() {
   if (!hasValidToken()) {
@@ -50,12 +50,18 @@ async function createChildFolder(drive, parentId, folderName) {
   return response.data.id;
 }
 
-async function resolveUploadFolderId(drive) {
-  if (cachedResolvedFolderId) {
-    return cachedResolvedFolderId;
+async function resolveUploadFolderId(drive, targetFolderPath = "") {
+  const normalizedFolderPath = String(targetFolderPath || DRIVE_FOLDER_PATH)
+    .split("/")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join("/");
+
+  if (cachedResolvedFolderIds.has(normalizedFolderPath)) {
+    return cachedResolvedFolderIds.get(normalizedFolderPath);
   }
 
-  const segments = String(DRIVE_FOLDER_PATH)
+  const segments = normalizedFolderPath
     .split("/")
     .map((s) => s.trim())
     .filter(Boolean);
@@ -68,11 +74,11 @@ async function resolveUploadFolderId(drive) {
   }
 
   if (segments.length === 0 && DRIVE_FOLDER_ID) {
-    cachedResolvedFolderId = DRIVE_FOLDER_ID;
-    return cachedResolvedFolderId;
+    cachedResolvedFolderIds.set(normalizedFolderPath, DRIVE_FOLDER_ID);
+    return DRIVE_FOLDER_ID;
   }
 
-  cachedResolvedFolderId = parentId;
+  cachedResolvedFolderIds.set(normalizedFolderPath, parentId);
   return parentId;
 }
 
@@ -85,9 +91,14 @@ async function resolveUploadFolderId(drive) {
  * @param {string} mimeType - MIME type of the file
  * @returns {Promise<string>} Public URL of the uploaded file
  */
-async function uploadProfileImage(fileBuffer, fileName, mimeType) {
+async function uploadProfileImage(
+  fileBuffer,
+  fileName,
+  mimeType,
+  targetFolderPath = "",
+) {
   const drive = getDriveClient();
-  const folderId = await resolveUploadFolderId(drive);
+  const folderId = await resolveUploadFolderId(drive, targetFolderPath);
 
   const { Readable } = require("stream");
   const stream = Readable.from(fileBuffer);

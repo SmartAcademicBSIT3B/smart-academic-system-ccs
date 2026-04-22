@@ -7,6 +7,7 @@
   let pendingDeleteRows = [];
   let activeActionRow = null;
   let viewingRow = null;
+  let appDefaultDepartment = "CCS";
 
   function getElectronAPI() {
     if (typeof window.getExternalPartnersElectronApiBridge === "function") {
@@ -17,6 +18,36 @@
 
   function asText(value) {
     return String(value || "").trim();
+  }
+
+  function resolveDepartmentFallback(value) {
+    return asText(value) || appDefaultDepartment;
+  }
+
+  async function loadDefaultDepartmentSetting() {
+    try {
+      const cached = localStorage.getItem("sas.app.settings");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const candidate = asText(parsed?.department?.department_code);
+        if (candidate) {
+          appDefaultDepartment = candidate;
+        }
+      }
+    } catch (_error) {}
+
+    const electronAPI = getElectronAPI();
+    if (!electronAPI || typeof electronAPI.getAppSettings !== "function") {
+      return;
+    }
+
+    try {
+      const response = await electronAPI.getAppSettings();
+      const candidate = asText(response?.settings?.department?.department_code);
+      if (candidate) {
+        appDefaultDepartment = candidate;
+      }
+    } catch (_error) {}
   }
 
   function normalizeDigits(value) {
@@ -142,6 +173,7 @@
       logo: asText(row?.dataset?.logo),
       company_name: asText(row?.dataset?.companyName),
       address: asText(row?.dataset?.address),
+      department: resolveDepartmentFallback(row?.dataset?.department),
       company_email: asText(row?.dataset?.companyEmail),
       company_contact: asText(row?.dataset?.companyContact),
       representative: asText(row?.dataset?.representative),
@@ -156,6 +188,7 @@
     row.dataset.logo = asText(partner.logo);
     row.dataset.companyName = asText(partner.company_name);
     row.dataset.address = asText(partner.address);
+    row.dataset.department = resolveDepartmentFallback(partner.department);
     row.dataset.companyEmail = asText(partner.company_email);
     row.dataset.companyContact = asText(partner.company_contact);
     row.dataset.representative = asText(partner.representative);
@@ -304,6 +337,7 @@
       logo: asText(document.getElementById("ep-logo")?.value),
       company_name: asText(document.getElementById("ep-company-name")?.value),
       address: asText(document.getElementById("ep-address")?.value),
+      department: appDefaultDepartment,
       company_email: asText(document.getElementById("ep-company-email")?.value),
       company_contact: normalizeDigits(
         document.getElementById("ep-company-contact")?.value,
@@ -763,6 +797,7 @@
       "Logo",
       "Company Name",
       "Address",
+      "Department",
       "Company Email",
       "Company Contact no.",
       "Representative",
@@ -775,6 +810,7 @@
       "https://example.com/logo.png",
       "Acme Corporation",
       "123 Business Ave, Makati City",
+      appDefaultDepartment,
       "contact@acme.com",
       "09171234567",
       "Juan Dela Cruz",
@@ -811,6 +847,7 @@
       logo: asText(record.logo),
       company_name: asText(record.company_name),
       address: asText(record.address),
+      department: resolveDepartmentFallback(record.department),
       company_email: asText(record.company_email),
       company_contact: normalizeDigits(record.company_contact),
       representative: asText(record.representative),
@@ -840,6 +877,7 @@
             <span class="ep-bulk-logo-fallback-initials">${esc(initials)}</span>
           </div>
           <input type="hidden" class="ep-bulk-logo-val" value="${esc(record.logo || "")}" />
+          <input type="hidden" class="ep-bulk-department" value="${esc(record.department || appDefaultDepartment)}" />
           <button type="button" class="ep-bulk-upload-logo-btn" data-row="${rowIndex}">
             <i data-lucide="upload"></i> Logo
           </button>
@@ -963,6 +1001,9 @@
         logo: tr.querySelector(".ep-bulk-logo-val")?.value || "",
         company_name: tr.querySelector(".ep-bulk-company-name")?.value || "",
         address: tr.querySelector(".ep-bulk-address")?.value || "",
+        department:
+          tr.querySelector(".ep-bulk-department")?.value ||
+          appDefaultDepartment,
         company_email: tr.querySelector(".ep-bulk-company-email")?.value || "",
         company_contact:
           tr.querySelector(".ep-bulk-company-contact")?.value || "",
@@ -1080,6 +1121,7 @@
       logo: indexOf(["logo"]),
       company_name: indexOf(["company name"]),
       address: indexOf(["address"]),
+      department: indexOf(["department"]),
       company_email: indexOf(["company email"]),
       company_contact: indexOf(["company contact no", "company contact"]),
       representative: indexOf(["representative"]),
@@ -1114,6 +1156,10 @@
         logo: columnIndex.logo >= 0 ? rowData[columnIndex.logo] : "",
         company_name: rowData[columnIndex.company_name] || "",
         address: rowData[columnIndex.address] || "",
+        department:
+          columnIndex.department >= 0
+            ? rowData[columnIndex.department] || appDefaultDepartment
+            : appDefaultDepartment,
         company_email: rowData[columnIndex.company_email] || "",
         company_contact: rowData[columnIndex.company_contact] || "",
         representative: rowData[columnIndex.representative] || "",
@@ -1409,11 +1455,12 @@
     window.addEventListener("resize", closeActionMenu, { passive: true });
   }
 
-  function init() {
+  async function init() {
     if (typeof lucide !== "undefined") {
       lucide.createIcons();
     }
 
+    await loadDefaultDepartmentSetting();
     bindEvents();
     updateCompanyProfilePreview();
 

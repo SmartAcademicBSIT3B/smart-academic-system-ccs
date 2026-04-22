@@ -1342,14 +1342,14 @@
     window.addEventListener("resize", closeActionMenu, { passive: true });
   }
 
-  function init() {
+  async function init() {
     if (typeof lucide !== "undefined") {
       lucide.createIcons();
     }
 
+    await loadDefaultDepartmentSetting();
     bindEvents();
     bindPartnerAutocomplete();
-    loadDefaultDepartmentSetting();
     loadExternalPartnerSuggestions();
 
     if (typeof window.loadOjtStudents === "function") {

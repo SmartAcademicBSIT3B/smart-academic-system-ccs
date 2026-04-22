@@ -164,6 +164,13 @@ async function getActiveDepartmentCode() {
   return code || DEFAULT_APP_SETTINGS.department.department_code;
 }
 
+function sanitizeDriveFolderSegment(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return DEFAULT_APP_SETTINGS.department.department_code;
+
+  return raw.replace(/[\\/:*?"<>|]+/g, "-").trim() || "CCS";
+}
+
 function sanitizeDownloadFileName(fileName) {
   const cleaned = String(fileName || "")
     .trim()
@@ -1064,6 +1071,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
   try {
     const activeDepartment = await getActiveDepartmentCode();
     const archiveStorageDir = await getConfiguredDocumentsDirectory();
+    const driveFolderPath = `CTA Files/Documents/${sanitizeDriveFolderSegment(activeDepartment)}`;
 
     const title = String(payload.title || "").trim();
     const authors = String(payload.authors || "").trim();
@@ -1129,6 +1137,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
           fileBuffer,
           storedFileName,
           mimeType,
+          driveFolderPath,
         );
       } catch (driveError) {
         if (driveError && driveError.code === "AUTH_REQUIRED") {
@@ -1139,8 +1148,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
           return {
             success: false,
             requiresAuth: true,
-            message:
-              "Google Drive authorization is required. Please authorize to upload to My Drive/CTA Files/Documents.",
+            message: `Google Drive authorization is required. Please authorize to upload to My Drive/${driveFolderPath}.`,
           };
         }
 
@@ -1163,6 +1171,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
           fileBuffer,
           storedFileName,
           mimeType,
+          driveFolderPath,
         );
       } catch (driveError) {
         if (driveError && driveError.code === "AUTH_REQUIRED") {
@@ -1173,8 +1182,7 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
           return {
             success: false,
             requiresAuth: true,
-            message:
-              "Google Drive authorization is required. Please authorize to upload to My Drive/CTA Files/Documents.",
+            message: `Google Drive authorization is required. Please authorize to upload to My Drive/${driveFolderPath}.`,
           };
         }
 
@@ -1244,11 +1252,14 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
 
 ipcMain.handle("getArchives", async () => {
   try {
+    const activeDepartment = await getActiveDepartmentCode();
     const rows = await query(
       `SELECT id, title, authors, section, advisor, date_published, keywords, type, department,
               file_path, local_file_path, status, created_at
        FROM archives
+       WHERE department = ?
        ORDER BY created_at DESC`,
+      [activeDepartment],
     );
     return { success: true, archives: rows };
   } catch (error) {
@@ -1439,12 +1450,15 @@ ipcMain.handle("deleteArchive", async (event, archiveId) => {
 
 ipcMain.handle("getExternalPartners", async () => {
   try {
+    const activeDepartment = await getActiveDepartmentCode();
     const rows = await query(
       `SELECT id, logo, company_name, address, department, company_email, company_contact,
               representative, job_description, representative_email,
               representative_contact, created_at, updated_at
        FROM external_partners
+       WHERE department = ?
        ORDER BY id DESC`,
+      [activeDepartment],
     );
     return { success: true, partners: rows };
   } catch (error) {
@@ -1459,7 +1473,10 @@ ipcMain.handle("getExternalPartners", async () => {
 ipcMain.handle("createExternalPartner", async (event, payload = {}) => {
   try {
     const activeDepartment = await getActiveDepartmentCode();
-    const data = normalizeExternalPartnerPayload(payload, activeDepartment);
+    const data = normalizeExternalPartnerPayload(
+      { ...payload, department: activeDepartment },
+      activeDepartment,
+    );
 
     if (!data.company_name || !data.address) {
       return {
@@ -1523,7 +1540,10 @@ ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
     }
 
     const activeDepartment = await getActiveDepartmentCode();
-    const data = normalizeExternalPartnerPayload(payload, activeDepartment);
+    const data = normalizeExternalPartnerPayload(
+      { ...payload, department: activeDepartment },
+      activeDepartment,
+    );
 
     if (!data.company_name || !data.address) {
       return {
@@ -1533,11 +1553,14 @@ ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
     }
 
     const existing = await query(
-      "SELECT id, logo FROM external_partners WHERE id = ? LIMIT 1",
-      [id],
+      "SELECT id, logo FROM external_partners WHERE id = ? AND department = ? LIMIT 1",
+      [id, activeDepartment],
     );
     if (!existing || existing.length === 0) {
-      return { success: false, message: "External partner not found." };
+      return {
+        success: false,
+        message: "External partner not found for the selected department.",
+      };
     }
 
     const oldLogoUrl = existing[0]?.logo || "";
@@ -1587,9 +1610,9 @@ ipcMain.handle("updateExternalPartner", async (event, payload = {}) => {
               representative, job_description, representative_email,
               representative_contact, created_at, updated_at
        FROM external_partners
-       WHERE id = ?
+       WHERE id = ? AND department = ?
        LIMIT 1`,
-      [id],
+      [id, activeDepartment],
     );
 
     return {
@@ -1616,20 +1639,26 @@ ipcMain.handle("deleteExternalPartner", async (event, partnerId) => {
       };
     }
 
+    const activeDepartment = await getActiveDepartmentCode();
+
     const existing = await query(
-      "SELECT id, logo FROM external_partners WHERE id = ? LIMIT 1",
-      [id],
+      "SELECT id, logo FROM external_partners WHERE id = ? AND department = ? LIMIT 1",
+      [id, activeDepartment],
     );
     if (!existing || existing.length === 0) {
       return {
         success: false,
-        message: "External partner not found or already deleted.",
+        message:
+          "External partner not found in the selected department or already deleted.",
       };
     }
 
     const logoUrl = existing[0]?.logo || "";
 
-    await query("DELETE FROM external_partners WHERE id = ?", [id]);
+    await query(
+      "DELETE FROM external_partners WHERE id = ? AND department = ?",
+      [id, activeDepartment],
+    );
 
     // Delete logo from Cloudinary after successful DB delete
     if (logoUrl) {
@@ -1655,12 +1684,15 @@ ipcMain.handle("deleteExternalPartner", async (event, partnerId) => {
 
 ipcMain.handle("getOjtStudents", async () => {
   try {
+    const activeDepartment = await getActiveDepartmentCode();
     const rows = await query(
       `SELECT id, student_id, name, section, department, email, contact_no,
               status, external_partner_assigned, nature_of_business,
               created_at, updated_at
        FROM ojt_students
+       WHERE department = ?
        ORDER BY id DESC`,
+      [activeDepartment],
     );
 
     return { success: true, students: rows };
@@ -1676,7 +1708,10 @@ ipcMain.handle("getOjtStudents", async () => {
 ipcMain.handle("createOjtStudent", async (event, payload = {}) => {
   try {
     const activeDepartment = await getActiveDepartmentCode();
-    const data = normalizeOjtStudentPayload(payload, activeDepartment);
+    const data = normalizeOjtStudentPayload(
+      { ...payload, department: activeDepartment },
+      activeDepartment,
+    );
 
     if (!data.student_id || !data.name || !data.section) {
       return {
@@ -1738,7 +1773,10 @@ ipcMain.handle("updateOjtStudent", async (event, payload = {}) => {
     }
 
     const activeDepartment = await getActiveDepartmentCode();
-    const data = normalizeOjtStudentPayload(payload, activeDepartment);
+    const data = normalizeOjtStudentPayload(
+      { ...payload, department: activeDepartment },
+      activeDepartment,
+    );
 
     if (!data.student_id || !data.name || !data.section) {
       return {
@@ -1748,11 +1786,14 @@ ipcMain.handle("updateOjtStudent", async (event, payload = {}) => {
     }
 
     const existing = await query(
-      "SELECT id FROM ojt_students WHERE id = ? LIMIT 1",
-      [id],
+      "SELECT id FROM ojt_students WHERE id = ? AND department = ? LIMIT 1",
+      [id, activeDepartment],
     );
     if (!existing || existing.length === 0) {
-      return { success: false, message: "OJT student not found." };
+      return {
+        success: false,
+        message: "OJT student not found for the selected department.",
+      };
     }
 
     await query(
@@ -1786,9 +1827,9 @@ ipcMain.handle("updateOjtStudent", async (event, payload = {}) => {
               status, external_partner_assigned, nature_of_business,
               created_at, updated_at
        FROM ojt_students
-       WHERE id = ?
+       WHERE id = ? AND department = ?
        LIMIT 1`,
-      [id],
+      [id, activeDepartment],
     );
 
     return {
@@ -1815,18 +1856,24 @@ ipcMain.handle("deleteOjtStudent", async (event, studentId) => {
       };
     }
 
+    const activeDepartment = await getActiveDepartmentCode();
+
     const existing = await query(
-      "SELECT id FROM ojt_students WHERE id = ? LIMIT 1",
-      [id],
+      "SELECT id FROM ojt_students WHERE id = ? AND department = ? LIMIT 1",
+      [id, activeDepartment],
     );
     if (!existing || existing.length === 0) {
       return {
         success: false,
-        message: "OJT student not found or already deleted.",
+        message:
+          "OJT student not found in the selected department or already deleted.",
       };
     }
 
-    await query("DELETE FROM ojt_students WHERE id = ?", [id]);
+    await query("DELETE FROM ojt_students WHERE id = ? AND department = ?", [
+      id,
+      activeDepartment,
+    ]);
 
     return { success: true, message: "OJT student deleted successfully." };
   } catch (error) {
