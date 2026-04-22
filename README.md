@@ -200,6 +200,14 @@ Use either location:
 
 The app now checks both locations automatically at startup.
 
+If your machine uses a different app data folder name, you can force the exact env file path:
+
+```powershell
+setx SAS_ENV_PATH "C:\\path\\to\\your\\.env"
+```
+
+Google Drive OAuth token is now stored in a writable user folder (`userData\\.tokens\\gdrive_token.json`) instead of the installed app directory.
+
 ---
 
 # 🛠️ Project Structure

@@ -2,7 +2,25 @@ const { google } = require("googleapis");
 const path = require("path");
 const fs = require("fs");
 
-const TOKEN_PATH = path.join(__dirname, "..", ".tokens", "gdrive_token.json");
+function resolveTokenPath() {
+  const envTokenPath = String(process.env.GDRIVE_TOKEN_PATH || "").trim();
+  if (envTokenPath) {
+    return envTokenPath;
+  }
+
+  try {
+    const { app } = require("electron");
+    if (app && typeof app.getPath === "function") {
+      return path.join(app.getPath("userData"), ".tokens", "gdrive_token.json");
+    }
+  } catch (_error) {
+    // Electron is not available in plain Node.js contexts (tests/scripts).
+  }
+
+  return path.join(__dirname, "..", ".tokens", "gdrive_token.json");
+}
+
+const TOKEN_PATH = resolveTokenPath();
 
 let cachedOAuth2Client = null;
 

@@ -4,5 +4,11 @@ node_modules/
 dist/
 build/
 release/
-database/ca.pemrelease-alpha1-fix/
 release-alpha1-fix/
+release-alpha1-fix2/
+database/ca.pem
+
+# Backend
+backend/node_modules/
+backend/.env
+backend/.tokens/
