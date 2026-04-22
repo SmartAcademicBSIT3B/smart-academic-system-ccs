@@ -1048,12 +1048,39 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
       };
     }
 
+    let persistedLocalFilePath = "";
+    try {
+      const configuredDocumentsDir = await getConfiguredDocumentsDirectory();
+      if (configuredDocumentsDir) {
+        await fs.mkdir(configuredDocumentsDir, { recursive: true });
+        const localPreferredName = path.basename(
+          uploadedFileName || "archive.pdf",
+        );
+        const localDestinationPath = await buildUniqueDownloadPath(
+          configuredDocumentsDir,
+          localPreferredName,
+        );
+        await fs.writeFile(localDestinationPath, fileBuffer);
+        persistedLocalFilePath = localDestinationPath;
+      }
+    } catch (localPersistError) {
+      console.error("Failed to persist local archive copy:", localPersistError);
+      persistedLocalFilePath = resolveLocalPath(localSourcePath);
+    }
+
+    const archiveFields = {
+      ...fields,
+      ...(persistedLocalFilePath
+        ? { local_file_path: persistedLocalFilePath }
+        : {}),
+    };
+
     return await api.postFile(
       "/archives",
       fileBuffer,
       storedFileName,
       mimeType,
-      fields,
+      archiveFields,
     );
   } catch (error) {
     console.error("Create archive error:", error);

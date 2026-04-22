@@ -69,6 +69,9 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
     const keywords = String(req.body.keywords || "").trim();
     const type = normalizeArchiveType(req.body.type);
     const status = normalizeArchiveStatus(req.body.status || "Pending");
+    const localFilePath = String(
+      req.body.local_file_path || req.body.localFilePath || "",
+    ).trim();
 
     if (!title || !authors || !keywords) {
       return res
@@ -140,7 +143,7 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
         type,
         department,
         filePath || null,
-        null,
+        localFilePath || null,
         status,
         createdAt,
       ],
