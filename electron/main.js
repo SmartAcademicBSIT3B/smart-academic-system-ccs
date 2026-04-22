@@ -49,6 +49,19 @@ function loadRuntimeEnv() {
 
 loadRuntimeEnv();
 
+const PACKAGED_BACKEND_URL = "https://smart-academic-system-ccs.onrender.com";
+if (app.isPackaged) {
+  const configuredBackendUrl = String(process.env.BACKEND_URL || "").trim();
+  if (
+    !configuredBackendUrl ||
+    /(^https?:\/\/(localhost|127\.0\.0\.1))(\/|$)/i.test(
+      configuredBackendUrl,
+    )
+  ) {
+    process.env.BACKEND_URL = PACKAGED_BACKEND_URL;
+  }
+}
+
 if (!process.env.GDRIVE_TOKEN_PATH) {
   const userDataPath = getWritableUserDataPath();
   if (userDataPath) {

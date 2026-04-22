@@ -12,8 +12,9 @@
  *   const result = await api.postForm("/upload/profile-image", formData);
  */
 
-const { net } = require("electron");
-const { FormData, Blob } = require("node:buffer");
+const { Blob } = require("node:buffer");
+
+const FormDataImpl = globalThis.FormData;
 
 // ── Config ────────────────────────────────────────────────────────────────────
 let BASE_URL = (
@@ -108,7 +109,14 @@ function del(path) {
  * @param {Object} fields  - Extra form fields, e.g. { userId, partnerId }
  */
 async function postFile(path, buffer, fileName, mimeType, fields = {}) {
-  const form = new FormData();
+  if (typeof FormDataImpl !== "function") {
+    return {
+      success: false,
+      message: "FormData is unavailable in this runtime.",
+    };
+  }
+
+  const form = new FormDataImpl();
   form.append("file", new Blob([buffer], { type: mimeType }), fileName);
   for (const [key, value] of Object.entries(fields)) {
     form.append(key, String(value));
