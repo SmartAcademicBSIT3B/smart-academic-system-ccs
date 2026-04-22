@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("authorizeGoogleDriveInteractive"),
   clearGoogleDriveAuth: () => ipcRenderer.invoke("clearGoogleDriveAuth"),
   getAppSettings: () => ipcRenderer.invoke("getAppSettings"),
+  getBackendDiagnostics: () => ipcRenderer.invoke("getBackendDiagnostics"),
   saveAppSettings: (settingsPatch) =>
     ipcRenderer.invoke("saveAppSettings", settingsPatch),
   selectLocalDocumentsDirectory: () =>

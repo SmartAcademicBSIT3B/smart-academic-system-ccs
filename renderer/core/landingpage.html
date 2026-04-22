@@ -255,6 +255,7 @@
         );
         const settingsFeedback = document.getElementById("settings-feedback");
         const electronAPI = window.electronAPI || null;
+        const loginPath = "../modules/m1_archive/login.html";
         let revealTimer = null;
         let availableDepartments = [];
         let settingsDraft = {
@@ -594,7 +595,7 @@
 
           document.body.classList.add("page-exit");
           window.setTimeout(function () {
-            window.location.href = "login.html";
+            window.location.href = loginPath;
           }, 420);
         });
       });

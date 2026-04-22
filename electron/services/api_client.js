@@ -31,6 +31,10 @@ function setBaseUrl(url) {
   BASE_URL = String(url || "").replace(/\/$/, "");
 }
 
+function getBaseUrl() {
+  return BASE_URL;
+}
+
 function setToken(token) {
   authToken = token || null;
 }
@@ -157,6 +161,7 @@ async function downloadFile(fileUrl) {
 
 module.exports = {
   setBaseUrl,
+  getBaseUrl,
   setToken,
   clearToken,
   setDepartmentCode,

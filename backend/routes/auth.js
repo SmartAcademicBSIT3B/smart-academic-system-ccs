@@ -23,6 +23,10 @@ function otpKey(email, purpose) {
   return `${String(email).toLowerCase()}|${purpose}`;
 }
 
+function getJwtSecret() {
+  return String(process.env.JWT_SECRET || "").trim();
+}
+
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 router.post("/login", async (req, res) => {
   try {
@@ -67,7 +71,17 @@ router.post("/login", async (req, res) => {
       role: user.role,
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+    const jwtSecret = getJwtSecret();
+    if (!jwtSecret) {
+      console.error("Login error: JWT_SECRET is not configured.");
+      return res.status(500).json({
+        success: false,
+        message:
+          "Server authentication is not configured (JWT_SECRET missing).",
+      });
+    }
+
+    const token = jwt.sign(payload, jwtSecret, {
       expiresIn: process.env.JWT_EXPIRES_IN || "8h",
     });
 
@@ -241,23 +255,19 @@ router.post("/reset-password", async (req, res) => {
     const newPassword = String(req.body.newPassword || "");
 
     if (!email || !newPassword) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Email and new password are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Email and new password are required.",
+      });
     }
 
     // Require the OTP to have been verified first.
     const entry = otpStore.get(otpKey(email, "reset_password"));
     if (!entry || !entry.used) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "OTP verification required before resetting password.",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "OTP verification required before resetting password.",
+      });
     }
 
     const hashed = crypto

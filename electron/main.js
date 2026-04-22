@@ -793,6 +793,28 @@ ipcMain.handle("getAppSettings", async () => {
   }
 });
 
+ipcMain.handle("getBackendDiagnostics", async () => {
+  try {
+    return {
+      success: true,
+      diagnostics: {
+        backendUrl: api.getBaseUrl(),
+        configuredBackendUrl: String(process.env.BACKEND_URL || "").trim(),
+        isPackaged: app.isPackaged,
+        appVersion: app.getVersion(),
+        appPath: app.getAppPath(),
+        userDataPath: getWritableUserDataPath(),
+        execPath: process.execPath,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to load backend diagnostics.",
+    };
+  }
+});
+
 ipcMain.handle("saveAppSettings", async (event, settingsPatch = {}) => {
   try {
     const settings = await saveAppSettingsPatch(settingsPatch);

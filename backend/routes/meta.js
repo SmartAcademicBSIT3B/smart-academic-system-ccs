@@ -5,7 +5,8 @@ const { requireAuth } = require("../middleware/auth");
 const router = express.Router();
 
 // ── GET /api/meta/departments ─────────────────────────────────────────────────
-router.get("/departments", requireAuth, async (req, res) => {
+// Public so pre-login pages can populate department branding/settings.
+router.get("/departments", async (req, res) => {
   try {
     let departments = [];
     try {
