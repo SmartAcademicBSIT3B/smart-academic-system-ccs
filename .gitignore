@@ -4,9 +4,11 @@ node_modules/
 dist/
 build/
 release/
+release*/
 release-alpha1-fix/
 release-alpha1-fix2/
 release-render-test/
+win-unpacked/
 database/ca.pem
 
 # Backend
