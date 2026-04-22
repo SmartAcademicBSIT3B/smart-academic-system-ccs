@@ -19,25 +19,25 @@
       <!-- STATS CARDS -->
       <div class="cards">
         <div class="card highlight">
-          <h3>123</h3>
+          <h3 id="card-bsit-population">0</h3>
           <p>Population of</p>
           <span>BSIT 4th Year</span>
         </div>
 
         <div class="card highlight">
-          <h3>123</h3>
+          <h3 id="card-bscs-population">0</h3>
           <p>Population of</p>
           <span>BSCS 4th Year</span>
         </div>
 
         <div class="card">
-          <h3>123</h3>
+          <h3 id="card-thesis-records">0</h3>
           <p>Thesis/Capstone</p>
           <span>RECORDS</span>
         </div>
 
         <div class="card">
-          <h3>123</h3>
+          <h3 id="card-external-partners">0</h3>
           <p>Number of</p>
           <span>EXTERNAL PARTNERS</span>
         </div>
@@ -79,5 +79,187 @@
         </div>
       </div>
     </div>
+
+    <script>
+      (function renderDashboardWithSampleData() {
+        const sampleMetrics = {
+          bsitPopulation: 286,
+          bscsPopulation: 174,
+          thesisRecords: 312,
+          externalPartners: 58,
+        };
+
+        const setCardValue = (id, value) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = String(value);
+        };
+
+        setCardValue("card-bsit-population", sampleMetrics.bsitPopulation);
+        setCardValue("card-bscs-population", sampleMetrics.bscsPopulation);
+        setCardValue("card-thesis-records", sampleMetrics.thesisRecords);
+        setCardValue("card-external-partners", sampleMetrics.externalPartners);
+
+        if (typeof Chart === "undefined") return;
+
+        const commonOptions = {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: "#C9CCD1",
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: { color: "#9AA0A6" },
+              grid: { color: "rgba(58, 63, 70, 0.45)" },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { color: "#9AA0A6" },
+              grid: { color: "rgba(58, 63, 70, 0.45)" },
+            },
+          },
+        };
+
+        new Chart(document.getElementById("barChart"), {
+          type: "bar",
+          data: {
+            labels: [
+              "2020-2021",
+              "2021-2022",
+              "2022-2023",
+              "2023-2024",
+              "2024-2025",
+            ],
+            datasets: [
+              {
+                label: "BSIT",
+                data: [112, 126, 139, 151, 164],
+                backgroundColor: "rgba(157, 198, 255, 0.85)",
+                borderRadius: 6,
+              },
+              {
+                label: "BSCS",
+                data: [76, 88, 95, 104, 117],
+                backgroundColor: "rgba(89, 140, 216, 0.85)",
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: commonOptions,
+        });
+
+        new Chart(document.getElementById("smallBarChart"), {
+          type: "bar",
+          data: {
+            labels: [
+              "Software Dev",
+              "Networking",
+              "Data/BI",
+              "Cybersecurity",
+              "UI/UX",
+            ],
+            datasets: [
+              {
+                label: "Deployed Students",
+                data: [118, 86, 64, 52, 40],
+                backgroundColor: [
+                  "rgba(157, 198, 255, 0.85)",
+                  "rgba(120, 170, 238, 0.85)",
+                  "rgba(95, 149, 227, 0.85)",
+                  "rgba(75, 126, 205, 0.85)",
+                  "rgba(58, 110, 184, 0.85)",
+                ],
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: {
+            ...commonOptions,
+            plugins: {
+              legend: { display: false },
+            },
+          },
+        });
+
+        new Chart(document.getElementById("pieChart1"), {
+          type: "doughnut",
+          data: {
+            labels: ["Completed", "In Progress", "Pending"],
+            datasets: [
+              {
+                data: [68, 22, 10],
+                backgroundColor: ["#6BD39A", "#9DC6FF", "#F2B366"],
+                borderColor: "#181C22",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: { color: "#C9CCD1" },
+              },
+            },
+          },
+        });
+
+        new Chart(document.getElementById("pieChart2"), {
+          type: "pie",
+          data: {
+            labels: ["BSIT-4A", "BSIT-4B", "BSCS-4A", "BSCS-4B"],
+            datasets: [
+              {
+                data: [122, 98, 94, 80],
+                backgroundColor: ["#9DC6FF", "#7EAEF3", "#5D95E3", "#4A7CC8"],
+                borderColor: "#181C22",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: { color: "#C9CCD1" },
+              },
+            },
+          },
+        });
+
+        new Chart(document.getElementById("pieChart3"), {
+          type: "doughnut",
+          data: {
+            labels: ["Deployed", "Pre-Deployment", "Pending Requirements"],
+            datasets: [
+              {
+                data: [71, 19, 10],
+                backgroundColor: ["#6BD39A", "#9DC6FF", "#E98F8F"],
+                borderColor: "#181C22",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: { color: "#C9CCD1" },
+              },
+            },
+          },
+        });
+      })();
+    </script>
   </body>
 </html>
