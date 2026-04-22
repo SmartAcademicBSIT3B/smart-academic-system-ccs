@@ -19,7 +19,12 @@
       <!-- SIDEBAR -->
       <div class="sidebar">
         <div class="logo">
-          <img src="../../images/CCSLOGO.png" class="ccs-logo" alt="CCS Logo" />
+          <img
+            id="departmentLogo"
+            src="../../images/CCSLOGO.png"
+            class="ccs-logo"
+            alt="Department Logo"
+          />
           <h2 class="system-title">
             Thesis/Capstone<br />
             Archiving and<br />
@@ -287,7 +292,63 @@
     </style>
 
     <script>
+      const APP_SETTINGS_KEY = "sas.app.settings";
+      const DEFAULT_DEPARTMENT_LOGO = "../../images/CCSLOGO.png";
+
       lucide.createIcons();
+
+      function applyDepartmentLogo(settings) {
+        const departmentLogoEl = document.getElementById("departmentLogo");
+        if (!departmentLogoEl) return;
+
+        const logoUrl =
+          String(settings?.department?.logo_url || "").trim() ||
+          DEFAULT_DEPARTMENT_LOGO;
+
+        departmentLogoEl.src = logoUrl;
+        departmentLogoEl.onerror = function () {
+          departmentLogoEl.src = DEFAULT_DEPARTMENT_LOGO;
+        };
+      }
+
+      function applyDepartmentLogoFromLocalSettings() {
+        try {
+          const raw = localStorage.getItem(APP_SETTINGS_KEY);
+          if (!raw) {
+            applyDepartmentLogo({});
+            return;
+          }
+
+          const parsed = JSON.parse(raw);
+          applyDepartmentLogo(parsed || {});
+        } catch (_error) {
+          applyDepartmentLogo({});
+        }
+      }
+
+      async function refreshDepartmentLogoFromPersistedSettings() {
+        if (
+          !window.electronAPI ||
+          typeof window.electronAPI.getAppSettings !== "function"
+        ) {
+          return;
+        }
+
+        try {
+          const result = await window.electronAPI.getAppSettings();
+          if (!result || !result.success || !result.settings) {
+            return;
+          }
+
+          applyDepartmentLogo(result.settings);
+          localStorage.setItem(
+            APP_SETTINGS_KEY,
+            JSON.stringify(result.settings),
+          );
+        } catch (_error) {
+          // Keep already-applied logo when API call fails.
+        }
+      }
 
       function toggleMenu(element) {
         const submenu = element.nextElementSibling;
@@ -407,6 +468,8 @@
       }
 
       applyRoleAccess();
+      applyDepartmentLogoFromLocalSettings();
+      refreshDepartmentLogoFromPersistedSettings();
 
       const sidebarElement = document.querySelector(".sidebar");
       if (sidebarElement) {

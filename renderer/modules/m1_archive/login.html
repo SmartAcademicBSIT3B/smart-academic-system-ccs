@@ -17,7 +17,12 @@
     <div class="container">
       <!-- Left Panel -->
       <div class="left-panel">
-        <img src="images/CCSLOGO.png" class="logo" alt="Logo" />
+        <img
+          id="departmentLogo"
+          src="images/CCSLOGO.png"
+          class="logo"
+          alt="Department Logo"
+        />
 
         <p class="welcome-text">Welcome to</p>
         <h1 class="title">
@@ -25,12 +30,12 @@
           ARCHIVING AND<br />
           HOST TRAINING<br />
           ESTABLISHMENT (HTE)<br />
-          FOR CCS GRADUATING<br />
+          FOR <span id="departmentCode">CCS</span> GRADUATING<br />
           STUDENTS
         </h1>
 
         <p class="school">PAMANTASAN NG LUNGSOD NG PASIG</p>
-        <p class="college">College of Computer Studies</p>
+        <p class="college" id="departmentName">College of Computer Studies</p>
       </div>
 
       <!-- Right Panel -->
@@ -105,6 +110,10 @@
     <script>
       const REMEMBER_EMAIL_KEY = "rememberedEmail";
       const REMEMBER_ME_KEY = "rememberMeEnabled";
+      const APP_SETTINGS_KEY = "sas.app.settings";
+      const DEFAULT_DEPARTMENT_CODE = "CCS";
+      const DEFAULT_DEPARTMENT_NAME = "College of Computer Studies";
+      const DEFAULT_DEPARTMENT_LOGO = "images/CCSLOGO.png";
 
       function loadRememberedLogin() {
         const rememberMeEl = document.getElementById("rememberMe");
@@ -116,6 +125,77 @@
         rememberMeEl.checked = rememberedEnabled;
         if (rememberedEnabled && rememberedEmail) {
           usernameEl.value = rememberedEmail;
+        }
+      }
+
+      function applyDepartmentBranding(settings) {
+        const department = settings?.department || {};
+
+        const departmentCode =
+          String(department.department_code || "").trim() ||
+          DEFAULT_DEPARTMENT_CODE;
+        const departmentName =
+          String(department.department_name || "").trim() ||
+          DEFAULT_DEPARTMENT_NAME;
+        const logoUrl =
+          String(department.logo_url || "").trim() || DEFAULT_DEPARTMENT_LOGO;
+
+        const departmentCodeEl = document.getElementById("departmentCode");
+        const departmentNameEl = document.getElementById("departmentName");
+        const departmentLogoEl = document.getElementById("departmentLogo");
+
+        if (departmentCodeEl) {
+          departmentCodeEl.textContent = departmentCode;
+        }
+
+        if (departmentNameEl) {
+          departmentNameEl.textContent = departmentName;
+        }
+
+        if (departmentLogoEl) {
+          departmentLogoEl.src = logoUrl;
+          departmentLogoEl.onerror = function () {
+            departmentLogoEl.src = DEFAULT_DEPARTMENT_LOGO;
+          };
+        }
+      }
+
+      function applyBrandingFromLocalSettings() {
+        try {
+          const raw = localStorage.getItem(APP_SETTINGS_KEY);
+          if (!raw) {
+            applyDepartmentBranding({});
+            return;
+          }
+
+          const parsed = JSON.parse(raw);
+          applyDepartmentBranding(parsed || {});
+        } catch (_error) {
+          applyDepartmentBranding({});
+        }
+      }
+
+      async function refreshBrandingFromPersistedSettings() {
+        if (
+          !window.electronAPI ||
+          typeof window.electronAPI.getAppSettings !== "function"
+        ) {
+          return;
+        }
+
+        try {
+          const result = await window.electronAPI.getAppSettings();
+          if (!result || !result.success || !result.settings) {
+            return;
+          }
+
+          applyDepartmentBranding(result.settings);
+          localStorage.setItem(
+            APP_SETTINGS_KEY,
+            JSON.stringify(result.settings),
+          );
+        } catch (_error) {
+          // Keep already-applied local branding when API call fails.
         }
       }
 
@@ -162,6 +242,8 @@
         });
 
       loadRememberedLogin();
+      applyBrandingFromLocalSettings();
+      refreshBrandingFromPersistedSettings();
 
       // Back Button
       function goBack() {

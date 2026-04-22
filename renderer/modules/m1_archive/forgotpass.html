@@ -15,7 +15,12 @@
 
     <div class="container">
       <div class="left-panel">
-        <img src="images/CCSLOGO.png" class="logo" alt="Logo" />
+        <img
+          id="departmentLogo"
+          src="images/CCSLOGO.png"
+          class="logo"
+          alt="Department Logo"
+        />
 
         <p class="welcome-text">Reset Your</p>
         <h1 class="title">
@@ -29,7 +34,7 @@
         </p>
 
         <p class="school">PAMANTASAN NG LUNGSOD NG PASIG</p>
-        <p class="college">College of Computer Studies</p>
+        <p class="college" id="departmentName">College of Computer Studies</p>
       </div>
 
       <div class="right-panel">
@@ -121,6 +126,74 @@
 
     <script>
       let currentEmail = "";
+      const APP_SETTINGS_KEY = "sas.app.settings";
+      const DEFAULT_DEPARTMENT_NAME = "College of Computer Studies";
+      const DEFAULT_DEPARTMENT_LOGO = "images/CCSLOGO.png";
+
+      function applyDepartmentBranding(settings) {
+        const department = settings?.department || {};
+        const departmentName =
+          String(department.department_name || "").trim() ||
+          DEFAULT_DEPARTMENT_NAME;
+        const logoUrl =
+          String(department.logo_url || "").trim() || DEFAULT_DEPARTMENT_LOGO;
+
+        const departmentNameEl = document.getElementById("departmentName");
+        const departmentLogoEl = document.getElementById("departmentLogo");
+
+        if (departmentNameEl) {
+          departmentNameEl.textContent = departmentName;
+        }
+
+        if (departmentLogoEl) {
+          departmentLogoEl.src = logoUrl;
+          departmentLogoEl.onerror = function () {
+            departmentLogoEl.src = DEFAULT_DEPARTMENT_LOGO;
+          };
+        }
+      }
+
+      function applyBrandingFromLocalSettings() {
+        try {
+          const raw = localStorage.getItem(APP_SETTINGS_KEY);
+          if (!raw) {
+            applyDepartmentBranding({});
+            return;
+          }
+
+          const parsed = JSON.parse(raw);
+          applyDepartmentBranding(parsed || {});
+        } catch (_error) {
+          applyDepartmentBranding({});
+        }
+      }
+
+      async function refreshBrandingFromPersistedSettings() {
+        if (
+          !window.electronAPI ||
+          typeof window.electronAPI.getAppSettings !== "function"
+        ) {
+          return;
+        }
+
+        try {
+          const result = await window.electronAPI.getAppSettings();
+          if (!result || !result.success || !result.settings) {
+            return;
+          }
+
+          applyDepartmentBranding(result.settings);
+          localStorage.setItem(
+            APP_SETTINGS_KEY,
+            JSON.stringify(result.settings),
+          );
+        } catch (_error) {
+          // Keep already-applied local branding when API call fails.
+        }
+      }
+
+      applyBrandingFromLocalSettings();
+      refreshBrandingFromPersistedSettings();
 
       document.getElementById("otp").addEventListener("input", function () {
         this.value = this.value.replace(/[^0-9]/g, "");

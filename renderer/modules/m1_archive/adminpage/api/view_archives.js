@@ -1,5 +1,7 @@
 (function () {
   const MANAGE_ARCHIVE_SEARCH_KEY = "manageArchivesSearchTitle";
+  const APP_SETTINGS_KEY = "sas.app.settings";
+  const DEFAULT_DEPARTMENT_CODE = "CCS";
 
   const state = {
     archives: [],
@@ -55,6 +57,48 @@
     } catch (error) {
       console.error("Unable to parse local user data:", error);
       return "";
+    }
+  }
+
+  function normalizeDepartmentCode(value) {
+    return String(value || "")
+      .trim()
+      .toUpperCase();
+  }
+
+  function getDepartmentCodeFromLocalSettings() {
+    try {
+      const raw = localStorage.getItem(APP_SETTINGS_KEY);
+      if (!raw) return "";
+
+      const parsed = JSON.parse(raw);
+      return normalizeDepartmentCode(parsed?.department?.department_code);
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  async function getActiveDepartmentCode() {
+    const localCode = getDepartmentCodeFromLocalSettings();
+
+    const api = getElectronApiBridge();
+    if (!api || typeof api.getAppSettings !== "function") {
+      return localCode || DEFAULT_DEPARTMENT_CODE;
+    }
+
+    try {
+      const result = await api.getAppSettings();
+      const persistedCode = normalizeDepartmentCode(
+        result?.settings?.department?.department_code,
+      );
+
+      if (result?.success && result?.settings && persistedCode) {
+        localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(result.settings));
+      }
+
+      return persistedCode || localCode || DEFAULT_DEPARTMENT_CODE;
+    } catch (_error) {
+      return localCode || DEFAULT_DEPARTMENT_CODE;
     }
   }
 
@@ -799,6 +843,7 @@
 
     try {
       const result = await api.getArchives();
+      const activeDepartmentCode = await getActiveDepartmentCode();
 
       if (!result || !result.success || !Array.isArray(result.archives)) {
         if (list) {
@@ -807,8 +852,25 @@
         return;
       }
 
-      state.archives = result.archives;
-      state.filtered = result.archives.slice();
+      const scopedArchives = result.archives.filter((archive) => {
+        const archiveDepartment = normalizeDepartmentCode(archive?.department);
+        return archiveDepartment === activeDepartmentCode;
+      });
+
+      if (scopedArchives.length === 0) {
+        state.archives = [];
+        state.filtered = [];
+        if (list) {
+          list.innerHTML = `<div class="archive-card"><h3>No archives found for ${escapeHtml(activeDepartmentCode)}</h3><p>The selected department currently has no archive records.</p><span></span><p class="desc">Change department in landing page settings to view another dataset.</p></div>`;
+        }
+        renderArchiveList();
+        renderActiveFilterTags();
+        updateSortDirBtn();
+        return;
+      }
+
+      state.archives = scopedArchives;
+      state.filtered = scopedArchives.slice();
       state.activeArchiveId = state.filtered[0]
         ? getArchiveId(state.filtered[0])
         : null;
