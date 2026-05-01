@@ -471,17 +471,35 @@
     return "ojt-dot-pending-requirements";
   }
 
-  function renderOjtStatusSelect(value) {
+  function renderOjtStatusSelect(value, selectClass = "ojt-row-status-select") {
     const status = normalizeOjtStatus(value);
     const dotClass = ojtStatusDotClass(status);
 
-    return `<div class="ojt-status-control"><span class="ojt-status-dot ${dotClass}"></span><select class="ojt-row-status-select"><option ${status === "Pending Requirements" ? "selected" : ""}>Pending Requirements</option><option ${status === "Pre-Deployment" ? "selected" : ""}>Pre-Deployment</option><option ${status === "Deployed" ? "selected" : ""}>Deployed</option></select></div>`;
+    return `<div class="ojt-status-control"><span class="ojt-status-dot ${dotClass}"></span><select class="${esc(selectClass)}"><option ${status === "Pending Requirements" ? "selected" : ""}>Pending Requirements</option><option ${status === "Pre-Deployment" ? "selected" : ""}>Pre-Deployment</option><option ${status === "Deployed" ? "selected" : ""}>Deployed</option></select></div>`;
   }
 
   function renderOjtStatusBadge(value) {
     const status = normalizeOjtStatus(value);
     const dotClass = ojtStatusDotClass(status);
     return `<span class="ojt-view-status-badge"><span class="ojt-status-dot ${dotClass}"></span>${esc(status)}</span>`;
+  }
+
+  function renderViewModalStatusUI(value) {
+    const status = normalizeOjtStatus(value);
+    const dotClass = ojtStatusDotClass(status);
+
+    const badge = document.getElementById("ojtv-status-badge");
+    if (badge) {
+      badge.innerHTML = `<span class="ojt-status-dot ${dotClass}"></span>${esc(status)}`;
+    }
+
+    const statusControl = document.getElementById("ojtv-status-control");
+    if (statusControl) {
+      statusControl.innerHTML = renderOjtStatusSelect(
+        status,
+        "ojtv-status-select",
+      );
+    }
   }
 
   function buildRowMarkup(student) {
@@ -549,8 +567,7 @@
     }
 
     if (viewingRow && viewingRow.dataset.id === row.dataset.id) {
-      document.getElementById("ojtv-status").innerHTML =
-        renderOjtStatusBadge(normalizedNextStatus);
+      renderViewModalStatusUI(normalizedNextStatus);
     }
 
     ui?.showToast("OJT student status updated.", "success", 2200);
@@ -760,9 +777,7 @@
       asText(student.email) || "-";
     document.getElementById("ojtv-contact-no").textContent =
       asText(student.contact_no) || "-";
-    document.getElementById("ojtv-status").innerHTML = renderOjtStatusBadge(
-      student.status,
-    );
+    renderViewModalStatusUI(student.status);
     document.getElementById("ojtv-external-partner-assigned").textContent =
       asText(student.external_partner_assigned) || "-";
     document.getElementById("ojtv-nature-of-business").textContent =
@@ -1536,6 +1551,12 @@
     });
 
     document.addEventListener("change", (event) => {
+      if (event.target?.id === "ojtv-status-select") {
+        if (!viewingRow) return;
+        persistRowStatusChange(viewingRow, event.target.value, event.target);
+        return;
+      }
+
       const rowStatusSelect = event.target.closest(".ojt-row-status-select");
       if (rowStatusSelect) {
         const row = rowStatusSelect.closest("tr");
