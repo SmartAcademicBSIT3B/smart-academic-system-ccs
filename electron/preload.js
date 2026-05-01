@@ -52,6 +52,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("saveAppSettings", settingsPatch),
   selectLocalDocumentsDirectory: () =>
     ipcRenderer.invoke("selectLocalDocumentsDirectory"),
+  ensureDepartmentDocumentsDirectory: (departmentCode) =>
+    ipcRenderer.invoke("ensureDepartmentDocumentsDirectory", departmentCode),
   updateProfile: (profileData) =>
     ipcRenderer.invoke("updateProfile", profileData),
   logout: () => ipcRenderer.invoke("logout"),

@@ -136,6 +136,20 @@ function normalizeSettingsData(value) {
   };
 }
 
+async function ensureDepartmentDocumentsDirectory(departmentCode = "") {
+  const docsRoot = path.join(
+    app.getPath("documents"),
+    "CTA Files",
+    "Documents",
+  );
+  const safeDepartmentCode = sanitizeDriveFolderSegment(
+    departmentCode || DEFAULT_APP_SETTINGS.department.department_code,
+  );
+  const targetPath = path.join(docsRoot, safeDepartmentCode);
+  await fs.mkdir(targetPath, { recursive: true });
+  return targetPath;
+}
+
 async function loadAppSettings() {
   if (cachedAppSettings) return cachedAppSettings;
 
@@ -148,9 +162,23 @@ async function loadAppSettings() {
       ...DEFAULT_APP_SETTINGS,
       ...normalizeSettingsData(parsed),
     };
+
+    if (!String(cachedAppSettings.localDocumentsPath || "").trim()) {
+      cachedAppSettings.localDocumentsPath =
+        await ensureDepartmentDocumentsDirectory(
+          cachedAppSettings?.department?.department_code,
+        );
+    } else {
+      await fs.mkdir(cachedAppSettings.localDocumentsPath, { recursive: true });
+    }
+
     return cachedAppSettings;
   } catch (_error) {
     cachedAppSettings = { ...DEFAULT_APP_SETTINGS };
+    cachedAppSettings.localDocumentsPath =
+      await ensureDepartmentDocumentsDirectory(
+        cachedAppSettings?.department?.department_code,
+      );
     return cachedAppSettings;
   }
 }
@@ -161,6 +189,14 @@ async function writeAppSettings(nextSettings) {
     ...DEFAULT_APP_SETTINGS,
     ...normalizeSettingsData(nextSettings),
   };
+
+  if (!String(normalized.localDocumentsPath || "").trim()) {
+    normalized.localDocumentsPath = await ensureDepartmentDocumentsDirectory(
+      normalized?.department?.department_code,
+    );
+  } else {
+    await fs.mkdir(normalized.localDocumentsPath, { recursive: true });
+  }
 
   await fs.mkdir(path.dirname(settingsPath), { recursive: true });
   await fs.writeFile(settingsPath, JSON.stringify(normalized, null, 2), "utf8");
@@ -174,12 +210,21 @@ async function saveAppSettingsPatch(settingsPatch = {}) {
   const patch =
     settingsPatch && typeof settingsPatch === "object" ? settingsPatch : {};
 
+  const patchIncludesDepartment = Object.prototype.hasOwnProperty.call(
+    patch,
+    "department",
+  );
+  const patchIncludesLocalPath = Object.prototype.hasOwnProperty.call(
+    patch,
+    "localDocumentsPath",
+  );
+
   const next = {
     ...current,
-    ...(Object.prototype.hasOwnProperty.call(patch, "localDocumentsPath")
+    ...(patchIncludesLocalPath
       ? { localDocumentsPath: String(patch.localDocumentsPath || "").trim() }
       : {}),
-    ...(Object.prototype.hasOwnProperty.call(patch, "department")
+    ...(patchIncludesDepartment
       ? {
           department: normalizeDepartmentSetting({
             ...current.department,
@@ -191,11 +236,23 @@ async function saveAppSettingsPatch(settingsPatch = {}) {
       : {}),
   };
 
+  if (patchIncludesDepartment && !patchIncludesLocalPath) {
+    next.localDocumentsPath = await ensureDepartmentDocumentsDirectory(
+      next?.department?.department_code,
+    );
+  }
+
+  if (!String(next.localDocumentsPath || "").trim()) {
+    next.localDocumentsPath = await ensureDepartmentDocumentsDirectory(
+      next?.department?.department_code,
+    );
+  }
+
   return writeAppSettings(next);
 }
 
 function getDefaultLocalDocumentsDirectory() {
-  return path.join(app.getPath("userData"), "local-archives");
+  return path.join(app.getPath("documents"), "CTA Files", "Documents", "CCS");
 }
 
 async function isWritableDirectory(dirPath) {
@@ -901,6 +958,22 @@ ipcMain.handle("selectLocalDocumentsDirectory", async () => {
     };
   }
 });
+
+ipcMain.handle(
+  "ensureDepartmentDocumentsDirectory",
+  async (event, departmentCode = "") => {
+    try {
+      const directoryPath =
+        await ensureDepartmentDocumentsDirectory(departmentCode);
+      return { success: true, path: directoryPath };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to prepare department folder.",
+      };
+    }
+  },
+);
 
 ipcMain.handle("getSections", async (event, departmentCode = "") => {
   try {
