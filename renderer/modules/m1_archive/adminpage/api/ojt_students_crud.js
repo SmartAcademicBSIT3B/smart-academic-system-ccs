@@ -876,6 +876,8 @@
       asText(student.name) || "-";
     document.getElementById("ojtv-section").textContent =
       asText(student.section) || "-";
+    document.getElementById("ojtv-department").textContent =
+      resolveDepartmentFallback(student.department);
     document.getElementById("ojtv-email").textContent =
       asText(student.email) || "-";
     document.getElementById("ojtv-contact-no").textContent =

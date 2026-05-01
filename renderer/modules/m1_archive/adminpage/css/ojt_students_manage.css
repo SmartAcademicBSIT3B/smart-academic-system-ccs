@@ -414,8 +414,8 @@
 }
 
 .ojt-view-modal-content {
-  max-width: 660px;
-  width: 90%;
+  max-width: 920px;
+  width: min(920px, 94vw);
   background: var(--panel-bg, #181c22);
   border-radius: 12px;
   border: 1px solid var(--border, #3a3f46);
@@ -424,16 +424,48 @@
   gap: 0;
 }
 
+.ojt-view-modal-content .form-header h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--text-secondary, #9aa0a6);
+  text-transform: uppercase;
+}
+
 .ojt-view-modal-content .view-archive-body {
   padding: 20px 24px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  max-height: 60vh;
 }
 
 .ojt-view-modal-content .va-grid {
-  gap: 16px;
+  display: grid;
+  gap: 22px;
 }
 
 .ojt-view-modal-content .va-grid.two-col {
   grid-template-columns: repeat(2, 1fr);
+}
+
+/* Keep the OJT details modal in two columns on desktop even if shared styles change. */
+#ojt-student-view-modal
+  .ojt-view-modal-content
+  .va-grid.two-col.ojt-view-two-column {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  column-gap: 22px;
+  row-gap: 0;
+}
+
+.ojt-view-modal-content .ojt-view-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
 }
 
 .ojt-view-modal-content .va-field {
@@ -443,22 +475,24 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .ojt-view-modal-content .va-field label {
   margin-bottom: 0;
-  font-size: 10.5px;
+  font-size: 10.75px;
   letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--text-secondary, #9aa0a6);
   font-weight: 600;
+  line-height: 1.25;
 }
 
 .ojt-view-modal-content .va-field p {
   color: var(--text-primary, #c9ccd1);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
   margin: 0;
   word-break: break-word;
 }
@@ -478,11 +512,31 @@
 
 #ojtv-status-control .ojt-status-control {
   width: 100%;
-  max-width: 220px;
+  max-width: none;
 }
 
 #ojtv-status-control .ojtv-status-select {
   width: 100%;
+  border: 1px solid var(--border, #3a3f46);
+  border-radius: 8px;
+  background: #12151a;
+  color: var(--text-primary, #c9ccd1);
+  padding: 7px 30px 7px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23c9ccd1' stroke-width='1.5'%3E%3Cpolyline points='1 1 6 6 11 1'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+
+#ojtv-status-control .ojtv-status-select:focus {
+  outline: none;
+  border-color: #9dc6ff;
+  box-shadow: 0 0 0 2px rgba(157, 198, 255, 0.2);
 }
 
 .ojt-view-modal-content .choice-footer {
@@ -558,8 +612,14 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .ojt-view-modal-content .va-grid.two-col {
+  #ojt-student-view-modal
+    .ojt-view-modal-content
+    .va-grid.two-col.ojt-view-two-column {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ojt-view-modal-content .ojt-view-col {
+    gap: 14px;
   }
 }
 
