@@ -50,6 +50,7 @@ function normalizeOjtStudentPayload(payload = {}, defaultDepartment = "CCS") {
   const department =
     String(payload.department || "").trim() ||
     String(defaultDepartment || "CCS");
+  const normalizedStatus = String(payload.status || "").trim().slice(0, 120);
   return {
     student_id: String(payload.student_id || "").trim(),
     name: String(payload.name || "").trim(),
@@ -57,7 +58,7 @@ function normalizeOjtStudentPayload(payload = {}, defaultDepartment = "CCS") {
     department,
     email: cleanField(payload.email),
     contact_no: cleanField(payload.contact_no),
-    status: String(payload.status || "").trim() || "Deployed",
+    status: normalizedStatus || "Deployed",
     external_partner_assigned: cleanField(payload.external_partner_assigned),
     nature_of_business: cleanField(payload.nature_of_business),
   };

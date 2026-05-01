@@ -9,6 +9,13 @@
             "request": "launch",
             "name": "Open coormain_menu.html",
             "file": "c:\\Users\\USER\\smart-academic-system-ccs\\renderer\\modules\\m1_archive\\coordinator\\html\\coormain_menu.html"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Run App (Backend + Electron)",
+            "command": "npm run dev",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

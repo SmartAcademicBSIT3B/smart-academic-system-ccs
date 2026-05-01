@@ -50,16 +50,21 @@ function loadRuntimeEnv() {
 loadRuntimeEnv();
 
 const PACKAGED_BACKEND_URL = "https://smart-academic-system-ccs.onrender.com";
+const DEV_BACKEND_URL = "http://localhost:3000";
+const configuredBackendUrl = String(process.env.BACKEND_URL || "").trim();
+
 if (app.isPackaged) {
-  const configuredBackendUrl = String(process.env.BACKEND_URL || "").trim();
   if (
     !configuredBackendUrl ||
-    /(^https?:\/\/(localhost|127\.0\.0\.1))(\/|$)/i.test(
-      configuredBackendUrl,
-    )
+    /(^https?:\/\/(localhost|127\.0\.0\.1))(\/|$)/i.test(configuredBackendUrl)
   ) {
     process.env.BACKEND_URL = PACKAGED_BACKEND_URL;
   }
+} else {
+  // In local development (unpackaged), always use the local backend so code
+  // changes take effect immediately.  The BACKEND_URL env var is ignored in
+  // this mode; it is only honoured in a packaged build.
+  process.env.BACKEND_URL = DEV_BACKEND_URL;
 }
 
 if (!process.env.GDRIVE_TOKEN_PATH) {

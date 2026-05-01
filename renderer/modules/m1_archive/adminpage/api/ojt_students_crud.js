@@ -475,7 +475,7 @@
   }
 
   function validateEmail(value) {
-    if (!value) return true;
+    if (!value) return false;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }
 
@@ -486,7 +486,10 @@
       errors["ojt-student-id"] = "Student ID is required.";
     if (!payload.name) errors["ojt-name"] = "Name is required.";
     if (!payload.section) errors["ojt-section"] = "Section is required.";
-    if (payload.email && !validateEmail(payload.email)) {
+    if (!payload.email) {
+      errors["ojt-email"] =
+        "Email is required to send student login credentials.";
+    } else if (!validateEmail(payload.email)) {
       errors["ojt-email"] = "Please enter a valid email address.";
     }
     if (payload.contact_no && payload.contact_no.length < 7) {
@@ -733,7 +736,8 @@
       const requiredMissing =
         Boolean(validation.errors["ojt-student-id"]) ||
         Boolean(validation.errors["ojt-name"]) ||
-        Boolean(validation.errors["ojt-section"]);
+        Boolean(validation.errors["ojt-section"]) ||
+        Boolean(validation.errors["ojt-email"]);
 
       Object.entries(validation.errors).forEach(([fieldId, message]) => {
         setFieldError(fieldId, message);

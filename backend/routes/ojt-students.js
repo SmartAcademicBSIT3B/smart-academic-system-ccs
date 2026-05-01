@@ -1,7 +1,11 @@
 const express = require("express");
-const { query } = require("../db/connect");
+const { pool, query } = require("../db/connect");
 const { requireAuth } = require("../middleware/auth");
 const { normalizeOjtStudentPayload } = require("../helpers/normalize");
+const {
+  createOrUpdateStudentUser,
+  sendStudentWelcomeEmail,
+} = require("../services/student-user");
 
 const router = express.Router();
 
@@ -30,17 +34,16 @@ router.get("/", requireAuth, async (req, res) => {
     return res.json({ success: true, students: rows });
   } catch (error) {
     console.error("getOjtStudents error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to fetch OJT students.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch OJT students.",
+    });
   }
 });
 
 // ── POST /api/ojt-students ────────────────────────────────────────────────────
 router.post("/", requireAuth, async (req, res) => {
+  let connection;
   try {
     const department = getDept(req);
     const data = normalizeOjtStudentPayload(
@@ -49,15 +52,27 @@ router.post("/", requireAuth, async (req, res) => {
     );
 
     if (!data.student_id || !data.name || !data.section) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Student ID, Name, and Section are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Student ID, Name, and Section are required.",
+      });
     }
 
-    const result = await query(
+    const normalizedEmail = String(data.email || "")
+      .trim()
+      .toLowerCase();
+    if (!normalizedEmail) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Email is required to create a student portal account and send credentials.",
+      });
+    }
+
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [insertResult] = await connection.execute(
       `INSERT INTO ojt_students
        (student_id, name, section, department, email, contact_no, status,
         external_partner_assigned, nature_of_business)
@@ -67,7 +82,7 @@ router.post("/", requireAuth, async (req, res) => {
         data.name,
         data.section,
         data.department,
-        data.email,
+        normalizedEmail,
         data.contact_no,
         data.status,
         data.external_partner_assigned,
@@ -75,27 +90,71 @@ router.post("/", requireAuth, async (req, res) => {
       ],
     );
 
+    const studentUserResult = await createOrUpdateStudentUser(connection, {
+      student_id: data.student_id,
+      name: data.name,
+      email: normalizedEmail,
+      status: data.status,
+    });
+
+    await connection.commit();
+
+    // Email is sent AFTER commit so a failed email never rolls back DB inserts.
+    let emailSent = false;
+    let emailError = null;
+    if (studentUserResult.emailPayload) {
+      try {
+        await sendStudentWelcomeEmail(studentUserResult.emailPayload);
+        emailSent = true;
+      } catch (mailErr) {
+        emailError = mailErr.message;
+        console.error(
+          "createOjtStudent: welcome email failed:",
+          mailErr.message,
+        );
+      }
+    }
+
     const rows = await query(
       `SELECT id, student_id, name, section, department, email, contact_no,
               status, external_partner_assigned, nature_of_business,
               created_at, updated_at
        FROM ojt_students WHERE id = ? LIMIT 1`,
-      [result.insertId],
+      [insertResult.insertId],
     );
+
+    const createdStudent = rows[0];
+    let accountMsg;
+    if (studentUserResult.mode === "created") {
+      accountMsg = emailSent
+        ? " Student portal account created and credentials emailed."
+        : ` Student portal account created but email failed: ${emailError}`;
+    } else {
+      accountMsg = " Student portal account already existed and was updated.";
+    }
 
     return res.status(201).json({
       success: true,
-      student: rows[0],
-      message: "OJT student added successfully.",
+      student: createdStudent,
+      message: `OJT student added successfully.${accountMsg}`,
     });
   } catch (error) {
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error("createOjtStudent rollback error:", rollbackError);
+      }
+    }
     console.error("createOjtStudent error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to create OJT student.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create OJT student.",
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 });
 
@@ -104,12 +163,10 @@ router.patch("/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id) || id <= 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "A valid OJT student ID is required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "A valid OJT student ID is required.",
+      });
     }
 
     const department = getDept(req);
@@ -119,12 +176,10 @@ router.patch("/:id", requireAuth, async (req, res) => {
     );
 
     if (!data.student_id || !data.name || !data.section) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Student ID, Name, and Section are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Student ID, Name, and Section are required.",
+      });
     }
 
     const existing = await query(
@@ -171,12 +226,10 @@ router.patch("/:id", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("updateOjtStudent error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to update OJT student.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update OJT student.",
+    });
   }
 });
 
@@ -185,12 +238,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id) || id <= 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "A valid OJT student ID is required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "A valid OJT student ID is required.",
+      });
     }
 
     const department = getDept(req);
@@ -199,12 +250,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
       [id, department],
     );
     if (!existing || existing.length === 0) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "OJT student not found or already deleted.",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "OJT student not found or already deleted.",
+      });
     }
 
     await query("DELETE FROM ojt_students WHERE id = ? AND department = ?", [
@@ -217,12 +266,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("deleteOjtStudent error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to delete OJT student.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete OJT student.",
+    });
   }
 });
 
