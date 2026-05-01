@@ -181,6 +181,16 @@ label {
   font-size: 18px;
 }
 
+#emailStep label[for="email"] {
+  display: block;
+  margin-bottom: 10px;
+}
+
+#otpStep label[for="otp"] {
+  display: block;
+  margin-bottom: 10px;
+}
+
 /* ===============================
    INPUTS - Same as login.css
 =================================*/
@@ -356,6 +366,43 @@ button[type="submit"]:hover,
   width: 100%;
   margin-bottom: 20px;
   transition: 0.3s ease;
+}
+
+.password-overlay-wrap {
+  position: relative;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.password-overlay-wrap input {
+  margin-bottom: 0;
+  padding-right: 56px;
+}
+
+.toggle-password-overlay {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #111827;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.toggle-password-overlay:hover {
+  color: #1f2937;
+}
+
+.toggle-password-overlay svg {
+  width: 20px;
+  height: 20px;
 }
 
 .modal input:focus {

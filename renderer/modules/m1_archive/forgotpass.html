@@ -101,20 +101,68 @@
         <h2>Reset Password</h2>
         <form id="passwordResetForm">
           <label for="newPassword">NEW PASSWORD</label>
-          <input
-            type="password"
-            id="newPassword"
-            placeholder="Enter new password"
-            required
-          />
+          <div class="password-overlay-wrap">
+            <input
+              type="password"
+              id="newPassword"
+              placeholder="Enter new password"
+              required
+            />
+            <button
+              type="button"
+              class="toggle-password-overlay"
+              id="toggleNewPasswordBtn"
+              aria-label="Show password"
+              title="Show password"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="3"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+            </button>
+          </div>
 
           <label for="confirmPassword">CONFIRM PASSWORD</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            placeholder="Confirm new password"
-            required
-          />
+          <div class="password-overlay-wrap">
+            <input
+              type="password"
+              id="confirmPassword"
+              placeholder="Confirm new password"
+              required
+            />
+            <button
+              type="button"
+              class="toggle-password-overlay"
+              id="toggleConfirmPasswordBtn"
+              aria-label="Show password"
+              title="Show password"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="3"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+            </button>
+          </div>
 
           <div id="passwordErrorMessage" class="error"></div>
           <div id="passwordSuccessMessage" class="success"></div>
@@ -198,6 +246,61 @@
       document.getElementById("otp").addEventListener("input", function () {
         this.value = this.value.replace(/[^0-9]/g, "");
       });
+
+      function setPasswordFieldVisibility(inputId, buttonId, isVisible) {
+        const input = document.getElementById(inputId);
+        const button = document.getElementById(buttonId);
+        if (!input || !button) return;
+
+        input.type = isVisible ? "text" : "password";
+        button.setAttribute(
+          "aria-label",
+          isVisible ? "Hide password" : "Show password",
+        );
+        button.setAttribute(
+          "title",
+          isVisible ? "Hide password" : "Show password",
+        );
+
+        if (isVisible) {
+          button.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M17.94 17.94C16.12 19.24 14.11 20 12 20C5 20 1 12 1 12C2.18 9.61 3.83 7.56 5.77 6.11M9.88 9.88C9.32 10.44 9 11.19 9 12C9 13.66 10.34 15 12 15C12.81 15 13.56 14.68 14.12 14.12M1 1L23 23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          `;
+        } else {
+          button.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          `;
+        }
+      }
+
+      document
+        .getElementById("toggleNewPasswordBtn")
+        ?.addEventListener("click", function () {
+          const input = document.getElementById("newPassword");
+          const willShow = input ? input.type === "password" : false;
+          setPasswordFieldVisibility(
+            "newPassword",
+            "toggleNewPasswordBtn",
+            willShow,
+          );
+        });
+
+      document
+        .getElementById("toggleConfirmPasswordBtn")
+        ?.addEventListener("click", function () {
+          const input = document.getElementById("confirmPassword");
+          const willShow = input ? input.type === "password" : false;
+          setPasswordFieldVisibility(
+            "confirmPassword",
+            "toggleConfirmPasswordBtn",
+            willShow,
+          );
+        });
 
       document
         .getElementById("emailForm")
@@ -370,6 +473,16 @@
       }
 
       function showPasswordModal() {
+        setPasswordFieldVisibility(
+          "newPassword",
+          "toggleNewPasswordBtn",
+          false,
+        );
+        setPasswordFieldVisibility(
+          "confirmPassword",
+          "toggleConfirmPasswordBtn",
+          false,
+        );
         document.getElementById("passwordModal").style.display = "block";
       }
 
