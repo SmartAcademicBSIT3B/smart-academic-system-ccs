@@ -10,9 +10,15 @@ function ensureTokenDir() {
 }
 
 function getOAuth2Client() {
+  return getOAuth2ClientWithRedirectUri();
+}
+
+function getOAuth2ClientWithRedirectUri(redirectUriOverride) {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI;
+  const redirectUri =
+    String(redirectUriOverride || "").trim() ||
+    process.env.GOOGLE_OAUTH_REDIRECT_URI;
 
   if (!clientId || !clientSecret || !redirectUri) {
     throw new Error(
@@ -22,8 +28,8 @@ function getOAuth2Client() {
   return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 }
 
-function getAuthUrl() {
-  const client = getOAuth2Client();
+function getAuthUrl(redirectUriOverride) {
+  const client = getOAuth2ClientWithRedirectUri(redirectUriOverride);
   return client.generateAuthUrl({
     access_type: "offline",
     scope: ["https://www.googleapis.com/auth/drive"],
@@ -31,9 +37,9 @@ function getAuthUrl() {
   });
 }
 
-async function saveTokenFromCode(code) {
+async function saveTokenFromCode(code, redirectUriOverride) {
   ensureTokenDir();
-  const client = getOAuth2Client();
+  const client = getOAuth2ClientWithRedirectUri(redirectUriOverride);
   const { tokens } = await client.getToken(code);
   fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
 }

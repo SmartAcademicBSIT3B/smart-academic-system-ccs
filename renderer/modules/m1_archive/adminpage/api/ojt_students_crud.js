@@ -456,26 +456,104 @@
     row.dataset.natureOfBusiness = asText(student.nature_of_business);
   }
 
+  function normalizeOjtStatus(value) {
+    const normalized = asText(value).toLowerCase();
+    if (normalized === "deployed") return "Deployed";
+    if (normalized === "pre-deployment") return "Pre-Deployment";
+    if (normalized === "pending requirements") return "Pending Requirements";
+    return "Pending Requirements";
+  }
+
+  function ojtStatusDotClass(statusValue) {
+    const status = normalizeOjtStatus(statusValue);
+    if (status === "Deployed") return "ojt-dot-deployed";
+    if (status === "Pre-Deployment") return "ojt-dot-pre-deployment";
+    return "ojt-dot-pending-requirements";
+  }
+
+  function renderOjtStatusSelect(value) {
+    const status = normalizeOjtStatus(value);
+    const dotClass = ojtStatusDotClass(status);
+
+    return `<div class="ojt-status-control"><span class="ojt-status-dot ${dotClass}"></span><select class="ojt-row-status-select"><option ${status === "Pending Requirements" ? "selected" : ""}>Pending Requirements</option><option ${status === "Pre-Deployment" ? "selected" : ""}>Pre-Deployment</option><option ${status === "Deployed" ? "selected" : ""}>Deployed</option></select></div>`;
+  }
+
+  function renderOjtStatusBadge(value) {
+    const status = normalizeOjtStatus(value);
+    const dotClass = ojtStatusDotClass(status);
+    return `<span class="ojt-view-status-badge"><span class="ojt-status-dot ${dotClass}"></span>${esc(status)}</span>`;
+  }
+
   function buildRowMarkup(student) {
-    const idValue = Number.parseInt(student.id, 10);
-    const displayId = Number.isFinite(idValue)
-      ? String(idValue).padStart(3, "0")
-      : esc(student.id);
+    const statusValue = normalizeOjtStatus(student.status);
 
     return `
       <td><input type="checkbox" class="archive-checkbox row-check" /></td>
-      <td>${displayId}</td>
       <td>${esc(student.student_id)}</td>
       <td>${esc(student.name)}</td>
       <td>${esc(student.section)}</td>
-      <td>${esc(resolveDepartmentFallback(student.department))}</td>
       <td>${esc(student.email)}</td>
       <td>${esc(student.contact_no)}</td>
-      <td>${esc(student.status)}</td>
       <td>${esc(student.external_partner_assigned)}</td>
       <td>${esc(student.nature_of_business)}</td>
+      <td class="col-status">${renderOjtStatusSelect(statusValue)}</td>
       <td class="action-cell"><button class="dots-btn" type="button"><i data-lucide="more-vertical"></i></button></td>
     `;
+  }
+
+  function getUpdatePayloadFromRow(row, nextStatus) {
+    const student = studentFromRow(row);
+    return {
+      id: Number.parseInt(student.id, 10),
+      student_id: student.student_id,
+      name: student.name,
+      section: student.section,
+      department: student.department || appDefaultDepartment,
+      email: student.email,
+      contact_no: student.contact_no,
+      status: normalizeOjtStatus(nextStatus),
+      external_partner_assigned: student.external_partner_assigned,
+      nature_of_business: student.nature_of_business,
+    };
+  }
+
+  async function persistRowStatusChange(row, nextStatus, selectControl) {
+    const electronAPI = getElectronAPI();
+    const ui = window.OjtStudentsUI;
+    if (!row || !electronAPI || !selectControl) return;
+
+    const previousStatus = normalizeOjtStatus(row.dataset.status);
+    const normalizedNextStatus = normalizeOjtStatus(nextStatus);
+    if (previousStatus === normalizedNextStatus) return;
+
+    const payload = getUpdatePayloadFromRow(row, normalizedNextStatus);
+    if (!Number.isInteger(payload.id) || payload.id <= 0) {
+      selectControl.value = previousStatus;
+      return;
+    }
+
+    selectControl.disabled = true;
+    const result = await electronAPI.updateOjtStudent(payload);
+    selectControl.disabled = false;
+
+    if (!result || !result.success || !result.student) {
+      selectControl.value = previousStatus;
+      ui?.showToast(result?.message || "Failed to update status.", "error");
+      return;
+    }
+
+    row.dataset.status = normalizedNextStatus;
+    const dot = row.querySelector(".ojt-status-dot");
+    if (dot) {
+      dot.className = `ojt-status-dot ${ojtStatusDotClass(normalizedNextStatus)}`;
+    }
+
+    if (viewingRow && viewingRow.dataset.id === row.dataset.id) {
+      document.getElementById("ojtv-status").innerHTML =
+        renderOjtStatusBadge(normalizedNextStatus);
+    }
+
+    ui?.showToast("OJT student status updated.", "success", 2200);
   }
 
   function flashInsertedRow(row) {
@@ -672,21 +750,19 @@
 
   function renderViewModal(row) {
     const student = studentFromRow(row);
-    document.getElementById("ojtv-id").textContent = asText(student.id) || "-";
     document.getElementById("ojtv-student-id").textContent =
       asText(student.student_id) || "-";
     document.getElementById("ojtv-name").textContent =
       asText(student.name) || "-";
     document.getElementById("ojtv-section").textContent =
       asText(student.section) || "-";
-    document.getElementById("ojtv-department").textContent =
-      asText(student.department) || appDefaultDepartment;
     document.getElementById("ojtv-email").textContent =
       asText(student.email) || "-";
     document.getElementById("ojtv-contact-no").textContent =
       asText(student.contact_no) || "-";
-    document.getElementById("ojtv-status").textContent =
-      asText(student.status) || "-";
+    document.getElementById("ojtv-status").innerHTML = renderOjtStatusBadge(
+      student.status,
+    );
     document.getElementById("ojtv-external-partner-assigned").textContent =
       asText(student.external_partner_assigned) || "-";
     document.getElementById("ojtv-nature-of-business").textContent =
@@ -1448,7 +1524,8 @@
       if (!row || row.dataset.placeholder) return;
       if (
         event.target.closest(".dots-btn") ||
-        event.target.closest(".row-check")
+        event.target.closest(".row-check") ||
+        event.target.closest(".ojt-row-status-select")
       )
         return;
       if (event.target.closest("#archive-action-menu")) return;
@@ -1459,6 +1536,14 @@
     });
 
     document.addEventListener("change", (event) => {
+      const rowStatusSelect = event.target.closest(".ojt-row-status-select");
+      if (rowStatusSelect) {
+        const row = rowStatusSelect.closest("tr");
+        if (!row) return;
+        persistRowStatusChange(row, rowStatusSelect.value, rowStatusSelect);
+        return;
+      }
+
       const rowCheck = event.target.closest(".row-check");
       if (rowCheck) {
         const row = rowCheck.closest("tr");

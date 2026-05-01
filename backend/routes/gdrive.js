@@ -4,6 +4,20 @@ const gdriveService = require("../services/gdrive");
 
 const router = express.Router();
 
+function resolveCallbackUrl(req) {
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").trim();
+  const protocol = forwardedProto || req.protocol || "http";
+  const host = String(
+    req.headers["x-forwarded-host"] || req.get("host") || "",
+  ).trim();
+
+  if (!host) {
+    throw new Error("Unable to resolve OAuth callback host.");
+  }
+
+  return `${protocol}://${host}/api/gdrive/oauth/callback`;
+}
+
 // ── GET /api/gdrive/status ────────────────────────────────────────────────────
 // Public so landing page settings can show Google Drive state before login.
 router.get("/status", (_req, res) => {
@@ -20,15 +34,14 @@ router.get("/status", (_req, res) => {
 // Public so landing page settings can start OAuth before login.
 router.get("/auth-url", (_req, res) => {
   try {
-    const authUrl = gdriveService.getAuthUrl();
+    const callbackUrl = resolveCallbackUrl(_req);
+    const authUrl = gdriveService.getAuthUrl(callbackUrl);
     return res.json({ success: true, authUrl });
   } catch (error) {
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to generate auth URL.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to generate auth URL.",
+    });
   }
 });
 
@@ -52,7 +65,8 @@ router.get("/oauth/callback", async (req, res) => {
   }
 
   try {
-    await gdriveService.saveTokenFromCode(code);
+    const callbackUrl = resolveCallbackUrl(req);
+    await gdriveService.saveTokenFromCode(code, callbackUrl);
     return res
       .status(200)
       .send(
@@ -74,12 +88,10 @@ router.delete("/token", requireAuth, (_req, res) => {
     gdriveService.clearToken();
     return res.json({ success: true });
   } catch (error) {
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to clear Google Drive auth.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to clear Google Drive auth.",
+    });
   }
 });
 
@@ -112,12 +124,10 @@ router.get("/download", requireAuth, async (req, res) => {
         .json({ success: false, requiresAuth: true, message: error.message });
     }
     console.error("Drive download error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to download file.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to download file.",
+    });
   }
 });
 
