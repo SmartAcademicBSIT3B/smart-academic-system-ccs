@@ -3,7 +3,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("electronAPI", {
   login: (email, password) => ipcRenderer.invoke("login", email, password),
   getProfile: (userId) => ipcRenderer.invoke("getProfile", userId),
-  getSections: () => ipcRenderer.invoke("getSections"),
+  getSections: (departmentCode) =>
+    ipcRenderer.invoke("getSections", departmentCode),
   getDepartments: () => ipcRenderer.invoke("getDepartments"),
   getProfessors: () => ipcRenderer.invoke("getProfessors"),
   selectProfileImage: () => ipcRenderer.invoke("selectProfileImage"),

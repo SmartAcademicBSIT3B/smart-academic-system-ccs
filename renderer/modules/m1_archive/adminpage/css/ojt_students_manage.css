@@ -10,6 +10,7 @@
 }
 
 #ojt-student-modal .ojt-student-modal-content {
+  position: relative;
   background: linear-gradient(160deg, #11161d 0%, #171d26 55%, #131922 100%);
   border: 1px solid rgba(144, 169, 204, 0.24);
 }

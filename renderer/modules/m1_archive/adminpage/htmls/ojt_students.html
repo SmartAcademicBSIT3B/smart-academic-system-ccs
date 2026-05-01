@@ -242,6 +242,17 @@
 
       <div id="ojt-student-modal" class="modal" style="display: none">
         <div class="modal-content ojt-student-modal-content">
+          <div
+            id="ojt-student-loading-overlay"
+            class="bulk-loading-overlay"
+            style="display: none"
+          >
+            <div class="bulk-loading-content">
+              <div class="bulk-spinner"></div>
+              <p id="ojt-student-loading-text">Saving student record...</p>
+            </div>
+          </div>
+
           <div class="form-header">
             <h4 id="ojt-student-modal-title">ADDING NEW OJT STUDENT</h4>
           </div>
@@ -292,17 +303,17 @@
                     <label
                       >SECTION <span class="required-asterisk">*</span></label
                     >
-                    <input
-                      id="ojt-section"
-                      class="required-field"
-                      placeholder="Section"
-                    />
+                    <select id="ojt-section" class="required-field">
+                      <option value="">Select Section</option>
+                    </select>
                     <div class="field-error" id="ojt-section-error"></div>
                   </div>
 
                   <div class="input-group">
                     <label>DEPARTMENT</label>
-                    <input id="ojt-department" placeholder="CCS" />
+                    <select id="ojt-department" disabled>
+                      <option value="CCS" selected>CCS</option>
+                    </select>
                   </div>
                 </section>
 
@@ -337,7 +348,7 @@
                     <select id="ojt-status">
                       <option>Deployed</option>
                       <option>Pre-Deployment</option>
-                      <option>Pending Requirements</option>
+                      <option selected>Pending Requirements</option>
                     </select>
                   </div>
 

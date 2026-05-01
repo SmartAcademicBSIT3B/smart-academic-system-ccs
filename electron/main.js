@@ -902,9 +902,13 @@ ipcMain.handle("selectLocalDocumentsDirectory", async () => {
   }
 });
 
-ipcMain.handle("getSections", async () => {
+ipcMain.handle("getSections", async (event, departmentCode = "") => {
   try {
-    return await api.get("/meta/sections");
+    const department = encodeURIComponent(String(departmentCode || "").trim());
+    const path = department
+      ? `/meta/sections?department=${department}`
+      : "/meta/sections";
+    return await api.get(path);
   } catch (error) {
     console.error("Get sections error:", error);
     return { success: false, message: "Failed to fetch sections." };

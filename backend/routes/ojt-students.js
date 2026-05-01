@@ -46,6 +46,9 @@ router.post("/", requireAuth, async (req, res) => {
   let connection;
   try {
     const department = getDept(req);
+    const emailDispatchMode = String(req.body?.email_dispatch_mode || "")
+      .trim()
+      .toLowerCase();
     const data = normalizeOjtStudentPayload(
       { ...req.body, department },
       department,
@@ -99,19 +102,34 @@ router.post("/", requireAuth, async (req, res) => {
 
     await connection.commit();
 
-    // Email is sent AFTER commit so a failed email never rolls back DB inserts.
+    // Manual add can optionally wait for email so UI can confirm completion.
+    const shouldWaitForEmail = emailDispatchMode === "wait";
     let emailSent = false;
+    let emailQueued = false;
     let emailError = null;
+
     if (studentUserResult.emailPayload) {
-      try {
-        await sendStudentWelcomeEmail(studentUserResult.emailPayload);
-        emailSent = true;
-      } catch (mailErr) {
-        emailError = mailErr.message;
-        console.error(
-          "createOjtStudent: welcome email failed:",
-          mailErr.message,
-        );
+      if (shouldWaitForEmail) {
+        try {
+          await sendStudentWelcomeEmail(studentUserResult.emailPayload);
+          emailSent = true;
+        } catch (mailErr) {
+          emailError = mailErr.message;
+          console.error(
+            "createOjtStudent: welcome email failed:",
+            mailErr.message,
+          );
+        }
+      } else {
+        emailQueued = true;
+        Promise.resolve()
+          .then(() => sendStudentWelcomeEmail(studentUserResult.emailPayload))
+          .catch((mailErr) => {
+            console.error(
+              "createOjtStudent: welcome email failed:",
+              mailErr.message,
+            );
+          });
       }
     }
 
@@ -124,19 +142,17 @@ router.post("/", requireAuth, async (req, res) => {
     );
 
     const createdStudent = rows[0];
-    let accountMsg;
-    if (studentUserResult.mode === "created") {
-      accountMsg = emailSent
-        ? " Student portal account created and credentials emailed."
-        : ` Student portal account created but email failed: ${emailError}`;
-    } else {
-      accountMsg = " Student portal account already existed and was updated.";
-    }
 
     return res.status(201).json({
       success: true,
       student: createdStudent,
-      message: `OJT student added successfully.${accountMsg}`,
+      message: "OJT student added successfully.",
+      studentUser: {
+        mode: studentUserResult.mode,
+        emailSent,
+        emailQueued,
+        emailError,
+      },
     });
   } catch (error) {
     if (connection) {

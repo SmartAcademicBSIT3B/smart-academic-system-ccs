@@ -5,6 +5,7 @@
   let activeActionRow = null;
   let viewingRow = null;
   let appDefaultDepartment = "CCS";
+  let sectionOptions = [];
   const partnerAutocomplete = {
     partners: [],
     filtered: [],
@@ -44,6 +45,101 @@
     return asText(value) || appDefaultDepartment;
   }
 
+  function setLockedDepartmentField(value) {
+    const departmentSelect = document.getElementById("ojt-department");
+    if (!departmentSelect) return;
+
+    const departmentCode = resolveDepartmentFallback(value);
+    departmentSelect.innerHTML = "";
+
+    const option = document.createElement("option");
+    option.value = departmentCode;
+    option.textContent = departmentCode;
+    departmentSelect.appendChild(option);
+
+    departmentSelect.value = departmentCode;
+    departmentSelect.disabled = true;
+  }
+
+  function normalizeSectionName(section) {
+    return asText(section?.sections_name || section?.section_name || "");
+  }
+
+  function renderSectionOptions(options = [], selectedValue = "") {
+    const sectionSelect = document.getElementById("ojt-section");
+    if (!sectionSelect) return;
+
+    const wanted = asText(selectedValue);
+    const normalizedOptions = Array.isArray(options)
+      ? options.map((section) => normalizeSectionName(section)).filter(Boolean)
+      : [];
+
+    sectionSelect.innerHTML =
+      '<option value="">Select Section</option>' +
+      normalizedOptions
+        .map((name) => `<option value="${esc(name)}">${esc(name)}</option>`)
+        .join("");
+
+    if (!normalizedOptions.length) {
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = "No sections found";
+      emptyOption.disabled = true;
+      sectionSelect.appendChild(emptyOption);
+    }
+
+    if (wanted && normalizedOptions.includes(wanted)) {
+      sectionSelect.value = wanted;
+      return;
+    }
+
+    if (wanted) {
+      const option = document.createElement("option");
+      option.value = wanted;
+      option.textContent = wanted;
+      sectionSelect.appendChild(option);
+      sectionSelect.value = wanted;
+      return;
+    }
+
+    sectionSelect.value = "";
+  }
+
+  async function loadSectionsForDepartment(departmentCode, selectedValue = "") {
+    const electronAPI = getElectronAPI();
+    const department = resolveDepartmentFallback(departmentCode);
+    const ui = window.OjtStudentsUI;
+
+    if (!electronAPI || typeof electronAPI.getSections !== "function") {
+      renderSectionOptions([], selectedValue);
+      return;
+    }
+
+    try {
+      const result = await electronAPI.getSections(department);
+      if (!result || !result.success || !Array.isArray(result.sections)) {
+        sectionOptions = [];
+        renderSectionOptions([], selectedValue);
+        if (ui?.showToast) {
+          ui.showToast(
+            result?.message || "Failed to load sections for this department.",
+            "error",
+          );
+        }
+        return;
+      }
+
+      sectionOptions = result.sections;
+      renderSectionOptions(sectionOptions, selectedValue);
+    } catch (_error) {
+      sectionOptions = [];
+      renderSectionOptions([], selectedValue);
+      if (ui?.showToast) {
+        ui.showToast("Failed to load sections for this department.", "error");
+      }
+    }
+  }
+
   async function loadDefaultDepartmentSetting() {
     try {
       const cached = localStorage.getItem("sas.app.settings");
@@ -68,6 +164,8 @@
         appDefaultDepartment = candidate;
       }
     } catch (_error) {}
+
+    setLockedDepartmentField(appDefaultDepartment);
   }
 
   function renderNoDataPlaceholderIfEmpty() {
@@ -436,7 +534,8 @@
         document.getElementById("ojt-contact-no")?.value,
       ),
       status:
-        asText(document.getElementById("ojt-status")?.value) || "Deployed",
+        asText(document.getElementById("ojt-status")?.value) ||
+        "Pending Requirements",
       external_partner_assigned: asText(
         document.getElementById("ojt-external-partner-assigned")?.value,
       ),
@@ -507,16 +606,17 @@
       student.student_id,
     );
     document.getElementById("ojt-name").value = asText(student.name);
-    document.getElementById("ojt-section").value = asText(student.section);
-    document.getElementById("ojt-department").value = asText(
+    const targetDepartment = asText(
       resolveDepartmentFallback(student.department),
     );
+    setLockedDepartmentField(targetDepartment);
+    loadSectionsForDepartment(targetDepartment, asText(student.section));
     document.getElementById("ojt-email").value = asText(student.email);
     document.getElementById("ojt-contact-no").value = asText(
       student.contact_no,
     );
     document.getElementById("ojt-status").value =
-      asText(student.status) || "Deployed";
+      asText(student.status) || "Pending Requirements";
     document.getElementById("ojt-external-partner-assigned").value = asText(
       student.external_partner_assigned,
     );
@@ -526,6 +626,7 @@
   }
 
   function resetForm() {
+    setLockedDepartmentField(appDefaultDepartment);
     setFormValues({
       student_id: "",
       name: "",
@@ -533,10 +634,11 @@
       department: appDefaultDepartment,
       email: "",
       contact_no: "",
-      status: "Deployed",
+      status: "Pending Requirements",
       external_partner_assigned: "",
       nature_of_business: "",
     });
+    loadSectionsForDepartment(appDefaultDepartment, "");
     clearAllFieldErrors();
     closePartnerSuggestions();
   }
@@ -723,6 +825,24 @@
     );
   }
 
+  function setStudentModalLoading(isLoading, text) {
+    const overlay = document.getElementById("ojt-student-loading-overlay");
+    const label = document.getElementById("ojt-student-loading-text");
+    const saveBtn = document.getElementById("ojt-student-save-btn");
+    const cancelBtn = document.getElementById("ojt-student-cancel-btn");
+
+    if (label && text) {
+      label.textContent = text;
+    }
+
+    if (overlay) {
+      overlay.style.display = isLoading ? "flex" : "none";
+    }
+
+    if (saveBtn) saveBtn.disabled = Boolean(isLoading);
+    if (cancelBtn) cancelBtn.disabled = Boolean(isLoading);
+  }
+
   async function saveStudent() {
     const ui = window.OjtStudentsUI;
     const electronAPI = getElectronAPI();
@@ -754,10 +874,20 @@
 
     const isEdit = Boolean(editingRow && editingRow.dataset.id);
     if (isEdit) payload.id = Number.parseInt(editingRow.dataset.id, 10);
+    if (!isEdit) payload.email_dispatch_mode = "wait";
+
+    setStudentModalLoading(
+      true,
+      isEdit
+        ? "Saving student changes..."
+        : "Saving student record and creating account...",
+    );
 
     const result = isEdit
       ? await electronAPI.updateOjtStudent(payload)
       : await electronAPI.createOjtStudent(payload);
+
+    setStudentModalLoading(false);
 
     if (!result || !result.success || !result.student) {
       ui.showToast(result?.message || "Failed to save OJT student.", "error");
@@ -772,6 +902,28 @@
         : "OJT student added successfully.",
       "success",
     );
+
+    if (!isEdit) {
+      if (result?.studentUser?.emailSent) {
+        ui.showToast(
+          "Student credentials email sent successfully.",
+          "success",
+          3600,
+        );
+      } else if (result?.studentUser?.emailQueued) {
+        ui.showToast(
+          "Student account created. Credentials email is being sent in the background.",
+          "info",
+          4200,
+        );
+      } else if (result?.studentUser?.emailError) {
+        ui.showToast(
+          `Student saved but email failed: ${result.studentUser.emailError}`,
+          "error",
+          5000,
+        );
+      }
+    }
 
     if (window.ojtStudentsSearchFilter) {
       window.ojtStudentsSearchFilter.refresh();
@@ -982,6 +1134,7 @@
 
     const createdRows = [];
     const failedRows = [];
+    let queuedEmailCount = 0;
 
     for (let i = 0; i < records.length; i += 1) {
       if (loadingText) {
@@ -1005,6 +1158,10 @@
         continue;
       }
 
+      if (result?.studentUser?.emailQueued) {
+        queuedEmailCount += 1;
+      }
+
       createdRows.push(result.student);
       addOjtStudentRow(result.student, { highlight: true });
     }
@@ -1024,6 +1181,14 @@
         `${createdRows.length} OJT student${createdRows.length === 1 ? "" : "s"} imported.`,
         "success",
       );
+
+      if (queuedEmailCount > 0) {
+        ui.showToast(
+          `${queuedEmailCount} credential email${queuedEmailCount === 1 ? " is" : "s are"} being sent in the background.`,
+          "info",
+          4200,
+        );
+      }
     }
 
     if (failedRows.length) {
@@ -1352,8 +1517,10 @@
     }
 
     await loadDefaultDepartmentSetting();
+    setLockedDepartmentField(appDefaultDepartment);
     bindEvents();
     bindPartnerAutocomplete();
+    await loadSectionsForDepartment(appDefaultDepartment, "");
     loadExternalPartnerSuggestions();
 
     if (typeof window.loadOjtStudents === "function") {

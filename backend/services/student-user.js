@@ -3,6 +3,7 @@ const nodemailer = require("nodemailer");
 
 const MAIL_USER = String(process.env.MAIL_USER || "").trim();
 const MAIL_PASS = String(process.env.MAIL_PASS || "").trim();
+const PORTAL_URL_PLACEHOLDER = "https://your-portal-url-here.example";
 
 const mailTransporter =
   MAIL_USER && MAIL_PASS
@@ -44,22 +45,52 @@ async function sendStudentWelcomeEmail({ email, name, studentId, password }) {
   const safeStudentId = escapeHtml(studentId || "-");
   const safeEmail = escapeHtml(email || "-");
   const safePassword = escapeHtml(password || "");
+  const safePortalUrl = escapeHtml(PORTAL_URL_PLACEHOLDER);
 
   await mailTransporter.sendMail({
     from: MAIL_USER,
     to: email,
-    subject: "Your Student Portal Account - Smart Academic System CCS",
+    subject:
+      "Your Account Credentials - PLP GSRS (Graduating Students Requirements Submission) Portal",
     html: `
-      <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;line-height:1.5;color:#222;">
-        <h2 style="margin:0 0 12px;">Student Portal Login Credentials</h2>
-        <p style="margin:0 0 12px;">Hello ${safeName},</p>
-        <p style="margin:0 0 12px;">Your student portal account has been created.</p>
-        <div style="border:1px solid #ddd;border-radius:8px;padding:12px 14px;background:#fafafa;">
-          <p style="margin:0 0 6px;"><strong>Student ID:</strong> ${safeStudentId}</p>
-          <p style="margin:0 0 6px;"><strong>Email:</strong> ${safeEmail}</p>
-          <p style="margin:0;"><strong>Temporary Password:</strong> ${safePassword}</p>
+      <div style="margin:0;padding:24px;background:#f4fbf6;font-family:Arial,sans-serif;color:#1d2a1f;">
+        <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #dcefe2;border-radius:12px;overflow:hidden;">
+          <div style="background:#0f8f4a;color:#ffffff;padding:18px 22px;">
+            <h2 style="margin:0;font-size:20px;line-height:1.3;">PLP GSRS (Graduating Students Requirements Submission) Portal</h2>
+          </div>
+
+          <div style="padding:22px;line-height:1.6;">
+            <p style="margin:0 0 12px;">Hello ${safeName},</p>
+            <p style="margin:0 0 14px;">
+              Your student portal account has been created. Please use the credentials below to sign in.
+            </p>
+
+            <div style="border:1px solid #cfe7d8;border-radius:10px;padding:14px 16px;background:#f8fdf9;">
+              <p style="margin:0 0 8px;"><strong>Student ID:</strong> ${safeStudentId}</p>
+              <p style="margin:0 0 8px;"><strong>Email:</strong> ${safeEmail}</p>
+              <p style="margin:0;"><strong>Temporary Password:</strong> ${safePassword}</p>
+            </div>
+
+            <p style="margin:16px 0 10px;">
+              Portal link (soon to be official URL):
+            </p>
+            <p style="margin:0 0 16px;word-break:break-all;">
+              <a href="${safePortalUrl}" style="color:#0f8f4a;text-decoration:none;font-weight:600;">${safePortalUrl}</a>
+            </p>
+
+            <p style="margin:0 0 10px;">
+              For your security, please change your password immediately after your first login.
+            </p>
+
+            <p style="margin:0;color:#4b5f4f;font-size:13px;">
+              If you did not expect this account, please contact your school administrator.
+            </p>
+          </div>
         </div>
-        <p style="margin:12px 0 0;">Please change your password after your first login.</p>
+
+        <p style="max-width:640px;margin:10px auto 0;font-size:12px;color:#5f7464;">
+          This is an automated message from PLP GSRS. Please do not reply to this email.
+        </p>
       </div>
     `,
   });
