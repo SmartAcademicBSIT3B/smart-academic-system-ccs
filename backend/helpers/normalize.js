@@ -50,7 +50,9 @@ function normalizeOjtStudentPayload(payload = {}, defaultDepartment = "CCS") {
   const department =
     String(payload.department || "").trim() ||
     String(defaultDepartment || "CCS");
-  const normalizedStatus = String(payload.status || "").trim().slice(0, 120);
+  const normalizedStatus = String(payload.status || "")
+    .trim()
+    .slice(0, 120);
   return {
     student_id: String(payload.student_id || "").trim(),
     name: String(payload.name || "").trim(),
