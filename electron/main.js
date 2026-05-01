@@ -842,21 +842,37 @@ app.whenReady().then(async () => {
     }
   });
 });
-ipcMain.handle("login", async (event, email, password) => {
-  try {
-    const result = await api.post("/auth/login", { email, password });
-    if (result.success && result.token) {
-      api.setToken(result.token);
-      if (result.user?.department_code) {
-        api.setDepartmentCode(result.user.department_code);
+ipcMain.handle(
+  "login",
+  async (event, email, password, departmentCode, secretLogin) => {
+    try {
+      const requestedDepartmentCode = String(departmentCode || "")
+        .trim()
+        .toUpperCase();
+      const isSecretLogin = secretLogin === true;
+      if (requestedDepartmentCode) {
+        api.setDepartmentCode(requestedDepartmentCode);
       }
+
+      const result = await api.post("/auth/login", {
+        email,
+        password,
+        departmentCode: requestedDepartmentCode,
+        secretLogin: isSecretLogin,
+      });
+      if (result.success && result.token) {
+        api.setToken(result.token);
+        if (result.user?.department_code) {
+          api.setDepartmentCode(result.user.department_code);
+        }
+      }
+      return result;
+    } catch (error) {
+      console.error("Login error:", error);
+      return { success: false, message: "An error occurred during login." };
     }
-    return result;
-  } catch (error) {
-    console.error("Login error:", error);
-    return { success: false, message: "An error occurred during login." };
-  }
-});
+  },
+);
 
 ipcMain.handle("getProfile", async (event, userId) => {
   try {
@@ -1341,6 +1357,55 @@ ipcMain.handle("deleteOjtStudent", async (event, studentId) => {
     return {
       success: false,
       message: error.message || "Failed to delete OJT student.",
+    };
+  }
+});
+
+ipcMain.handle("getUsers", async () => {
+  try {
+    return await api.get("/users");
+  } catch (error) {
+    console.error("getUsers error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to fetch users.",
+    };
+  }
+});
+
+ipcMain.handle("createUser", async (event, payload = {}) => {
+  try {
+    return await api.post("/users", payload);
+  } catch (error) {
+    console.error("createUser error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to create user.",
+    };
+  }
+});
+
+ipcMain.handle("updateUser", async (event, payload = {}) => {
+  try {
+    const { id, ...rest } = payload;
+    return await api.patch(`/users/${id}`, rest);
+  } catch (error) {
+    console.error("updateUser error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to update user.",
+    };
+  }
+});
+
+ipcMain.handle("deleteUser", async (event, userId) => {
+  try {
+    return await api.del(`/users/${userId}`);
+  } catch (error) {
+    console.error("deleteUser error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to delete user.",
     };
   }
 });

@@ -1,6 +1,10 @@
-async function loginUser(email, password) {
+async function loginUser(email, password, departmentCode) {
   try {
-    const result = await window.electronAPI.login(email, password);
+    const result = await window.electronAPI.login(
+      email,
+      password,
+      departmentCode,
+    );
     return result;
   } catch (error) {
     console.error("Login API error:", error);

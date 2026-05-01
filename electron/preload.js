@@ -1,7 +1,8 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
-  login: (email, password) => ipcRenderer.invoke("login", email, password),
+  login: (email, password, departmentCode, secretLogin) =>
+    ipcRenderer.invoke("login", email, password, departmentCode, secretLogin),
   getProfile: (userId) => ipcRenderer.invoke("getProfile", userId),
   getSections: (departmentCode) =>
     ipcRenderer.invoke("getSections", departmentCode),
@@ -36,6 +37,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("updateOjtStudent", studentData),
   deleteOjtStudent: (studentId) =>
     ipcRenderer.invoke("deleteOjtStudent", studentId),
+  getUsers: () => ipcRenderer.invoke("getUsers"),
+  createUser: (userData) => ipcRenderer.invoke("createUser", userData),
+  updateUser: (userData) => ipcRenderer.invoke("updateUser", userData),
+  deleteUser: (userId) => ipcRenderer.invoke("deleteUser", userId),
   checkGoogleDriveAuth: () => ipcRenderer.invoke("checkGoogleDriveAuth"),
   getGoogleDriveAuthUrl: () => ipcRenderer.invoke("getGoogleDriveAuthUrl"),
   saveGoogleDriveToken: (authCode) =>

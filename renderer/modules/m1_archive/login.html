@@ -102,7 +102,45 @@
 
           <div id="errorMessage" class="error"></div>
 
-          <button type="submit">LOGIN</button>
+          <button id="loginSubmitBtn" type="submit">LOGIN</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="superAdminModal" class="secret-modal" aria-hidden="true">
+      <div class="secret-modal-card" role="dialog" aria-modal="true">
+        <button
+          id="superAdminCloseBtn"
+          class="secret-close-btn"
+          type="button"
+          aria-label="Close secret login"
+        >
+          x
+        </button>
+        <h3>Super Admin Access</h3>
+        <p class="secret-subtitle">
+          Authorized account can sign in across all departments.
+        </p>
+
+        <form id="superAdminForm">
+          <label for="superAdminEmail">E-MAIL</label>
+          <input
+            id="superAdminEmail"
+            type="email"
+            autocomplete="off"
+            required
+          />
+
+          <label for="superAdminPassword">PASSWORD</label>
+          <input
+            id="superAdminPassword"
+            type="password"
+            autocomplete="off"
+            required
+          />
+
+          <div id="superAdminError" class="error"></div>
+          <button type="submit">LOGIN AS SUPER ADMIN</button>
         </form>
       </div>
     </div>
@@ -114,6 +152,12 @@
       const DEFAULT_DEPARTMENT_CODE = "CCS";
       const DEFAULT_DEPARTMENT_NAME = "College of Computer Studies";
       const DEFAULT_DEPARTMENT_LOGO = "images/CCSLOGO.png";
+      const SECRET_HOLD_MS = 3000;
+      const SECRET_CONFIRM_WINDOW_MS = 2500;
+
+      let secretHoldTimer = null;
+      let secretConfirmTimer = null;
+      let secretHoldTriggered = false;
 
       function loadRememberedLogin() {
         const rememberMeEl = document.getElementById("rememberMe");
@@ -199,51 +243,221 @@
         }
       }
 
+      function getSelectedDepartmentCode() {
+        const fromHeading = String(
+          document.getElementById("departmentCode")?.textContent || "",
+        )
+          .trim()
+          .toUpperCase();
+        if (fromHeading) return fromHeading;
+
+        try {
+          const raw = localStorage.getItem(APP_SETTINGS_KEY);
+          const parsed = raw ? JSON.parse(raw) : {};
+          const code = String(parsed?.department?.department_code || "")
+            .trim()
+            .toUpperCase();
+          return code || DEFAULT_DEPARTMENT_CODE;
+        } catch (_error) {
+          return DEFAULT_DEPARTMENT_CODE;
+        }
+      }
+
+      async function attemptLogin(
+        email,
+        password,
+        rememberMe,
+        errorElementId,
+        isSecretLogin = false,
+      ) {
+        const selectedDepartmentCode = getSelectedDepartmentCode();
+        const departmentCodeForRequest = isSecretLogin
+          ? `SECRET:${selectedDepartmentCode}`
+          : selectedDepartmentCode;
+        const errorEl = document.getElementById(errorElementId);
+        if (errorEl) errorEl.textContent = "";
+
+        const result = await window.electronAPI.login(
+          String(email || "").trim(),
+          String(password || ""),
+          departmentCodeForRequest,
+          Boolean(isSecretLogin),
+        );
+
+        if (!result || !result.success) {
+          if (errorEl) {
+            errorEl.textContent =
+              result?.message || "An error occurred during login.";
+          }
+          return;
+        }
+
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_ME_KEY, "true");
+          localStorage.setItem(REMEMBER_EMAIL_KEY, String(email || "").trim());
+        } else {
+          localStorage.removeItem(REMEMBER_ME_KEY);
+          localStorage.removeItem(REMEMBER_EMAIL_KEY);
+        }
+
+        localStorage.setItem("user", JSON.stringify(result.user));
+
+        if (
+          result.user.role === "admin" ||
+          result.user.role === "coordinator"
+        ) {
+          window.location.href = "adminpage/htmls/1main_menu.html";
+          return;
+        }
+
+        if (errorEl) errorEl.textContent = "Role not recognized.";
+      }
+
+      function openSecretModal() {
+        const modal = document.getElementById("superAdminModal");
+        const emailEl = document.getElementById("superAdminEmail");
+        const passwordEl = document.getElementById("superAdminPassword");
+        const errorEl = document.getElementById("superAdminError");
+
+        if (!modal) return;
+        modal.classList.add("is-open");
+        modal.setAttribute("aria-hidden", "false");
+
+        if (errorEl) errorEl.textContent = "";
+        if (emailEl) emailEl.value = "";
+        if (passwordEl) passwordEl.value = "";
+
+        window.setTimeout(() => {
+          if (emailEl) emailEl.focus();
+        }, 0);
+      }
+
+      function closeSecretModal() {
+        const modal = document.getElementById("superAdminModal");
+        if (!modal) return;
+        modal.classList.remove("is-open");
+        modal.setAttribute("aria-hidden", "true");
+      }
+
+      function clearSecretHold() {
+        if (secretHoldTimer) {
+          window.clearTimeout(secretHoldTimer);
+          secretHoldTimer = null;
+        }
+      }
+
+      function clearSecretConfirmWindow() {
+        if (secretConfirmTimer) {
+          window.clearTimeout(secretConfirmTimer);
+          secretConfirmTimer = null;
+        }
+      }
+
+      function resetSecretGestureState() {
+        clearSecretHold();
+        clearSecretConfirmWindow();
+        secretHoldTriggered = false;
+      }
+
+      function bindSecretHoldTrigger() {
+        const loginBtn = document.getElementById("loginSubmitBtn");
+        if (!loginBtn) return;
+
+        loginBtn.addEventListener("pointerdown", (event) => {
+          if (!event.shiftKey) {
+            resetSecretGestureState();
+            return;
+          }
+
+          clearSecretHold();
+          secretHoldTimer = window.setTimeout(() => {
+            secretHoldTriggered = true;
+
+            clearSecretConfirmWindow();
+            secretConfirmTimer = window.setTimeout(() => {
+              secretHoldTriggered = false;
+            }, SECRET_CONFIRM_WINDOW_MS);
+          }, SECRET_HOLD_MS);
+        });
+
+        const cancelHold = () => clearSecretHold();
+        loginBtn.addEventListener("pointerup", cancelHold);
+        loginBtn.addEventListener("pointerleave", cancelHold);
+        loginBtn.addEventListener("pointercancel", cancelHold);
+
+        loginBtn.addEventListener("dblclick", (event) => {
+          if (!secretHoldTriggered || !event.shiftKey) return;
+
+          event.preventDefault();
+          event.stopPropagation();
+          resetSecretGestureState();
+          openSecretModal();
+        });
+
+        loginBtn.addEventListener("click", (event) => {
+          if (!secretHoldTriggered) return;
+          event.preventDefault();
+          event.stopPropagation();
+        });
+
+        document.addEventListener("keyup", (event) => {
+          if (event.key === "Shift") clearSecretHold();
+        });
+      }
+
       // Login Logic
       document
         .getElementById("loginForm")
         .addEventListener("submit", async function (e) {
           e.preventDefault();
 
-          // Clear previous error message
-          document.getElementById("errorMessage").textContent = "";
+          if (secretHoldTriggered) {
+            secretHoldTriggered = false;
+            return;
+          }
 
-          const email = document.getElementById("username").value.trim(); // Assuming username is email
+          const email = document.getElementById("username").value.trim();
           const password = document.getElementById("password").value;
           const rememberMe = document.getElementById("rememberMe").checked;
 
-          const result = await window.electronAPI.login(email, password);
-
-          if (result.success) {
-            if (rememberMe) {
-              localStorage.setItem(REMEMBER_ME_KEY, "true");
-              localStorage.setItem(REMEMBER_EMAIL_KEY, email);
-            } else {
-              localStorage.removeItem(REMEMBER_ME_KEY);
-              localStorage.removeItem(REMEMBER_EMAIL_KEY);
-            }
-
-            // Store user info
-            localStorage.setItem("user", JSON.stringify(result.user));
-
-            // Redirect based on role
-            if (result.user.role === "admin") {
-              window.location.href = "adminpage/htmls/1main_menu.html";
-            } else if (result.user.role === "coordinator") {
-              window.location.href = "adminpage/htmls/1main_menu.html";
-            } else {
-              document.getElementById("errorMessage").textContent =
-                "Role not recognized.";
-            }
-          } else {
-            document.getElementById("errorMessage").textContent =
-              result.message;
-          }
+          await attemptLogin(
+            email,
+            password,
+            rememberMe,
+            "errorMessage",
+            false,
+          );
         });
+
+      document
+        .getElementById("superAdminForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const email = document.getElementById("superAdminEmail")?.value;
+          const password = document.getElementById("superAdminPassword")?.value;
+
+          await attemptLogin(email, password, false, "superAdminError", true);
+        });
+
+      document
+        .getElementById("superAdminCloseBtn")
+        ?.addEventListener("click", closeSecretModal);
+
+      document
+        .getElementById("superAdminModal")
+        ?.addEventListener("click", function (event) {
+          if (event.target === this) closeSecretModal();
+        });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeSecretModal();
+      });
 
       loadRememberedLogin();
       applyBrandingFromLocalSettings();
       refreshBrandingFromPersistedSettings();
+      bindSecretHoldTrigger();
 
       // Back Button
       function goBack() {

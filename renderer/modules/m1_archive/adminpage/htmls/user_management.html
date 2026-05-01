@@ -3,772 +3,2542 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Coordinators Management</title>
+    <title>Users Management</title>
+
     <link rel="stylesheet" href="../css/tables.css" />
+    <link rel="stylesheet" href="../css/manage_archives.css" />
+    <link rel="stylesheet" href="../css/external_partners_manage.css" />
     <link rel="stylesheet" href="../css/form_user_management.css" />
+
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
       rel="stylesheet"
     />
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
-    />
-    <!-- Font Awesome -->
   </head>
 
   <body>
     <div class="page">
-      <h1 class="page-title">COORDINATORS MANAGEMENT</h1>
+      <h1 class="page-title">USERS MANAGEMENT</h1>
 
-      <!-- Controls -->
       <div class="controls">
         <div class="left-controls">
-          <input type="text" placeholder="Search" />
+          <div class="search-wrap">
+            <i data-lucide="search" class="search-icon"></i>
+            <input
+              type="text"
+              id="user-search"
+              class="search-input"
+              placeholder="Search user_id, name, email, role..."
+              autocomplete="off"
+            />
+          </div>
+
           <div class="select-wrapper">
-            <select>
-              <option>Sort By</option>
-              <option>Name (A-Z)</option>
-              <option>Name (Z-A)</option>
-              <option>Status</option>
+            <select id="user-sort">
+              <option value="">Sort By</option>
+              <option value="id">ID</option>
+              <option value="userId">User ID</option>
+              <option value="name">Name</option>
+              <option value="email">Email</option>
+              <option value="role">Role</option>
+              <option value="status">Status</option>
             </select>
             <span class="arrow"></span>
-            <!-- Arrow Icon for Dropdown -->
           </div>
-          <button class="filter-btn">Filter</button>
+
+          <button
+            class="sort-dir-btn"
+            id="user-sort-dir"
+            type="button"
+            title="Toggle sort direction"
+          >
+            <i data-lucide="arrow-up-narrow-wide"></i>
+          </button>
+
+          <button
+            class="clear-filters-btn"
+            id="user-clear-filters"
+            type="button"
+          >
+            Clear Filters
+          </button>
         </div>
+
         <div class="right-controls">
           <div class="tooltip">
-            <button class="generate-btn">
+            <button class="generate-btn" id="user-generate-btn" type="button">
               <i data-lucide="printer"></i>
             </button>
             <span class="tooltip-text">Generate Report</span>
           </div>
+
           <div class="tooltip">
-            <button class="add-btn" id="add-coordinator-btn">+</button>
-            <span class="tooltip-text">Add Coordinator</span>
+            <button
+              class="generate-btn"
+              id="user-download-template-btn"
+              type="button"
+            >
+              <i data-lucide="file-down"></i>
+            </button>
+            <span class="tooltip-text">Download CSV Template</span>
+          </div>
+
+          <div class="tooltip">
+            <button class="generate-btn" id="user-upload-csv-btn" type="button">
+              <i data-lucide="file-up"></i>
+            </button>
+            <span class="tooltip-text">Bulk Upload CSV</span>
+          </div>
+
+          <div class="tooltip tooltip-add-partner">
+            <button class="add-btn" id="user-open-modal" type="button">
+              +
+            </button>
+            <span class="tooltip-text">Add User</span>
           </div>
         </div>
       </div>
 
-      <!-- DOWNLOAD OPTIONS MODAL -->
-      <div id="export-modal" class="modal" style="display: none">
+      <input type="file" id="user-csv-input" accept=".csv,text/csv" />
+
+      <div class="filter-bar" id="user-filter-bar">
+        <div class="filter-selects">
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="umf-user-id">User ID</label>
+            <select id="umf-user-id" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="umf-role">Role</label>
+            <select id="umf-role" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="umf-status">Status</label>
+            <select id="umf-status" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+        </div>
+
+        <div
+          class="active-filter-tags-container"
+          id="user-active-filter-tags-container"
+        >
+          <div class="active-filter-tags" id="user-active-filter-tags"></div>
+        </div>
+      </div>
+
+      <div id="user-export-modal" class="modal">
         <div class="modal-content choice-modal-content">
           <div class="form-header">
             <h4>DOWNLOAD REPORT</h4>
           </div>
           <div class="choice-actions">
-            <button type="button" class="choice-btn" id="export-csv-btn">
+            <button type="button" class="choice-btn" id="user-export-csv-btn">
               <i data-lucide="file-text"></i>
               CSV
             </button>
-            <button type="button" class="choice-btn" id="export-excel-btn">
+            <button type="button" class="choice-btn" id="user-export-excel-btn">
               <i data-lucide="sheet"></i>
               Excel
             </button>
-            <button type="button" class="choice-btn" id="export-pdf-btn">
+            <button type="button" class="choice-btn" id="user-export-pdf-btn">
               <i data-lucide="file-output"></i>
               PDF
             </button>
-            <button type="button" class="choice-btn" id="export-doc-btn">
-              <i data-lucide="file"></i>
-              DOC
-            </button>
           </div>
           <div class="form-actions choice-footer">
-            <button class="cancel-btn" id="export-cancel-btn" type="button">
+            <button
+              class="cancel-btn"
+              id="user-export-cancel-btn"
+              type="button"
+            >
               Cancel
             </button>
           </div>
         </div>
       </div>
 
-      <!-- SELECT ADD MODE MODAL -->
-      <div id="select-mode-modal" class="modal" style="display: none">
-        <div class="modal-content choice-modal-content">
+      <div id="user-delete-confirm-modal" class="modal">
+        <div class="modal-content delete-confirm-modal-content">
           <div class="form-header">
-            <h4>ADD COORDINATOR</h4>
+            <h4>CONFIRM DELETE</h4>
           </div>
-
-          <div class="choice-actions">
-            <button type="button" class="choice-btn" id="manual-add-btn">
-              <i data-lucide="file-plus-2"></i>
-              Add manually
-            </button>
-
-            <button type="button" class="choice-btn" id="csv-add-btn">
-              <i data-lucide="upload"></i>
-              Upload CSV file
-            </button>
-
+          <div class="delete-confirm-body">
+            <p
+              id="user-delete-confirm-target"
+              class="delete-confirm-target"
+            ></p>
+            <p class="delete-confirm-helper">
+              Type <strong>DELETE</strong> to continue.
+            </p>
             <input
-              type="file"
-              id="csv-file-input"
-              accept=".csv,text/csv"
-              style="display: none"
+              type="text"
+              id="user-delete-confirm-input"
+              class="delete-confirm-input"
+              placeholder="Type DELETE"
+              autocomplete="off"
             />
           </div>
-
-          <div class="form-actions choice-footer">
-            <button class="cancel-btn" id="cancel-mode-btn" type="button">
+          <div class="form-actions choice-footer delete-confirm-actions">
+            <button
+              class="cancel-btn"
+              id="user-delete-confirm-cancel"
+              type="button"
+            >
               Cancel
+            </button>
+            <button
+              class="save-btn"
+              id="user-delete-confirm-submit"
+              type="button"
+              disabled
+            >
+              Delete
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Modal - Add/Update Coordinator Form -->
-      <div id="add-coordinator-modal" class="modal" style="display: none">
+      <div id="user-modal" class="modal">
         <div class="modal-content">
-          <div class="form-header">
-            <h4 id="modal-title">ADDING NEW COORDINATOR</h4>
-            <!-- Default title is "Adding New Coordinator" -->
+          <!-- loading overlay -->
+          <div
+            id="user-modal-loading"
+            class="um-form-loading"
+            aria-hidden="true"
+          >
+            <div class="um-form-spinner"></div>
+            <span class="um-form-loading-text">Saving…</span>
           </div>
 
-          <div class="form-body">
-            <div class="input-row">
-              <div class="input-group">
-                <label for="employee-id">EMPLOYEE ID</label>
-                <input
-                  type="text"
-                  id="employee-id"
-                  placeholder="e.g. 00-0000"
-                />
-              </div>
-              <div class="input-group">
-                <label for="profile">
-                  <i class="fa fa-upload" aria-hidden="true"></i> UPLOAD PROFILE
-                </label>
-                <input type="file" id="profile" />
-              </div>
-            </div>
+          <div class="form-header">
+            <h4 id="user-modal-title">ADDING NEW USER</h4>
+          </div>
 
-            <div class="input-row">
-              <div class="input-group">
-                <label for="name">NAME</label>
-                <input
-                  type="text"
-                  id="name"
-                  placeholder="Type here"
-                  class="required-field"
-                />
-                <div class="error-msg">Required field.</div>
-              </div>
-              <div class="input-group">
-                <label for="username">USERNAME</label>
-                <input
-                  type="text"
-                  id="username"
-                  placeholder="surname_00000"
-                  class="required-field"
-                />
-                <div class="error-msg">Required field.</div>
-              </div>
-            </div>
-
-            <div class="input-row">
-              <!-- Password Field -->
-              <div class="input-group password-wrapper">
-                <label for="password">PASSWORD</label>
-                <input
-                  type="password"
-                  id="password"
-                  placeholder="Type here"
-                  class="required-field"
-                />
-                <button
-                  type="button"
-                  class="toggle-password"
-                  onclick="togglePassword('password')"
+          <div class="form-body user-form-shell">
+            <aside class="user-profile-card">
+              <div class="user-profile-frame">
+                <img id="user-profile-preview" alt="Profile preview" />
+                <span id="user-profile-initials" class="user-profile-initials"
+                  >US</span
                 >
-                  <svg
-                    id="password-eye"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <path
-                      d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="3"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    />
-                  </svg>
-                </button>
               </div>
 
-              <!-- Confirm Password Field -->
-              <div class="input-group password-wrapper">
-                <label for="confirm-password">CONFIRM PASSWORD</label>
-                <input
-                  type="password"
-                  id="confirm-password"
-                  placeholder="Type here"
-                  class="required-field"
-                />
-                <button
-                  type="button"
-                  class="toggle-password"
-                  onclick="togglePassword('confirm-password')"
-                >
-                  <svg
-                    id="confirm-password-eye"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <path
-                      d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="3"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
+              <button
+                type="button"
+                id="user-upload-profile-btn"
+                class="user-upload-btn"
+              >
+                <i data-lucide="upload"></i>
+                Upload Profile
+              </button>
+              <input type="file" id="user-profile-input" accept="image/*" />
 
-            <div class="input-row">
+              <div class="user-profile-meta">
+                <h5 id="user-preview-name">User Profile</h5>
+                <p>Complete details for users table format.</p>
+              </div>
+
               <div class="input-group">
-                <label for="status" placeholder="Status" class="required field">
-                </label>
-                <div class="select-wrapper">
-                  <select id="status">
-                    <option>Active</option>
-                    <option>Inactive</option>
-                  </select>
-                  <span class="arrowstatus"></span>
-                  <!-- Arrow Icon for Dropdown -->
+                <label>PROFILE IMAGE URL</label>
+                <input
+                  id="um-profile-image"
+                  type="url"
+                  placeholder="https://..."
+                />
+              </div>
+            </aside>
+
+            <section class="user-form-fields">
+              <div class="user-form-card">
+                <div class="user-form-title">Users Table Fields</div>
+                <div class="user-form-grid">
+                  <div class="input-group">
+                    <label>
+                      USER ID
+                      <span class="required-asterisk">*</span>
+                    </label>
+                    <div class="user-id-row">
+                      <input
+                        id="um-user-id"
+                        type="text"
+                        placeholder="A26-00001"
+                        readonly
+                      />
+                    </div>
+                    <label class="user-id-override-toggle">
+                      <input type="checkbox" id="um-user-id-override" />
+                      <span>Manual override user ID</span>
+                    </label>
+                    <div class="user-id-format-hint">
+                      Format: [PREFIX][YEAR]-[NUMBER] (e.g. S26-00001)
+                    </div>
+                    <div class="field-error" id="um-user-id-error"></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label>
+                      NAME
+                      <span class="required-asterisk">*</span>
+                    </label>
+                    <input id="um-name" type="text" placeholder="Full name" />
+                    <div class="field-error" id="um-name-error"></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label>
+                      EMAIL
+                      <span class="required-asterisk">*</span>
+                    </label>
+                    <input
+                      id="um-email"
+                      type="email"
+                      placeholder="user@example.com"
+                    />
+                    <div class="field-error" id="um-email-error"></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label>DEPARTMENT</label>
+                    <input
+                      id="um-department"
+                      type="text"
+                      placeholder="Department from app settings"
+                      readonly
+                    />
+                  </div>
+
+                  <div class="input-group">
+                    <label>
+                      ROLE
+                      <span class="required-asterisk">*</span>
+                    </label>
+                    <div class="custom-select-wrap">
+                      <select id="um-role" class="custom-select">
+                        <option value="">Select role</option>
+                        <option value="admin">admin</option>
+                        <option value="coordinator">coordinator</option>
+                      </select>
+                      <span class="custom-select-arrow" aria-hidden="true"
+                        ><i data-lucide="chevron-down"></i
+                      ></span>
+                    </div>
+                    <div class="field-error" id="um-role-error"></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label>STATUS</label>
+                    <div class="custom-select-wrap">
+                      <select id="um-status" class="custom-select">
+                        <option value="active">active</option>
+                        <option value="inactive">inactive</option>
+                      </select>
+                      <span class="custom-select-arrow" aria-hidden="true"
+                        ><i data-lucide="chevron-down"></i
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div class="input-group password-group">
+                    <label>PASSWORD</label>
+                    <div class="password-row">
+                      <div class="password-input-wrap">
+                        <input
+                          id="um-password"
+                          type="password"
+                          placeholder="Plain value before hashing"
+                        />
+                        <button
+                          class="secondary-btn icon-btn password-eye-overlay"
+                          id="um-toggle-password-btn"
+                          type="button"
+                          aria-label="Show password"
+                          title="Show password"
+                        >
+                          <i data-lucide="eye"></i>
+                        </button>
+                      </div>
+                      <button
+                        class="secondary-btn"
+                        id="um-generate-password-btn"
+                        type="button"
+                      >
+                        Generate
+                      </button>
+                    </div>
+                    <label class="send-credentials-toggle">
+                      <input
+                        type="checkbox"
+                        id="um-email-credentials"
+                        checked
+                      />
+                      <span>Email account credentials to this user</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="form-actions">
+            <button class="cancel-btn" id="user-cancel-btn" type="button">
+              Cancel
+            </button>
+            <button class="save-btn" id="user-save-btn" type="button">
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="user-view-modal" class="modal">
+        <div
+          class="modal-content view-archive-modal-content external-view-modal-content"
+        >
+          <div class="form-header">
+            <h4>USER DETAILS</h4>
+            <button
+              class="view-archive-close-btn"
+              type="button"
+              id="user-view-header-close-btn"
+              aria-label="Close"
+            >
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+
+          <div class="view-archive-body">
+            <div class="va-grid two-col">
+              <div class="va-field">
+                <label>ID</label>
+                <p id="umv-id">-</p>
+              </div>
+              <div class="va-field">
+                <label>USER ID</label>
+                <p id="umv-user-id">-</p>
+              </div>
+              <div class="va-field">
+                <label>Name</label>
+                <p id="umv-name">-</p>
+              </div>
+              <div class="va-field">
+                <label>Email</label>
+                <p id="umv-email">-</p>
+              </div>
+              <div class="va-field">
+                <label>Role</label>
+                <p id="umv-role">-</p>
+              </div>
+              <div class="va-field">
+                <label>Status</label>
+                <p id="umv-status">-</p>
+              </div>
+              <div class="va-field">
+                <label>Password</label>
+                <p id="umv-password">-</p>
+              </div>
+              <div class="va-field">
+                <label>Profile Image</label>
+                <div class="user-avatar-wrap user-avatar-wrap-lg">
+                  <img id="umv-profile" class="user-avatar-img" alt="Profile" />
+                  <span id="umv-profile-fallback" class="user-avatar-fallback"
+                    >US</span
+                  >
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="form-actions">
-            <button class="cancel-btn" id="cancel-btn">Cancel</button>
-            <button class="save-btn" id="save-btn">Save</button>
+          <div class="form-actions choice-footer">
+            <button
+              class="save-btn view-archive-icon-btn"
+              id="user-view-edit-btn"
+              type="button"
+              aria-label="Edit"
+              title="Edit"
+            >
+              <i data-lucide="pencil"></i>
+            </button>
+            <button
+              class="cancel-btn view-archive-delete-btn view-archive-icon-btn"
+              id="user-view-delete-btn"
+              type="button"
+              aria-label="Delete"
+              title="Delete"
+            >
+              <i data-lucide="trash-2"></i>
+            </button>
+            <button class="cancel-btn" id="user-view-close-btn" type="button">
+              Close
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Table -->
+      <div id="archive-action-menu" class="archive-actions-menu">
+        <button class="menu-action view-btn" type="button">
+          <i data-lucide="eye"></i><span>View</span>
+        </button>
+        <button class="menu-action edit-btn" type="button">
+          <i data-lucide="square-pen"></i><span>Edit</span>
+        </button>
+        <button class="menu-action delete-btn danger" type="button">
+          <i data-lucide="trash-2"></i><span>Delete</span>
+        </button>
+      </div>
+
       <div class="table-card">
+        <div id="bulk-action-bar" class="bulk-action-bar">
+          <span id="bulk-action-count" class="bulk-action-count"
+            >0 selected</span
+          >
+          <div class="bulk-action-btns">
+            <button
+              class="bulk-action-btn danger"
+              id="bulk-delete-btn"
+              type="button"
+            >
+              <i data-lucide="trash-2"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+          <button
+            class="bulk-action-clear"
+            id="bulk-clear-btn"
+            type="button"
+            title="Clear selection"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
         <div class="table-wrapper">
-          <table>
+          <table id="archives-table">
             <thead>
               <tr>
-                <th><input type="checkbox" /></th>
+                <th class="col-check">
+                  <input
+                    type="checkbox"
+                    id="select-all-archives"
+                    class="archive-checkbox"
+                  />
+                </th>
                 <th>ID</th>
+                <th>USER ID</th>
                 <th>Profile</th>
                 <th>Name</th>
-                <th>Username</th>
-                <th>Password</th>
+                <th>Email</th>
+                <th>Role</th>
                 <th>Status</th>
-                <th></th>
+                <th class="col-actions"></th>
               </tr>
             </thead>
-            <tbody>
-              <tr id="row-001">
-                <td><input type="checkbox" /></td>
-                <td>001</td>
-                <td>
-                  <img src="../images/company1.png" class="company-logo" alt="Company logo" />
-                </td>
-                <td>Juan Delacruz</td>
-                <td>delacruz_001</td>
-                <td>****</td>
-                <td><span class="status active">Active</span></td>
-                <td class="action-cell">
-                  <div class="dropdown">
-                    <button class="dots-btn">
-                      <i data-lucide="more-vertical"></i>
-                    </button>
-                    <div class="dropdown-menu">
-                      <button class="edit-btn" type="button">Edit</button>
-                      <button class="danger">Delete</button>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-              <tr id="row-002">
-                <td><input type="checkbox" /></td>
-                <td>002</td>
-                <td>
-                  <img src="../images/company1.png" class="company-logo" alt="Company logo" />
-                </td>
-                <td>Maria Lopez</td>
-                <td>lopez_002</td>
-                <td>****</td>
-                <td><span class="status inactive">Inactive</span></td>
-                <td class="action-cell">
-                  <div class="dropdown">
-                    <button class="dots-btn">
-                      <i data-lucide="more-vertical"></i>
-                    </button>
-                    <div class="dropdown-menu">
-                      <button class="edit-btn" type="button">Edit</button>
-                      <button class="danger">Delete</button>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
+            <tbody id="user-management-table-body"></tbody>
           </table>
         </div>
       </div>
     </div>
 
+    <div id="toast-container"></div>
+
     <script>
-      lucide.createIcons();
+      (function () {
+        const modalAnimationMs = 220;
 
-      document.querySelectorAll(".dots-btn").forEach((btn) => {
-        btn.addEventListener("click", function (e) {
-          e.stopPropagation();
-
-          document.querySelectorAll(".dropdown-menu").forEach((menu) => {
-            menu.classList.remove("show");
-          });
-
-          this.nextElementSibling.classList.toggle("show");
-        });
-      });
-
-      document.addEventListener("click", () => {
-        document.querySelectorAll(".dropdown-menu").forEach((menu) => {
-          menu.classList.remove("show");
-        });
-      });
-
-      // Export modal + downloads
-      const exportModal = document.getElementById("export-modal");
-      const exportCancelBtn = document.getElementById("export-cancel-btn");
-      const exportCsvBtn = document.getElementById("export-csv-btn");
-      const exportExcelBtn = document.getElementById("export-excel-btn");
-      const exportPdfBtn = document.getElementById("export-pdf-btn");
-      const exportDocBtn = document.getElementById("export-doc-btn");
-
-      function openModal(el) {
-        el.style.display = "flex";
-      }
-      function closeModal(el) {
-        el.style.display = "none";
-      }
-
-      function getReportName() {
-        const title = (
-          document.querySelector(".page-title")?.textContent || "report"
-        )
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, "_");
-        const date = new Date().toISOString().slice(0, 10);
-        return `${title}_${date}`;
-      }
-
-      function getTable() {
-        return document.querySelector("table");
-      }
-
-      function escapeCsvCell(value) {
-        const s = String(value ?? "");
-        if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-        return s;
-      }
-
-      function tableToCsv(table) {
-        const rows = Array.from(table.querySelectorAll("tr"));
-        return rows
-          .map((row) => {
-            const cells = Array.from(row.querySelectorAll("th,td")).map(
-              (cell) => {
-                return escapeCsvCell(cell.textContent.trim());
-              },
-            );
-            return cells.join(",");
-          })
-          .join("\n");
-      }
-
-      function downloadBlob(content, mime, filename) {
-        const blob =
-          content instanceof Blob
-            ? content
-            : new Blob([content], { type: mime });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      }
-
-      function downloadTableAsHtmlDoc(table, filename, mime) {
-        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${table.outerHTML}</body></html>`;
-        downloadBlob(html, mime, filename);
-      }
-
-      document.querySelector(".generate-btn").addEventListener("click", () => {
-        openModal(exportModal);
-        lucide.createIcons();
-      });
-
-      exportCancelBtn.addEventListener("click", () => closeModal(exportModal));
-      exportModal.addEventListener("click", (e) => {
-        if (e.target === exportModal) closeModal(exportModal);
-      });
-
-      exportCsvBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        const csv = tableToCsv(table);
-        downloadBlob(csv, "text/csv;charset=utf-8", `${getReportName()}.csv`);
-        closeModal(exportModal);
-      });
-
-      exportExcelBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        downloadTableAsHtmlDoc(
-          table,
-          `${getReportName()}.xls`,
-          "application/vnd.ms-excel",
-        );
-        closeModal(exportModal);
-      });
-
-      exportDocBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        downloadTableAsHtmlDoc(
-          table,
-          `${getReportName()}.doc`,
-          "application/msword",
-        );
-        closeModal(exportModal);
-      });
-
-      exportPdfBtn.addEventListener("click", () => {
-        closeModal(exportModal);
-        window.print();
-      });
-
-      const selectModeModal = document.getElementById("select-mode-modal");
-      const formModal = document.getElementById("add-coordinator-modal");
-      const csvInput = document.getElementById("csv-file-input");
-      const modalTitle = document.getElementById("modal-title");
-
-      const employeeIdEl = document.getElementById("employee-id");
-      const nameEl = document.getElementById("name");
-      const usernameEl = document.getElementById("username");
-      const statusEl = document.getElementById("status");
-
-      let editingRow = null;
-
-      function openModal(el) {
-        el.style.display = "flex";
-      }
-      function closeModal(el) {
-        el.style.display = "none";
-      }
-
-      function resetForm() {
-        employeeIdEl.value = "";
-        nameEl.value = "";
-        usernameEl.value = "";
-        document.getElementById("password").value = "";
-        document.getElementById("confirm-password").value = "";
-        statusEl.value = "Active";
-        document.getElementById("profile").value = "";
-      }
-
-      function getNextId() {
-        const tbody = document.querySelector("table tbody");
-        const ids = Array.from(tbody.querySelectorAll("tr td:nth-child(2)"))
-          .map((td) => parseInt(td.textContent, 10))
-          .filter((n) => Number.isFinite(n));
-        const next = (ids.length ? Math.max(...ids) : 0) + 1;
-        return String(next).padStart(3, "0");
-      }
-
-      // Add (+) now opens options modal
-      document
-        .getElementById("add-coordinator-btn")
-        .addEventListener("click", () => openModal(selectModeModal));
-      document
-        .getElementById("cancel-mode-btn")
-        .addEventListener("click", () => closeModal(selectModeModal));
-
-      document
-        .getElementById("manual-add-btn")
-        .addEventListener("click", () => {
-          closeModal(selectModeModal);
-          editingRow = null;
-          modalTitle.innerText = "ADDING NEW COORDINATOR";
-          resetForm();
-          openModal(formModal);
-        });
-
-      document.getElementById("csv-add-btn").addEventListener("click", () => {
-        csvInput.value = "";
-        csvInput.click();
-      });
-
-      // Close the modal when the cancel button is clicked
-      document.getElementById("cancel-btn").addEventListener("click", () => {
-        closeModal(formModal);
-      });
-
-      function setStatusCell(td, statusText) {
-        const st = String(statusText || "")
-          .trim()
-          .toLowerCase();
-        const cls = st === "inactive" ? "inactive" : "active";
-        const label = cls === "inactive" ? "Inactive" : "Active";
-        td.innerHTML = `<span class="status ${cls}">${label}</span>`;
-      }
-
-      function addRow({ id, name, username, status }) {
-        const tbody = document.querySelector("table tbody");
-        const tr = document.createElement("tr");
-        const safeId = id || getNextId();
-        tr.id = `row-${safeId}`;
-        tr.innerHTML = `
-            <td><input type="checkbox" /></td>
-            <td>${safeId}</td>
-            <td><img src="../images/company1.png" class="company-logo" alt="Company logo"></td>
-            <td>${name || ""}</td>
-            <td>${username || ""}</td>
-            <td>****</td>
-            <td></td>
-            <td class="action-cell">
-                <div class="dropdown">
-                    <button class="dots-btn" type="button">
-                        <i data-lucide="more-vertical"></i>
-                    </button>
-                    <div class="dropdown-menu">
-                        <button class="edit-btn" type="button">Edit</button>
-                        <button class="danger" type="button">Delete</button>
-                    </div>
-                </div>
-            </td>
-        `;
-        setStatusCell(tr.cells[6], status);
-        tbody.appendChild(tr);
-        lucide.createIcons();
-      }
-
-      // Edit (delegated)
-      document.addEventListener("click", (e) => {
-        const editBtn = e.target.closest(".edit-btn");
-        if (!editBtn) return;
-        const row = editBtn.closest("tr");
-        if (!row) return;
-
-        editingRow = row;
-        modalTitle.innerText = "EDIT COORDINATOR";
-
-        employeeIdEl.value = row.cells[1]?.textContent.trim() || "";
-        nameEl.value = row.cells[3]?.textContent.trim() || "";
-        usernameEl.value = row.cells[4]?.textContent.trim() || "";
-        const st = row.cells[6]?.textContent.trim() || "Active";
-        statusEl.value = st;
-
-        document.getElementById("password").value = "";
-        document.getElementById("confirm-password").value = "";
-        document.getElementById("profile").value = "";
-
-        closeModal(selectModeModal);
-        openModal(formModal);
-      });
-
-      // Save (add new or update)
-      document.getElementById("save-btn").addEventListener("click", () => {
-        const name = nameEl.value.trim();
-        const username = usernameEl.value.trim();
-        const status = statusEl.value;
-
-        if (editingRow) {
-          // keep ID column
-          editingRow.cells[3].textContent = name;
-          editingRow.cells[4].textContent = username;
-          setStatusCell(editingRow.cells[6], status);
-        } else {
-          addRow({
-            name,
-            username,
-            status,
-          });
+        function openModal(modalEl) {
+          if (!modalEl) return;
+          modalEl.classList.remove("is-closing");
+          modalEl.style.display = "flex";
+          requestAnimationFrame(() => modalEl.classList.add("is-open"));
         }
 
-        closeModal(formModal);
-      });
+        function closeModal(modalEl) {
+          if (!modalEl || modalEl.style.display === "none") return;
 
-      function parseCsvRow(line) {
-        const out = [];
-        let cur = "";
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          const ch = line[i];
-          if (ch === '"') {
-            if (inQuotes && line[i + 1] === '"') {
-              cur += '"';
-              i++;
-            } else {
-              inQuotes = !inQuotes;
-            }
-            continue;
+          modalEl.classList.remove("is-open");
+          modalEl.classList.add("is-closing");
+
+          const finalizeClose = () => {
+            modalEl.style.display = "none";
+            modalEl.classList.remove("is-closing");
+          };
+
+          const onTransitionEnd = (event) => {
+            if (event.target !== modalEl) return;
+            modalEl.removeEventListener("transitionend", onTransitionEnd);
+            finalizeClose();
+          };
+
+          modalEl.addEventListener("transitionend", onTransitionEnd);
+          window.setTimeout(() => {
+            modalEl.removeEventListener("transitionend", onTransitionEnd);
+            finalizeClose();
+          }, modalAnimationMs + 60);
+        }
+
+        function showToast(message, type = "info", duration = 2600) {
+          const container = document.getElementById("toast-container");
+          if (!container) return null;
+
+          const toast = document.createElement("div");
+          toast.className = `toast toast-${type}`;
+
+          const iconName =
+            type === "success"
+              ? "check-circle"
+              : type === "error"
+                ? "alert-triangle"
+                : "info";
+
+          toast.innerHTML = `<i data-lucide="${iconName}"></i><span>${String(message || "")}</span>`;
+          container.appendChild(toast);
+
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons({ nodes: [toast] });
           }
-          if (ch === "," && !inQuotes) {
-            out.push(cur.trim());
-            cur = "";
-            continue;
-          }
-          cur += ch;
-        }
-        out.push(cur.trim());
-        return out.map((v) => v.replace(/^"|"$/g, "").trim());
-      }
 
-      function normalizeHeader(h) {
-        return String(h || "")
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, " ")
-          .replace(/[._-]/g, " ");
-      }
+          requestAnimationFrame(() => toast.classList.add("toast-show"));
 
-      csvInput.addEventListener("change", async () => {
-        const file = csvInput.files && csvInput.files[0];
-        if (!file) return;
-        const isCsv =
-          file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv");
-        if (!isCsv) {
-          alert("Please select a CSV file.");
-          return;
+          window.setTimeout(
+            () => {
+              toast.classList.remove("toast-show");
+              window.setTimeout(() => toast.remove(), 220);
+            },
+            Math.max(700, Number(duration) || 2600),
+          );
+
+          return toast;
         }
 
-        closeModal(selectModeModal);
-
-        const text = await file.text();
-        const lines = text
-          .split(/\r?\n/)
-          .map((l) => l.trim())
-          .filter(Boolean);
-        if (lines.length === 0) {
-          alert("CSV is empty.");
-          return;
+        function asText(value) {
+          return String(value || "").trim();
         }
 
-        const firstRow = parseCsvRow(lines[0]);
-        const hasHeader = firstRow.some((v) => /[a-zA-Z]/.test(v));
-        let headers = [];
-        let startIdx = 0;
-        if (hasHeader) {
-          headers = firstRow.map(normalizeHeader);
-          startIdx = 1;
+        function esc(value) {
+          return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
         }
 
-        const headerIndex = (names) => {
-          if (!headers.length) return -1;
-          const set = new Set(names.map(normalizeHeader));
-          return headers.findIndex((h) => set.has(h));
+        function displayStatus(value) {
+          const normalized =
+            String(value || "").toLowerCase() === "inactive"
+              ? "inactive"
+              : "active";
+          return normalized;
+        }
+
+        function displayStatusLabel(value) {
+          return displayStatus(value) === "inactive" ? "Inactive" : "Active";
+        }
+
+        function getInitials(value) {
+          const words = asText(value).split(/\s+/).filter(Boolean);
+          if (!words.length) return "US";
+          if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+          return `${words[0][0] || ""}${words[1][0] || ""}`.toUpperCase();
+        }
+
+        function isValidEmail(value) {
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+        }
+
+        const state = {
+          query: "",
+          sortField: "",
+          sortDir: "asc",
+          filters: {
+            userId: [],
+            role: [],
+            status: [],
+          },
         };
 
-        const idx = {
-          id: headerIndex(["id"]),
-          name: headerIndex(["name"]),
-          username: headerIndex(["username"]),
-          status: headerIndex(["status"]),
+        const sortFieldDataAttr = {
+          id: "id",
+          userId: "userId",
+          name: "name",
+          email: "email",
+          role: "role",
+          status: "status",
         };
 
-        let imported = 0;
-        for (let i = startIdx; i < lines.length; i++) {
-          const cols = parseCsvRow(lines[i]);
-          if (cols.every((c) => !c)) continue;
+        const selectToFilterKey = {
+          "umf-user-id": "userId",
+          "umf-role": "role",
+          "umf-status": "status",
+        };
 
-          // No header fallback order: Name, Username, Status, (optional) ID
-          const row = headers.length
-            ? {
-                id: idx.id >= 0 ? cols[idx.id] : "",
-                name: idx.name >= 0 ? cols[idx.name] : "",
-                username: idx.username >= 0 ? cols[idx.username] : "",
-                status: idx.status >= 0 ? cols[idx.status] : "Active",
+        const filterKeyToSelect = {
+          userId: "umf-user-id",
+          role: "umf-role",
+          status: "umf-status",
+        };
+
+        const filterKeyLabel = {
+          userId: "User ID",
+          role: "Role",
+          status: "Status",
+        };
+
+        const selectedRows = new Set();
+        let editingRow = null;
+        let viewingRow = null;
+        let pendingDeleteRows = [];
+        let activeActionRow = null;
+        let isManualUserIdOverride = false;
+        const APP_SETTINGS_STORAGE_KEY = "sas.app.settings";
+
+        function roleToUserIdPrefix(role) {
+          const normalized = asText(role).toLowerCase();
+          if (normalized === "admin") return "A";
+          if (normalized === "coordinator") return "C";
+          return "S";
+        }
+
+        function currentYearTwoDigits() {
+          return String(new Date().getFullYear()).slice(-2);
+        }
+
+        function parseUserIdForSequence(userId) {
+          const match = String(userId || "")
+            .trim()
+            .toUpperCase()
+            .match(/^([SCA])(\d{2})-(\d{5})$/);
+          if (!match) return null;
+          return {
+            prefix: match[1],
+            year: match[2],
+            seq: Number.parseInt(match[3], 10) || 0,
+          };
+        }
+
+        function nextUserIdSequence(prefix, year) {
+          const rows = getDataRows();
+          let max = 0;
+
+          rows.forEach((row) => {
+            const parsed = parseUserIdForSequence(row.dataset.userId || "");
+            if (!parsed) return;
+            if (parsed.prefix !== prefix || parsed.year !== year) return;
+            if (parsed.seq > max) max = parsed.seq;
+          });
+
+          return max + 1;
+        }
+
+        function buildAutoUserIdFromForm() {
+          const role = asText(document.getElementById("um-role")?.value);
+          if (!role) return "";
+          const prefix = roleToUserIdPrefix(role);
+          const year = currentYearTwoDigits();
+          const seq = String(nextUserIdSequence(prefix, year)).padStart(5, "0");
+          return `${prefix}${year}-${seq}`;
+        }
+
+        function applyUserIdFieldMode() {
+          const input = document.getElementById("um-user-id");
+          const toggle = document.getElementById("um-user-id-override");
+          if (!input || !toggle) return;
+
+          const manualAllowed = !editingRow;
+          toggle.disabled = !manualAllowed;
+
+          if (!manualAllowed) {
+            isManualUserIdOverride = false;
+            toggle.checked = false;
+            input.readOnly = true;
+            return;
+          }
+
+          isManualUserIdOverride = Boolean(toggle.checked);
+          input.readOnly = !isManualUserIdOverride;
+          if (!isManualUserIdOverride) {
+            input.value = buildAutoUserIdFromForm();
+          }
+        }
+
+        function refreshAutoUserId() {
+          const input = document.getElementById("um-user-id");
+          if (!input) return;
+          if (editingRow || isManualUserIdOverride) return;
+          input.value = buildAutoUserIdFromForm();
+        }
+
+        function generatePassword(length = 12) {
+          const alphabet =
+            "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+          const chars = [];
+          for (let i = 0; i < length; i += 1) {
+            const idx = Math.floor(Math.random() * alphabet.length);
+            chars.push(alphabet[idx]);
+          }
+          return chars.join("");
+        }
+
+        function formatDepartmentLabel(settings) {
+          const dept = settings?.department || null;
+          const code = asText(dept?.department_code || "");
+          const name = asText(dept?.department_name || "");
+          if (code && name) return `${code} - ${name}`;
+          return code || name || "CCS";
+        }
+
+        function extractDepartmentCodeFromLabel(label) {
+          const raw = asText(label || "");
+          if (!raw) return "CCS";
+          const firstPart = asText(String(raw).split("-")[0]).toUpperCase();
+          return firstPart || raw.toUpperCase() || "CCS";
+        }
+
+        async function syncDepartmentField() {
+          const input = document.getElementById("um-department");
+          if (!input) return;
+
+          const electronAPI = getElectronAPI();
+          if (electronAPI && typeof electronAPI.getAppSettings === "function") {
+            try {
+              const result = await electronAPI.getAppSettings();
+              if (result?.success) {
+                input.value = formatDepartmentLabel(result.settings || {});
+                return;
               }
-            : {
-                name: cols[0] || "",
-                username: cols[1] || "",
-                status: cols[2] || "Active",
-                id: cols[3] || "",
+            } catch (_error) {}
+          }
+
+          try {
+            const raw = localStorage.getItem(APP_SETTINGS_STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            input.value = formatDepartmentLabel(parsed || {});
+          } catch (_error) {
+            input.value = "CCS";
+          }
+        }
+
+        function setPasswordVisible(isVisible) {
+          const input = document.getElementById("um-password");
+          const btn = document.getElementById("um-toggle-password-btn");
+          if (!input || !btn) return;
+
+          input.type = isVisible ? "text" : "password";
+          btn.setAttribute(
+            "aria-label",
+            isVisible ? "Hide password" : "Show password",
+          );
+          btn.setAttribute(
+            "title",
+            isVisible ? "Hide password" : "Show password",
+          );
+          btn.innerHTML = `<i data-lucide="${isVisible ? "eye-off" : "eye"}"></i>`;
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons({ nodes: [btn] });
+          }
+        }
+
+        async function uploadUserProfileToCloudinary() {
+          const electronAPI = getElectronAPI();
+
+          if (
+            !electronAPI ||
+            typeof electronAPI.selectProfileImage !== "function" ||
+            typeof electronAPI.uploadProfileImage !== "function"
+          ) {
+            document.getElementById("user-profile-input")?.click();
+            return;
+          }
+
+          const userIdForAsset = asText(
+            document.getElementById("um-user-id")?.value,
+          ).toUpperCase();
+
+          if (!userIdForAsset) {
+            showToast(
+              "Select role first so User ID can be generated before uploading profile.",
+              "error",
+            );
+            return;
+          }
+
+          let pickerResult;
+          try {
+            pickerResult = await electronAPI.selectProfileImage();
+          } catch (error) {
+            showToast(
+              error?.message || "Could not open image picker.",
+              "error",
+            );
+            return;
+          }
+
+          if (!pickerResult || pickerResult.canceled || !pickerResult.success) {
+            return;
+          }
+
+          try {
+            const uploadResult = await electronAPI.uploadProfileImage({
+              localPath: pickerResult.localPath,
+              fileName: pickerResult.fileName,
+              mimeType: pickerResult.mimeType,
+              userId: userIdForAsset,
+            });
+
+            if (!uploadResult || !uploadResult.success || !uploadResult.path) {
+              showToast(
+                uploadResult?.message || "Profile upload failed.",
+                "error",
+              );
+              return;
+            }
+
+            const profileInput = document.getElementById("um-profile-image");
+            if (profileInput) profileInput.value = String(uploadResult.path);
+            updateProfilePreview();
+            showToast("Profile image uploaded to Cloudinary.", "success");
+          } catch (error) {
+            showToast(error?.message || "Profile upload failed.", "error");
+          }
+        }
+
+        function getElectronAPI() {
+          if (window.electronAPI) return window.electronAPI;
+
+          try {
+            if (
+              window.parent &&
+              window.parent !== window &&
+              window.parent.electronAPI
+            ) {
+              return window.parent.electronAPI;
+            }
+          } catch (_error) {}
+
+          try {
+            if (window.top && window.top !== window && window.top.electronAPI) {
+              return window.top.electronAPI;
+            }
+          } catch (_error) {}
+
+          return null;
+        }
+
+        const usersIpcChannelByMethod = {
+          getUsers: "getUsers",
+          createUser: "createUser",
+          updateUser: "updateUser",
+          deleteUser: "deleteUser",
+        };
+
+        function getMissingHandlerName(error) {
+          const message = String(error?.message || "");
+          const match = message.match(
+            /No handler registered for ['\"]([^'\"]+)['\"]/i,
+          );
+          return match && match[1] ? match[1] : "";
+        }
+
+        function buildMissingHandlerMessage(handlerName) {
+          return `Electron main process is running without the \"${handlerName}\" IPC handler. Fully restart the app (close all app windows/processes, then run npm start) and try again.`;
+        }
+
+        async function invokeUsersAPI(methodName, ...args) {
+          const electronAPI = getElectronAPI();
+          if (!electronAPI || typeof electronAPI[methodName] !== "function") {
+            throw new Error(
+              `Users API (${methodName}) is unavailable in this view.`,
+            );
+          }
+
+          try {
+            return await electronAPI[methodName](...args);
+          } catch (error) {
+            const missingHandler = getMissingHandlerName(error);
+            const expectedHandler = usersIpcChannelByMethod[methodName] || "";
+            if (
+              missingHandler &&
+              (!expectedHandler || missingHandler === expectedHandler)
+            ) {
+              throw new Error(buildMissingHandlerMessage(missingHandler));
+            }
+            throw error;
+          }
+        }
+
+        function getDataRows() {
+          const tbody = document.getElementById("user-management-table-body");
+          if (!tbody) return [];
+          return Array.from(
+            tbody.querySelectorAll("tr:not([data-placeholder])"),
+          );
+        }
+
+        function renderTableMessage(title, detail = "") {
+          const tbody = document.getElementById("user-management-table-body");
+          if (!tbody) return;
+
+          const safeTitle = esc(title || "");
+          const safeDetail = esc(detail || "");
+
+          tbody.innerHTML = `<tr data-placeholder="users-status"><td colspan="9" class="users-status-cell"><div class="users-status-box"><strong class="users-status-title">${safeTitle}</strong>${safeDetail ? `<span>${safeDetail}</span>` : ""}</div></td></tr>`;
+        }
+
+        function nextNumericId() {
+          const ids = getDataRows()
+            .map((row) => Number.parseInt(row.dataset.id, 10))
+            .filter((n) => Number.isInteger(n));
+          return (ids.length ? Math.max(...ids) : 0) + 1;
+        }
+
+        function rowFromData(user) {
+          return {
+            id: Number.parseInt(user.id, 10) || nextNumericId(),
+            userId: asText(user.userId || user.user_id),
+            department: asText(
+              user.department || user.department_code || "CCS",
+            ),
+            profileImage: asText(user.profileImage || user.profile_image),
+            name: asText(user.name),
+            email: asText(user.email).toLowerCase(),
+            role: asText(user.role),
+            status: displayStatus(user.status),
+            password: asText(user.password) || "****",
+          };
+        }
+
+        function syncRowDataset(row, user) {
+          row.dataset.id = String(user.id);
+          row.dataset.userId = asText(user.userId);
+          row.dataset.department = asText(user.department || "CCS");
+          row.dataset.profileImage = asText(user.profileImage);
+          row.dataset.name = asText(user.name);
+          row.dataset.email = asText(user.email).toLowerCase();
+          row.dataset.role = asText(user.role);
+          row.dataset.status = displayStatus(user.status);
+          row.dataset.password = asText(user.password) || "****";
+        }
+
+        function buildProfileCellMarkup(user) {
+          const initials = getInitials(user.name);
+          const hasImage = Boolean(user.profileImage);
+
+          return `<td class="user-avatar-cell"><div class="user-avatar-wrap"><img class="user-avatar-img${hasImage ? " is-visible" : ""}" src="${esc(user.profileImage)}" alt="Profile" /><span class="user-avatar-fallback${hasImage ? " is-hidden" : ""}">${esc(initials)}</span></div></td>`;
+        }
+
+        function buildRowMarkup(user) {
+          return `<td><input type="checkbox" class="archive-checkbox row-check" /></td><td>${String(user.id).padStart(3, "0")}</td><td>${esc(user.userId)}</td>${buildProfileCellMarkup(user)}<td>${esc(user.name)}</td><td>${esc(user.email)}</td><td>${esc(user.role)}</td><td><span class="status-pill ${displayStatus(user.status)}">${displayStatusLabel(user.status)}</span></td><td class="action-cell"><button class="dots-btn" type="button"><i data-lucide="more-vertical"></i></button></td>`;
+        }
+
+        function applyAvatarFallbackHandlers() {
+          document.querySelectorAll(".user-avatar-wrap").forEach((wrap) => {
+            const img = wrap.querySelector(".user-avatar-img");
+            const fallback = wrap.querySelector(".user-avatar-fallback");
+            if (!img || !fallback) return;
+
+            img.addEventListener("error", () => {
+              img.style.display = "none";
+              fallback.style.display = "inline";
+            });
+
+            img.addEventListener("load", () => {
+              if (!img.getAttribute("src")) return;
+              img.style.display = "block";
+              fallback.style.display = "none";
+            });
+          });
+        }
+
+        function flashInsertedRow(row) {
+          if (!row) return;
+          row.classList.remove("row-inserted");
+          void row.offsetWidth;
+          row.classList.add("row-inserted");
+
+          if (row.offsetParent !== null) {
+            row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+
+          window.setTimeout(() => {
+            row.classList.remove("row-inserted");
+          }, 2400);
+        }
+
+        function addUserRow(input, options = {}) {
+          const user = rowFromData(input);
+          const highlight = Boolean(options.highlight);
+
+          const tbody = document.getElementById("user-management-table-body");
+          if (!tbody) return;
+
+          const existing = tbody.querySelector(
+            `tr[data-id='${String(user.id)}']`,
+          );
+          if (existing) {
+            syncRowDataset(existing, user);
+            existing.innerHTML = buildRowMarkup(user);
+            applyAvatarFallbackHandlers();
+            if (typeof lucide !== "undefined")
+              lucide.createIcons({ nodes: [existing] });
+            return;
+          }
+
+          const row = document.createElement("tr");
+          syncRowDataset(row, user);
+          row.innerHTML = buildRowMarkup(user);
+
+          const firstDataRow = tbody.querySelector(
+            "tr:not([data-placeholder])",
+          );
+          if (firstDataRow) {
+            tbody.insertBefore(row, firstDataRow);
+          } else {
+            tbody.appendChild(row);
+          }
+
+          if (highlight) flashInsertedRow(row);
+          applyAvatarFallbackHandlers();
+          if (typeof lucide !== "undefined")
+            lucide.createIcons({ nodes: [row] });
+        }
+
+        async function loadUsers() {
+          renderTableMessage("Loading users...", "");
+
+          try {
+            const result = await invokeUsersAPI("getUsers");
+            if (!result || !result.success) {
+              renderTableMessage(
+                "Failed to load users.",
+                result?.message ||
+                  "The main process returned an unsuccessful response.",
+              );
+              return;
+            }
+
+            const users = Array.isArray(result.users) ? result.users : [];
+            const tbody = document.getElementById("user-management-table-body");
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            if (!users.length) {
+              renderTableMessage(
+                "No users found.",
+                "Use the + button to add your first user.",
+              );
+              return;
+            }
+
+            users.forEach((user) => addUserRow(user));
+            refreshFiltersAndTable();
+            updateSelectionUI();
+          } catch (error) {
+            renderTableMessage(
+              "Error loading users.",
+              error?.message || "Unexpected error while fetching user data.",
+            );
+          }
+        }
+
+        function rowMatchesQuery(row, query) {
+          if (!query) return true;
+          const q = query.toLowerCase();
+          const searchable = [
+            row.dataset.id || "",
+            row.dataset.userId || "",
+            row.dataset.name || "",
+            row.dataset.email || "",
+            row.dataset.role || "",
+            row.dataset.status || "",
+          ];
+          return searchable.some((field) => field.toLowerCase().includes(q));
+        }
+
+        function rowMatchesFilters(row) {
+          const { userId, role, status } = state.filters;
+
+          if (userId.length && !userId.includes(row.dataset.userId || ""))
+            return false;
+          if (role.length && !role.includes(row.dataset.role || ""))
+            return false;
+          if (status.length && !status.includes(row.dataset.status || ""))
+            return false;
+
+          return true;
+        }
+
+        function applyVisibility() {
+          const rows = getDataRows();
+          const query = state.query.trim();
+
+          rows.forEach((row) => {
+            const visible =
+              rowMatchesQuery(row, query) && rowMatchesFilters(row);
+            row.style.display = visible ? "" : "none";
+          });
+        }
+
+        function sortRows() {
+          const attrKey = sortFieldDataAttr[state.sortField];
+          if (!attrKey) return;
+
+          const tbody = document.getElementById("user-management-table-body");
+          if (!tbody) return;
+
+          const rows = getDataRows();
+          rows.sort((a, b) => {
+            const aVal = String(a.dataset[attrKey] || "").toLowerCase();
+            const bVal = String(b.dataset[attrKey] || "").toLowerCase();
+
+            let cmp = 0;
+            if (attrKey === "id") {
+              cmp =
+                (Number.parseInt(aVal, 10) || 0) -
+                (Number.parseInt(bVal, 10) || 0);
+            } else {
+              cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+            }
+
+            return state.sortDir === "asc" ? cmp : -cmp;
+          });
+
+          rows.forEach((row) => tbody.appendChild(row));
+        }
+
+        function fillSelect(id, options, selectedValues) {
+          const el = document.getElementById(id);
+          if (!el) return;
+
+          const selected = Array.isArray(selectedValues) ? selectedValues : [];
+          const allLabel = selected.length
+            ? `All (${selected.length} selected)`
+            : "All";
+
+          el.innerHTML =
+            `<option value="">${allLabel}</option>` +
+            options
+              .map((option) => {
+                const isSelected = selected.includes(option);
+                const label = isSelected ? `${option} [selected]` : option;
+                return `<option value="${esc(option)}" data-selected="${isSelected ? "true" : "false"}">${esc(label)}</option>`;
+              })
+              .join("");
+
+          el.value = "";
+        }
+
+        function populateFilterDropdowns() {
+          const rows = getDataRows();
+          const userIds = new Set();
+          const roles = new Set();
+          const statuses = new Set();
+
+          rows.forEach((row) => {
+            if (row.dataset.userId) userIds.add(row.dataset.userId);
+            if (row.dataset.role) roles.add(row.dataset.role);
+            if (row.dataset.status) statuses.add(row.dataset.status);
+          });
+
+          fillSelect(
+            "umf-user-id",
+            Array.from(userIds).sort(),
+            state.filters.userId,
+          );
+          fillSelect("umf-role", Array.from(roles).sort(), state.filters.role);
+          fillSelect(
+            "umf-status",
+            Array.from(statuses).sort(),
+            state.filters.status,
+          );
+        }
+
+        function renderActiveTags() {
+          const bar = document.getElementById("user-active-filter-tags");
+          if (!bar) return;
+
+          const tags = Object.entries(state.filters).flatMap(
+            ([key, values]) => {
+              const list = Array.isArray(values) ? values : [];
+              return list.map((value) => ({ key, value }));
+            },
+          );
+
+          if (!tags.length) {
+            bar.innerHTML = "";
+            return;
+          }
+
+          bar.innerHTML = tags
+            .map(
+              (tag) =>
+                `<span class="filter-tag" data-key="${tag.key}">${esc(filterKeyLabel[tag.key])}: ${esc(tag.value)}<button class="filter-tag-remove" type="button" aria-label="Remove ${esc(filterKeyLabel[tag.key])} filter" data-key="${tag.key}" data-value="${esc(tag.value)}">x</button></span>`,
+            )
+            .join("");
+        }
+
+        function toggleFilterValue(filterKey, value) {
+          const normalized = String(value || "").trim();
+          if (!normalized || !(state.filters[filterKey] instanceof Array))
+            return;
+
+          const list = state.filters[filterKey];
+          const idx = list.indexOf(normalized);
+          if (idx >= 0) {
+            list.splice(idx, 1);
+          } else {
+            list.push(normalized);
+          }
+        }
+
+        function updateSortDirBtn() {
+          const btn = document.getElementById("user-sort-dir");
+          if (!btn) return;
+
+          if (!state.sortField) {
+            btn.style.display = "none";
+            return;
+          }
+
+          btn.style.display = "";
+          const icon =
+            state.sortDir === "asc"
+              ? "arrow-up-narrow-wide"
+              : "arrow-down-narrow-wide";
+          btn.innerHTML = `<i data-lucide="${icon}"></i>`;
+
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons({ nodes: [btn] });
+          }
+        }
+
+        function applyAll() {
+          sortRows();
+          applyVisibility();
+        }
+
+        function refreshFiltersAndTable() {
+          populateFilterDropdowns();
+          renderActiveTags();
+          applyAll();
+        }
+
+        function updateSelectionUI() {
+          const bar = document.getElementById("bulk-action-bar");
+          const countEl = document.getElementById("bulk-action-count");
+          const allCb = document.getElementById("select-all-archives");
+          const rows = getDataRows();
+
+          if (countEl) countEl.textContent = `${selectedRows.size} selected`;
+
+          if (bar) {
+            const hasSelection = selectedRows.size > 0;
+            bar.style.visibility = hasSelection ? "visible" : "hidden";
+            bar.style.opacity = hasSelection ? "1" : "0";
+            bar.style.pointerEvents = hasSelection ? "auto" : "none";
+          }
+
+          if (allCb) {
+            allCb.checked =
+              rows.length > 0 && selectedRows.size === rows.length;
+            allCb.indeterminate =
+              selectedRows.size > 0 && selectedRows.size < rows.length;
+          }
+        }
+
+        function setRowSelected(row, selected) {
+          if (!row) return;
+          const key = row.dataset.id;
+          if (!key) return;
+
+          if (selected) {
+            selectedRows.add(key);
+            row.classList.add("row-selected");
+          } else {
+            selectedRows.delete(key);
+            row.classList.remove("row-selected");
+          }
+
+          const cb = row.querySelector(".row-check");
+          if (cb) cb.checked = selected;
+        }
+
+        function clearSelection() {
+          selectedRows.clear();
+          getDataRows().forEach((row) => {
+            row.classList.remove("row-selected");
+            const cb = row.querySelector(".row-check");
+            if (cb) cb.checked = false;
+          });
+          updateSelectionUI();
+        }
+
+        function closeActionMenu() {
+          const menu = document.getElementById("archive-action-menu");
+          if (menu) menu.style.display = "none";
+          activeActionRow = null;
+        }
+
+        function openActionMenu(dotsBtn, row) {
+          const menu = document.getElementById("archive-action-menu");
+          if (!menu || !dotsBtn) return;
+
+          activeActionRow = row;
+          menu.style.display = "flex";
+          if (typeof lucide !== "undefined")
+            lucide.createIcons({ nodes: [menu] });
+
+          const rect = dotsBtn.getBoundingClientRect();
+          const menuW = 210;
+          const menuH = menu.offsetHeight || 156;
+
+          const spaceBelow = window.innerHeight - rect.bottom;
+          const spaceAbove = rect.top;
+          let top;
+          if (spaceBelow >= menuH || spaceBelow >= spaceAbove) {
+            top = rect.bottom + 4;
+          } else {
+            top = rect.top - menuH - 4;
+          }
+
+          let left = rect.right - menuW;
+          if (left < 8) left = 8;
+          if (left + menuW > window.innerWidth - 8) {
+            left = window.innerWidth - menuW - 8;
+          }
+
+          menu.style.left = `${left}px`;
+          menu.style.top = `${Math.max(8, top)}px`;
+        }
+
+        function clearFieldError(fieldId) {
+          const errorEl = document.getElementById(`${fieldId}-error`);
+          const inputEl = document.getElementById(fieldId);
+          if (errorEl) {
+            errorEl.textContent = "";
+            errorEl.classList.remove("show");
+          }
+          if (inputEl) inputEl.classList.remove("input-invalid");
+        }
+
+        function setFieldError(fieldId, message) {
+          const errorEl = document.getElementById(`${fieldId}-error`);
+          const inputEl = document.getElementById(fieldId);
+          if (errorEl) {
+            errorEl.textContent = String(message || "");
+            errorEl.classList.add("show");
+          }
+          if (inputEl) inputEl.classList.add("input-invalid");
+        }
+
+        function resetForm() {
+          document.getElementById("um-user-id").value = "";
+          document.getElementById("um-department").value = "";
+          document.getElementById("um-profile-image").value = "";
+          document.getElementById("um-name").value = "";
+          document.getElementById("um-email").value = "";
+          document.getElementById("um-role").value = "";
+          document.getElementById("um-status").value = "active";
+          document.getElementById("um-password").value = "";
+          document.getElementById("um-email-credentials").checked = true;
+          document.getElementById("um-user-id-override").checked = false;
+          document.getElementById("user-profile-input").value = "";
+
+          clearFieldError("um-user-id");
+          clearFieldError("um-name");
+          clearFieldError("um-email");
+          clearFieldError("um-role");
+
+          editingRow = null;
+          isManualUserIdOverride = false;
+          document.getElementById("user-modal-title").textContent =
+            "ADDING NEW USER";
+          applyUserIdFieldMode();
+          refreshAutoUserId();
+          setPasswordVisible(false);
+          syncDepartmentField();
+          updateProfilePreview();
+        }
+
+        function validateForm(payload) {
+          const errors = {};
+          const userIdPattern = /^[SCA]\d{2}-\d{5}$/;
+
+          if (!payload.userId) errors["um-user-id"] = "User ID is required.";
+          else if (!userIdPattern.test(payload.userId)) {
+            errors["um-user-id"] = "User ID must follow S26-00001 format.";
+          }
+          if (!payload.name) errors["um-name"] = "Name is required.";
+          if (!payload.email) {
+            errors["um-email"] = "Email is required.";
+          } else if (!isValidEmail(payload.email)) {
+            errors["um-email"] = "Enter a valid email.";
+          }
+          if (!payload.role) errors["um-role"] = "Role is required.";
+          if (!["admin", "coordinator"].includes(payload.role)) {
+            errors["um-role"] = "Role must be admin or coordinator.";
+          }
+
+          return errors;
+        }
+
+        function rowToUser(row) {
+          return {
+            id: row.dataset.id,
+            userId: row.dataset.userId,
+            profileImage: row.dataset.profileImage,
+            name: row.dataset.name,
+            email: row.dataset.email,
+            role: row.dataset.role,
+            status: row.dataset.status,
+            password: row.dataset.password,
+          };
+        }
+
+        function updateProfilePreview() {
+          const profileImage = asText(
+            document.getElementById("um-profile-image")?.value,
+          );
+          const name = asText(document.getElementById("um-name")?.value);
+          const initials = getInitials(name);
+
+          const previewName = document.getElementById("user-preview-name");
+          const img = document.getElementById("user-profile-preview");
+          const fallback = document.getElementById("user-profile-initials");
+
+          if (previewName) previewName.textContent = name || "User Profile";
+          if (fallback) fallback.textContent = initials;
+
+          if (!img || !fallback) return;
+
+          if (profileImage) {
+            img.src = profileImage;
+            img.style.display = "block";
+            fallback.style.display = "none";
+            img.onerror = () => {
+              img.style.display = "none";
+              fallback.style.display = "inline";
+            };
+          } else {
+            img.removeAttribute("src");
+            img.style.display = "none";
+            fallback.style.display = "inline";
+          }
+        }
+
+        function openViewModal(row) {
+          viewingRow = row;
+          const user = rowToUser(row);
+
+          document.getElementById("umv-id").textContent = String(
+            user.id || "-",
+          ).padStart(3, "0");
+          document.getElementById("umv-user-id").textContent =
+            user.userId || "-";
+          document.getElementById("umv-name").textContent = user.name || "-";
+          document.getElementById("umv-email").textContent = user.email || "-";
+          document.getElementById("umv-role").textContent = user.role || "-";
+          document.getElementById("umv-status").textContent =
+            displayStatusLabel(user.status);
+          document.getElementById("umv-password").textContent =
+            user.password || "-";
+
+          const viewImg = document.getElementById("umv-profile");
+          const viewFallback = document.getElementById("umv-profile-fallback");
+          const initials = getInitials(user.name);
+
+          viewFallback.textContent = initials;
+          if (user.profileImage) {
+            viewImg.src = user.profileImage;
+            viewImg.style.display = "block";
+            viewFallback.style.display = "none";
+            viewImg.onerror = () => {
+              viewImg.style.display = "none";
+              viewFallback.style.display = "inline";
+            };
+          } else {
+            viewImg.removeAttribute("src");
+            viewImg.style.display = "none";
+            viewFallback.style.display = "inline";
+          }
+
+          openModal(document.getElementById("user-view-modal"));
+        }
+
+        function openFormForEdit(row) {
+          editingRow = row;
+          const user = rowToUser(row);
+
+          document.getElementById("um-user-id").value = user.userId || "";
+          document.getElementById("um-profile-image").value =
+            user.profileImage || "";
+          document.getElementById("um-name").value = user.name || "";
+          document.getElementById("um-email").value = user.email || "";
+          document.getElementById("um-role").value = user.role || "";
+          document.getElementById("um-status").value = displayStatus(
+            user.status,
+          );
+          document.getElementById("um-password").value =
+            user.password === "****" ? "" : user.password || "";
+          document.getElementById("um-email-credentials").checked = false;
+          document.getElementById("um-user-id-override").checked = false;
+          isManualUserIdOverride = false;
+          applyUserIdFieldMode();
+          setPasswordVisible(false);
+          syncDepartmentField();
+
+          clearFieldError("um-user-id");
+          clearFieldError("um-name");
+          clearFieldError("um-email");
+          clearFieldError("um-role");
+
+          document.getElementById("user-modal-title").textContent = "EDIT USER";
+          updateProfilePreview();
+          openModal(document.getElementById("user-modal"));
+        }
+
+        function openDeleteConfirm(rows) {
+          pendingDeleteRows = Array.isArray(rows) ? rows : [];
+
+          const label = document.getElementById("user-delete-confirm-target");
+          if (label) {
+            if (pendingDeleteRows.length === 1) {
+              label.textContent = `Are you sure you want to delete user \"${pendingDeleteRows[0].dataset.userId || "Unknown"}\"?`;
+            } else {
+              label.textContent = `Are you sure you want to delete ${pendingDeleteRows.length} users?`;
+            }
+          }
+
+          const input = document.getElementById("user-delete-confirm-input");
+          const submit = document.getElementById("user-delete-confirm-submit");
+          if (input) input.value = "";
+          if (submit) submit.disabled = true;
+
+          openModal(document.getElementById("user-delete-confirm-modal"));
+          window.setTimeout(() => input && input.focus(), 0);
+        }
+
+        function closeDeleteConfirm() {
+          pendingDeleteRows = [];
+          const input = document.getElementById("user-delete-confirm-input");
+          const submit = document.getElementById("user-delete-confirm-submit");
+          if (input) input.value = "";
+          if (submit) submit.disabled = true;
+          closeModal(document.getElementById("user-delete-confirm-modal"));
+        }
+
+        async function deletePendingRows() {
+          const failed = [];
+
+          for (const row of pendingDeleteRows) {
+            const id = Number.parseInt(row?.dataset?.id, 10);
+            if (!Number.isInteger(id) || id <= 0) continue;
+
+            try {
+              const result = await invokeUsersAPI("deleteUser", id);
+              if (!result || !result.success) {
+                failed.push(
+                  result?.message || `Failed to delete user ID ${id}.`,
+                );
+              } else if (row && row.parentNode) {
+                selectedRows.delete(row.dataset.id);
+                row.parentNode.removeChild(row);
+              }
+            } catch (error) {
+              failed.push(error?.message || `Failed to delete user ID ${id}.`);
+            }
+          }
+
+          closeDeleteConfirm();
+          clearSelection();
+          refreshFiltersAndTable();
+
+          if (failed.length) {
+            showToast(failed[0], "error");
+          } else {
+            showToast("User deleted successfully.", "success");
+          }
+        }
+
+        async function saveUser() {
+          clearFieldError("um-user-id");
+          clearFieldError("um-name");
+          clearFieldError("um-email");
+          clearFieldError("um-role");
+
+          const payload = {
+            userId: asText(
+              document.getElementById("um-user-id")?.value,
+            ).toUpperCase(),
+            department: extractDepartmentCodeFromLabel(
+              document.getElementById("um-department")?.value,
+            ),
+            profileImage: asText(
+              document.getElementById("um-profile-image")?.value,
+            ),
+            name: asText(document.getElementById("um-name")?.value),
+            email: asText(
+              document.getElementById("um-email")?.value,
+            ).toLowerCase(),
+            role: asText(
+              document.getElementById("um-role")?.value,
+            ).toLowerCase(),
+            status: displayStatus(document.getElementById("um-status")?.value),
+            password: asText(document.getElementById("um-password")?.value),
+            sendCredentialsEmail: Boolean(
+              document.getElementById("um-email-credentials")?.checked,
+            ),
+            autoGenerateUserId: !editingRow && !isManualUserIdOverride,
+          };
+
+          const errors = validateForm(payload);
+          if (Object.keys(errors).length) {
+            Object.entries(errors).forEach(([fieldId, message]) =>
+              setFieldError(fieldId, message),
+            );
+            const first = Object.keys(errors)[0];
+            const firstEl = document.getElementById(first);
+            if (firstEl) firstEl.focus();
+            return;
+          }
+
+          if (payload.sendCredentialsEmail && !payload.password) {
+            setFieldError(
+              "um-password",
+              "Password is required to email credentials.",
+            );
+            const passwordInput = document.getElementById("um-password");
+            if (passwordInput) passwordInput.focus();
+            return;
+          }
+
+          const electronAPI = getElectronAPI();
+          if (!electronAPI) {
+            showToast("Users API bridge is unavailable.", "error");
+            return;
+          }
+
+          const loadingOverlay = document.getElementById("user-modal-loading");
+          const saveBtn = document.getElementById("user-save-btn");
+          const cancelBtn = document.getElementById("user-cancel-btn");
+
+          function setFormBusy(busy) {
+            if (loadingOverlay) {
+              if (busy) {
+                // Pin the fixed overlay exactly over the visible modal-content box
+                const modalContent = document.querySelector(
+                  "#user-modal .modal-content",
+                );
+                if (modalContent) {
+                  const r = modalContent.getBoundingClientRect();
+                  loadingOverlay.style.top = `${r.top}px`;
+                  loadingOverlay.style.left = `${r.left}px`;
+                  loadingOverlay.style.width = `${r.width}px`;
+                  loadingOverlay.style.height = `${r.height}px`;
+                }
+                loadingOverlay.style.display = "flex";
+              } else {
+                loadingOverlay.style.display = "none";
+              }
+              loadingOverlay.setAttribute("aria-hidden", String(!busy));
+            }
+            if (saveBtn) saveBtn.disabled = busy;
+            if (cancelBtn) cancelBtn.disabled = busy;
+          }
+
+          setFormBusy(true);
+
+          try {
+            if (editingRow) {
+              payload.id = Number.parseInt(editingRow.dataset.id, 10);
+              if (!payload.password) {
+                delete payload.password;
+              }
+
+              let result;
+              try {
+                result = await invokeUsersAPI("updateUser", payload);
+              } catch (error) {
+                showToast(error?.message || "Failed to update user.", "error");
+                return;
+              }
+
+              if (!result || !result.success || !result.user) {
+                showToast(result?.message || "Failed to update user.", "error");
+                return;
+              }
+
+              addUserRow(result.user);
+              showToast("User updated successfully.", "success");
+            } else {
+              if (!payload.password) {
+                setFieldError(
+                  "um-password",
+                  "Password is required for new users.",
+                );
+                const passwordInput = document.getElementById("um-password");
+                if (passwordInput) passwordInput.focus();
+                return;
+              }
+
+              let result;
+              try {
+                result = await invokeUsersAPI("createUser", payload);
+              } catch (error) {
+                showToast(error?.message || "Failed to create user.", "error");
+                return;
+              }
+
+              if (!result || !result.success || !result.user) {
+                showToast(result?.message || "Failed to create user.", "error");
+                return;
+              }
+
+              addUserRow(result.user, { highlight: true });
+              showToast(
+                result?.message || "User added successfully.",
+                "success",
+              );
+            }
+
+            closeModal(document.getElementById("user-modal"));
+            resetForm();
+            refreshFiltersAndTable();
+            clearSelection();
+
+            if (typeof lucide !== "undefined") {
+              lucide.createIcons();
+            }
+          } finally {
+            setFormBusy(false);
+          }
+        }
+
+        function parseCsvRow(line) {
+          const out = [];
+          let cur = "";
+          let inQuotes = false;
+
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+              if (inQuotes && line[i + 1] === '"') {
+                cur += '"';
+                i++;
+              } else {
+                inQuotes = !inQuotes;
+              }
+              continue;
+            }
+
+            if (ch === "," && !inQuotes) {
+              out.push(cur.trim());
+              cur = "";
+              continue;
+            }
+
+            cur += ch;
+          }
+
+          out.push(cur.trim());
+          return out.map((v) => v.replace(/^"|"$/g, "").trim());
+        }
+
+        function normalizeHeader(h) {
+          return String(h || "")
+            .replace(/^\uFEFF/, "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .replace(/[._-]/g, " ");
+        }
+
+        function templateCsv() {
+          const headers = [
+            "user_id",
+            "name",
+            "email",
+            "role",
+            "status",
+            "password",
+            "profile_image",
+          ];
+
+          const sample = [
+            "CCS-001",
+            "Juan Dela Cruz",
+            "juan.delacruz@example.com",
+            "coordinator",
+            "active",
+            "sample123",
+            "",
+          ];
+
+          const toCell = (value) => {
+            const s = String(value ?? "");
+            if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+            return s;
+          };
+
+          return `${headers.map(toCell).join(",")}\n${sample.map(toCell).join(",")}`;
+        }
+
+        function downloadCsvTemplate() {
+          const blob = new Blob([templateCsv()], {
+            type: "text/csv;charset=utf-8",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "users_template.csv";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          showToast("CSV template downloaded.", "success");
+        }
+
+        async function importCsv(file) {
+          if (!file) return;
+
+          const isCsv =
+            file.type === "text/csv" ||
+            file.name.toLowerCase().endsWith(".csv");
+          if (!isCsv) {
+            showToast("Please select a CSV file.", "error");
+            return;
+          }
+
+          try {
+            const text = await file.text();
+            const lines = text
+              .split(/\r?\n/)
+              .map((line) => line.trim())
+              .filter(Boolean);
+
+            if (!lines.length) {
+              showToast("CSV is empty.", "error");
+              return;
+            }
+
+            const first = parseCsvRow(lines[0]);
+            const hasHeader = first.some((v) => /[a-zA-Z]/.test(v));
+
+            let headers = [];
+            let start = 0;
+            if (hasHeader) {
+              headers = first.map(normalizeHeader);
+              start = 1;
+            }
+
+            const idx = (aliases) => {
+              if (!headers.length) return -1;
+              const set = new Set(aliases.map(normalizeHeader));
+              return headers.findIndex((h) => set.has(h));
+            };
+
+            const map = {
+              userId: idx(["user id", "user_id", "userid"]),
+              name: idx(["name", "full name"]),
+              email: idx(["email", "email address"]),
+              role: idx(["role"]),
+              status: idx(["status"]),
+              password: idx(["password"]),
+              profileImage: idx([
+                "profile image",
+                "profile_image",
+                "profile",
+                "image",
+              ]),
+            };
+
+            let imported = 0;
+            const failedRows = [];
+
+            for (let i = start; i < lines.length; i++) {
+              const cols = parseCsvRow(lines[i]);
+              if (cols.every((c) => !c)) continue;
+
+              const row = headers.length
+                ? {
+                    userId: map.userId >= 0 ? cols[map.userId] : "",
+                    name: map.name >= 0 ? cols[map.name] : "",
+                    email: map.email >= 0 ? cols[map.email] : "",
+                    role: map.role >= 0 ? cols[map.role] : "",
+                    status: map.status >= 0 ? cols[map.status] : "active",
+                    password: map.password >= 0 ? cols[map.password] : "",
+                    profileImage:
+                      map.profileImage >= 0 ? cols[map.profileImage] : "",
+                  }
+                : {
+                    userId: cols[0] || "",
+                    name: cols[1] || "",
+                    email: cols[2] || "",
+                    role: cols[3] || "",
+                    status: cols[4] || "active",
+                    password: cols[5] || "",
+                    profileImage: cols[6] || "",
+                  };
+
+              if (
+                !row.userId ||
+                !row.name ||
+                !row.email ||
+                !row.role ||
+                !row.password
+              ) {
+                failedRows.push(i + 1);
+                continue;
+              }
+
+              if (!isValidEmail(row.email)) {
+                failedRows.push(i + 1);
+                continue;
+              }
+
+              try {
+                const result = await invokeUsersAPI("createUser", row);
+                if (result && result.success && result.user) {
+                  addUserRow(result.user, { highlight: true });
+                  imported += 1;
+                } else {
+                  failedRows.push(i + 1);
+                }
+              } catch (error) {
+                const message = String(error?.message || "");
+                if (/without the \"createUser\" IPC handler/i.test(message)) {
+                  throw error;
+                }
+                failedRows.push(i + 1);
+              }
+            }
+
+            refreshFiltersAndTable();
+            clearSelection();
+
+            if (imported) {
+              if (failedRows.length) {
+                showToast(
+                  `Imported ${imported} row(s). Skipped ${failedRows.length} row(s).`,
+                  "info",
+                );
+              } else {
+                showToast(`Imported ${imported} row(s) from CSV.`, "success");
+              }
+            } else {
+              showToast(
+                "No valid rows imported. Check users CSV format.",
+                "error",
+              );
+            }
+          } catch (error) {
+            showToast(error?.message || "Failed to read CSV.", "error");
+          }
+        }
+
+        function getReportName() {
+          const title = (
+            document.querySelector(".page-title")?.textContent || "report"
+          )
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+          const date = new Date().toISOString().slice(0, 10);
+          return `${title}_${date}`;
+        }
+
+        function escapeCsvCell(value) {
+          const s = String(value ?? "");
+          if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+          return s;
+        }
+
+        function getVisibleTableRowsForExport() {
+          const table = document.getElementById("archives-table");
+          if (!table) return [];
+
+          const rows = Array.from(table.querySelectorAll("tr"));
+          return rows.filter((row) => {
+            if (row.parentElement && row.parentElement.tagName === "THEAD")
+              return true;
+            return row.style.display !== "none";
+          });
+        }
+
+        function tableToCsv() {
+          const rows = getVisibleTableRowsForExport();
+          return rows
+            .map((row) => {
+              const cells = Array.from(row.querySelectorAll("th,td"));
+              return cells
+                .filter((_, index) => index !== 0 && index !== 8)
+                .map((cell) => {
+                  const text = (cell.textContent || "")
+                    .replace(/\s+/g, " ")
+                    .trim();
+                  return escapeCsvCell(text);
+                })
+                .join(",");
+            })
+            .join("\n");
+        }
+
+        function downloadBlob(content, mime, filename) {
+          const blob =
+            content instanceof Blob
+              ? content
+              : new Blob([content], { type: mime });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+
+        function exportExcel() {
+          const table = document.getElementById("archives-table");
+          if (!table) return;
+          const html = `<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body>${table.outerHTML}</body></html>`;
+          downloadBlob(
+            html,
+            "application/vnd.ms-excel",
+            `${getReportName()}.xls`,
+          );
+        }
+
+        function bindEvents() {
+          document
+            .getElementById("user-open-modal")
+            ?.addEventListener("click", () => {
+              resetForm();
+              openModal(document.getElementById("user-modal"));
+            });
+
+          document
+            .getElementById("user-cancel-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("user-modal"));
+            });
+
+          document
+            .getElementById("user-save-btn")
+            ?.addEventListener("click", saveUser);
+
+          document.getElementById("um-name")?.addEventListener("input", () => {
+            updateProfilePreview();
+            refreshAutoUserId();
+          });
+          document
+            .getElementById("um-email")
+            ?.addEventListener("input", refreshAutoUserId);
+          document
+            .getElementById("um-role")
+            ?.addEventListener("change", refreshAutoUserId);
+          document
+            .getElementById("um-status")
+            ?.addEventListener("change", refreshAutoUserId);
+          document
+            .getElementById("um-password")
+            ?.addEventListener("input", refreshAutoUserId);
+          document
+            .getElementById("um-profile-image")
+            ?.addEventListener("input", updateProfilePreview);
+          document
+            .getElementById("um-user-id-override")
+            ?.addEventListener("change", () => {
+              isManualUserIdOverride = Boolean(
+                document.getElementById("um-user-id-override")?.checked,
+              );
+              applyUserIdFieldMode();
+            });
+
+          document
+            .getElementById("um-generate-password-btn")
+            ?.addEventListener("click", () => {
+              const value = generatePassword(12);
+              const input = document.getElementById("um-password");
+              if (input) input.value = value;
+              showToast("Password generated.", "success", 1800);
+            });
+
+          document
+            .getElementById("um-toggle-password-btn")
+            ?.addEventListener("click", () => {
+              const input = document.getElementById("um-password");
+              if (!input) return;
+              setPasswordVisible(input.type === "password");
+            });
+
+          document
+            .getElementById("user-upload-profile-btn")
+            ?.addEventListener("click", () => {
+              uploadUserProfileToCloudinary();
+            });
+
+          document
+            .getElementById("user-profile-input")
+            ?.addEventListener("change", (event) => {
+              const file = event.target.files && event.target.files[0];
+              if (!file) return;
+
+              const reader = new FileReader();
+              reader.onload = () => {
+                document.getElementById("um-profile-image").value = String(
+                  reader.result || "",
+                );
+                updateProfilePreview();
               };
+              reader.readAsDataURL(file);
+            });
 
-          addRow(row);
-          imported++;
+          document
+            .getElementById("user-generate-btn")
+            ?.addEventListener("click", () => {
+              openModal(document.getElementById("user-export-modal"));
+            });
+
+          document
+            .getElementById("user-export-cancel-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("user-export-modal"));
+            });
+
+          document
+            .getElementById("user-export-csv-btn")
+            ?.addEventListener("click", () => {
+              downloadBlob(
+                tableToCsv(),
+                "text/csv;charset=utf-8",
+                `${getReportName()}.csv`,
+              );
+              closeModal(document.getElementById("user-export-modal"));
+            });
+
+          document
+            .getElementById("user-export-excel-btn")
+            ?.addEventListener("click", () => {
+              exportExcel();
+              closeModal(document.getElementById("user-export-modal"));
+            });
+
+          document
+            .getElementById("user-export-pdf-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("user-export-modal"));
+              window.print();
+            });
+
+          document
+            .getElementById("user-download-template-btn")
+            ?.addEventListener("click", downloadCsvTemplate);
+
+          document
+            .getElementById("user-upload-csv-btn")
+            ?.addEventListener("click", () => {
+              const input = document.getElementById("user-csv-input");
+              if (!input) return;
+              input.value = "";
+              input.click();
+            });
+
+          document
+            .getElementById("user-csv-input")
+            ?.addEventListener("change", (event) => {
+              const file = event.target.files && event.target.files[0];
+              importCsv(file);
+            });
+
+          document
+            .getElementById("user-view-close-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("user-view-modal"));
+            });
+
+          document
+            .getElementById("user-view-header-close-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("user-view-modal"));
+            });
+
+          document
+            .getElementById("user-view-edit-btn")
+            ?.addEventListener("click", () => {
+              if (!viewingRow) return;
+              closeModal(document.getElementById("user-view-modal"));
+              openFormForEdit(viewingRow);
+            });
+
+          document
+            .getElementById("user-view-delete-btn")
+            ?.addEventListener("click", () => {
+              if (!viewingRow) return;
+              closeModal(document.getElementById("user-view-modal"));
+              openDeleteConfirm([viewingRow]);
+            });
+
+          document
+            .getElementById("user-delete-confirm-cancel")
+            ?.addEventListener("click", closeDeleteConfirm);
+          document
+            .getElementById("user-delete-confirm-submit")
+            ?.addEventListener("click", deletePendingRows);
+
+          document
+            .getElementById("user-delete-confirm-input")
+            ?.addEventListener("input", (event) => {
+              const submitBtn = document.getElementById(
+                "user-delete-confirm-submit",
+              );
+              const allowed =
+                String(event.target.value || "").trim() === "DELETE";
+              if (submitBtn) submitBtn.disabled = !allowed;
+            });
+
+          document
+            .getElementById("bulk-delete-btn")
+            ?.addEventListener("click", () => {
+              const rows = Array.from(
+                document.querySelectorAll(
+                  "#user-management-table-body tr.row-selected",
+                ),
+              );
+              if (!rows.length) return;
+              openDeleteConfirm(rows);
+            });
+
+          document
+            .getElementById("bulk-clear-btn")
+            ?.addEventListener("click", clearSelection);
+
+          document
+            .getElementById("select-all-archives")
+            ?.addEventListener("change", (event) => {
+              getDataRows().forEach((row) =>
+                setRowSelected(row, event.target.checked),
+              );
+              updateSelectionUI();
+            });
+
+          document
+            .getElementById("user-management-table-body")
+            ?.addEventListener("change", (event) => {
+              const cb = event.target.closest(".row-check");
+              if (!cb) return;
+              const row = cb.closest("tr");
+              setRowSelected(row, cb.checked);
+              updateSelectionUI();
+            });
+
+          document
+            .getElementById("user-management-table-body")
+            ?.addEventListener("click", (event) => {
+              const row = event.target.closest("tr");
+              if (!row) return;
+
+              if (
+                event.target.closest(".dots-btn") ||
+                event.target.closest(".row-check") ||
+                event.target.closest("button")
+              ) {
+                return;
+              }
+
+              const nextSelected = !selectedRows.has(row.dataset.id);
+              setRowSelected(row, nextSelected);
+              updateSelectionUI();
+            });
+
+          document
+            .getElementById("user-management-table-body")
+            ?.addEventListener("dblclick", (event) => {
+              const row = event.target.closest("tr");
+              if (!row) return;
+
+              if (
+                event.target.closest(".dots-btn") ||
+                event.target.closest(".row-check") ||
+                event.target.closest("button")
+              ) {
+                return;
+              }
+
+              openViewModal(row);
+            });
+
+          document.addEventListener("click", (event) => {
+            const dotsBtn = event.target.closest(".dots-btn");
+            if (dotsBtn && dotsBtn.closest("#archives-table")) {
+              event.preventDefault();
+              event.stopPropagation();
+              const row = dotsBtn.closest("tr");
+              const menu = document.getElementById("archive-action-menu");
+              const isAlreadyOpen =
+                menu?.style.display === "flex" && activeActionRow === row;
+
+              if (isAlreadyOpen) {
+                closeActionMenu();
+              } else {
+                openActionMenu(dotsBtn, row);
+              }
+              return;
+            }
+
+            if (!event.target.closest("#archive-action-menu")) {
+              closeActionMenu();
+            }
+          });
+
+          document
+            .getElementById("archive-action-menu")
+            ?.addEventListener("click", (event) => {
+              const button = event.target.closest("button.menu-action");
+              if (!button || !activeActionRow) return;
+
+              if (button.classList.contains("view-btn")) {
+                openViewModal(activeActionRow);
+              } else if (button.classList.contains("edit-btn")) {
+                openFormForEdit(activeActionRow);
+              } else if (button.classList.contains("delete-btn")) {
+                openDeleteConfirm([activeActionRow]);
+              }
+
+              closeActionMenu();
+            });
+
+          Object.keys(selectToFilterKey).forEach((selectId) => {
+            const el = document.getElementById(selectId);
+            if (!el) return;
+
+            el.addEventListener("change", () => {
+              const key = selectToFilterKey[selectId];
+              const selectedValue = String(el.value || "").trim();
+
+              if (!selectedValue) {
+                state.filters[key] = [];
+              } else {
+                toggleFilterValue(key, selectedValue);
+              }
+
+              populateFilterDropdowns();
+              renderActiveTags();
+              applyVisibility();
+            });
+          });
+
+          document
+            .getElementById("user-search")
+            ?.addEventListener("input", () => {
+              state.query = document.getElementById("user-search").value;
+              applyVisibility();
+            });
+
+          document
+            .getElementById("user-sort")
+            ?.addEventListener("change", () => {
+              state.sortField = document.getElementById("user-sort").value;
+              state.sortDir = "asc";
+              updateSortDirBtn();
+              applyAll();
+            });
+
+          document
+            .getElementById("user-sort-dir")
+            ?.addEventListener("click", () => {
+              if (!state.sortField) return;
+              state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+              updateSortDirBtn();
+              applyAll();
+            });
+
+          document
+            .getElementById("user-clear-filters")
+            ?.addEventListener("click", () => {
+              state.query = "";
+              state.sortField = "";
+              state.sortDir = "asc";
+              state.filters = { userId: [], role: [], status: [] };
+
+              document.getElementById("user-search").value = "";
+              document.getElementById("user-sort").value = "";
+              Object.keys(selectToFilterKey).forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.value = "";
+              });
+
+              updateSortDirBtn();
+              refreshFiltersAndTable();
+            });
+
+          document.addEventListener("click", (event) => {
+            const btn = event.target.closest(".filter-tag-remove");
+            if (!btn) return;
+
+            const key = btn.dataset.key;
+            const value = String(btn.dataset.value || "").trim();
+            if (!(key in state.filters)) return;
+
+            state.filters[key] = state.filters[key].filter(
+              (item) => item !== value,
+            );
+
+            const selectEl = document.getElementById(filterKeyToSelect[key]);
+            if (selectEl) selectEl.value = "";
+
+            populateFilterDropdowns();
+            renderActiveTags();
+            applyVisibility();
+          });
+
+          [
+            document.getElementById("user-modal"),
+            document.getElementById("user-view-modal"),
+            document.getElementById("user-export-modal"),
+            document.getElementById("user-delete-confirm-modal"),
+          ].forEach((modalEl) => {
+            modalEl?.addEventListener("click", (event) => {
+              if (event.target !== modalEl) return;
+              closeModal(modalEl);
+            });
+          });
+
+          document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape") return;
+            closeModal(document.getElementById("user-modal"));
+            closeModal(document.getElementById("user-view-modal"));
+            closeModal(document.getElementById("user-export-modal"));
+            closeModal(document.getElementById("user-delete-confirm-modal"));
+            closeActionMenu();
+          });
+
+          window.addEventListener("resize", closeActionMenu, { passive: true });
+          window.addEventListener("scroll", closeActionMenu, { passive: true });
         }
 
-        alert(
-          imported
-            ? `Imported ${imported} row(s) from CSV.`
-            : "No rows imported. Check your CSV format.",
-        );
-      });
+        function init() {
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons();
+          }
 
-      // Backdrop/Esc close
-      [selectModeModal, formModal].forEach((m) => {
-        m.addEventListener("click", (e) => {
-          if (e.target === m) closeModal(m);
-        });
-      });
-      document.addEventListener("keydown", (e) => {
-        if (e.key !== "Escape") return;
-        closeModal(selectModeModal);
-        closeModal(formModal);
-      });
+          bindEvents();
+          syncDepartmentField();
+          loadUsers();
+          updateSortDirBtn();
+          updateProfilePreview();
+        }
 
-      // Toggle password visibility
-      function togglePassword(fieldId) {
-        const password = document.getElementById(fieldId);
-        const eyeIcon = document.getElementById(
-          fieldId === "password" ? "password-eye" : "confirm-password-eye",
-        );
-
-        if (password.type === "password") {
-          password.type = "text";
-          eyeIcon.innerHTML = `
-                <path d="M17.94 17.94C16.12 19.24 14.11 20 12 20C5 20 1 12 1 12C2.18 9.61 3.83 7.56 5.77 6.11M9.88 9.88C9.32 10.44 9 11.19 9 12C9 13.66 10.34 15 12 15C12.81 15 13.56 14.68 14.12 14.12M1 1L23 23"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"/>
-            `;
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init);
         } else {
-          password.type = "password";
-          eyeIcon.innerHTML = `
-                <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
-              stroke="currentColor"
-              stroke-width="2"/>
-                <circle cx="12" cy="12" r="3"
-                        stroke="currentColor"
-                        stroke-width="2"/>
-            `;
+          init();
         }
-      }
+      })();
     </script>
   </body>
 </html>

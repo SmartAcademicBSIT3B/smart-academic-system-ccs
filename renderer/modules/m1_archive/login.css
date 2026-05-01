@@ -299,3 +299,79 @@ button[type="submit"]:hover {
   margin-top: -20px;
   margin-bottom: 20px;
 }
+
+/* ===============================
+   SECRET SUPER ADMIN MODAL
+=================================*/
+.secret-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.secret-modal.is-open {
+  display: flex;
+}
+
+.secret-modal-card {
+  width: min(460px, 100%);
+  background: #181c22;
+  border: 1px solid #3a3f46;
+  border-radius: 18px;
+  padding: 24px;
+  position: relative;
+  color: #c9ccd1;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.secret-modal-card h3 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.secret-subtitle {
+  color: #9aa0a6;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.secret-modal-card form {
+  display: flex;
+  flex-direction: column;
+}
+
+.secret-modal-card input {
+  margin-bottom: 18px;
+}
+
+#superAdminError {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+.secret-modal-card button[type="submit"] {
+  margin-top: 4px;
+}
+
+.secret-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #3a3f46;
+  background: rgba(255, 255, 255, 0.05);
+  color: #c9ccd1;
+  cursor: pointer;
+}
+
+.secret-close-btn:hover {
+  border-color: #9dc6ff;
+  color: #9dc6ff;
+}

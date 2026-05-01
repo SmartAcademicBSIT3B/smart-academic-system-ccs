@@ -6,6 +6,11 @@ const { query } = require("../db/connect");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
+const SUPER_ADMIN_EMAIL = "smartacademicbsit3b@gmail.com";
+const SUPER_ADMIN_PASSWORD = "BSIT3B2026";
+const SUPER_ADMIN_NAME = "Smart Academic Super Admin";
+let superAdminPrepared = false;
+let superAdminPreparationPromise = null;
 
 // ── Mail transporter ──────────────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
@@ -27,13 +32,113 @@ function getJwtSecret() {
   return String(process.env.JWT_SECRET || "").trim();
 }
 
+function normalizeDepartmentCode(value) {
+  const code = String(value || "")
+    .trim()
+    .toUpperCase();
+  return code || "CCS";
+}
+
+function hashPassword(value) {
+  return crypto
+    .createHash("sha256")
+    .update(String(value || ""))
+    .digest("hex");
+}
+
+function currentYearTwoDigits() {
+  return String(new Date().getFullYear()).slice(-2);
+}
+
+async function ensureSuperAdminUser() {
+  if (superAdminPrepared) return;
+  if (superAdminPreparationPromise) {
+    await superAdminPreparationPromise;
+    return;
+  }
+
+  superAdminPreparationPromise = (async () => {
+    const existing = await query(
+      `SELECT id
+         FROM users
+        WHERE LOWER(email) = LOWER(?)
+        ORDER BY id ASC
+        LIMIT 1`,
+      [SUPER_ADMIN_EMAIL],
+    );
+
+    const hashed = hashPassword(SUPER_ADMIN_PASSWORD);
+
+    if (Array.isArray(existing) && existing.length > 0) {
+      await query(
+        `UPDATE users
+            SET name = ?,
+                role = 'admin',
+                status = 'active',
+                password = ?
+          WHERE id = ?`,
+        [SUPER_ADMIN_NAME, hashed, existing[0].id],
+      );
+    } else {
+      await query(
+        `INSERT INTO users (user_id, name, email, role, status, department, password, profile_image)
+         VALUES (?, ?, ?, 'admin', 'active', 'GLOBAL', ?, NULL)`,
+        [
+          `A${currentYearTwoDigits()}-99999`,
+          SUPER_ADMIN_NAME,
+          SUPER_ADMIN_EMAIL,
+          hashed,
+        ],
+      );
+    }
+
+    superAdminPrepared = true;
+  })();
+
+  try {
+    await superAdminPreparationPromise;
+  } finally {
+    superAdminPreparationPromise = null;
+  }
+}
+
+function buildLoginPayload(user, selectedDepartmentCode, isSuperAdmin) {
+  return {
+    id: user.id,
+    user_id: user.user_id,
+    email: user.email,
+    role: user.role,
+    department_code: isSuperAdmin
+      ? normalizeDepartmentCode(selectedDepartmentCode)
+      : normalizeDepartmentCode(user.department),
+    is_super_admin: Boolean(isSuperAdmin),
+  };
+}
+
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 router.post("/login", async (req, res) => {
   try {
+    await ensureSuperAdminUser();
+
     const email = String(req.body.email || "")
       .trim()
       .toLowerCase();
     const password = String(req.body.password || "");
+    const rawDepartmentCode = String(
+      req.body.departmentCode || req.headers["x-department"] || "",
+    )
+      .trim()
+      .toUpperCase();
+    const hasSecretDepartmentPrefix = rawDepartmentCode.startsWith("SECRET:");
+    const selectedDepartmentCode = normalizeDepartmentCode(
+      hasSecretDepartmentPrefix
+        ? rawDepartmentCode.slice("SECRET:".length)
+        : rawDepartmentCode,
+    );
+    const isSecretLogin =
+      req.body.secretLogin === true ||
+      req.body.secretLogin === "true" ||
+      hasSecretDepartmentPrefix;
 
     if (!email || !password) {
       return res
@@ -41,10 +146,86 @@ router.post("/login", async (req, res) => {
         .json({ success: false, message: "Email and password are required." });
     }
 
+    const hashedPassword = hashPassword(password);
+
+    if (email === SUPER_ADMIN_EMAIL) {
+      if (!isSecretLogin) {
+        return res.status(403).json({
+          success: false,
+          message: "to use this account, please contact the developers",
+        });
+      }
+
+      const superAdminUsers = await query(
+        `SELECT *
+           FROM users
+          WHERE LOWER(email) = LOWER(?)
+            AND status = 'active'
+          ORDER BY id ASC
+          LIMIT 10`,
+        [SUPER_ADMIN_EMAIL],
+      );
+
+      const superAdminUser = (
+        Array.isArray(superAdminUsers) ? superAdminUsers : []
+      ).find((row) => String(row.password || "") === hashedPassword);
+
+      if (superAdminUser) {
+        const payload = buildLoginPayload(
+          superAdminUser,
+          selectedDepartmentCode,
+          true,
+        );
+
+        const jwtSecret = getJwtSecret();
+        if (!jwtSecret) {
+          console.error("Login error: JWT_SECRET is not configured.");
+          return res.status(500).json({
+            success: false,
+            message:
+              "Server authentication is not configured (JWT_SECRET missing).",
+          });
+        }
+
+        const token = jwt.sign(payload, jwtSecret, {
+          expiresIn: process.env.JWT_EXPIRES_IN || "8h",
+        });
+
+        return res.json({
+          success: true,
+          token,
+          user: {
+            id: superAdminUser.id,
+            user_id: superAdminUser.user_id,
+            name: superAdminUser.name,
+            email: superAdminUser.email,
+            role: superAdminUser.role,
+            department_code: normalizeDepartmentCode(selectedDepartmentCode),
+            is_super_admin: true,
+          },
+        });
+      }
+    }
+
     const users = await query(
-      "SELECT * FROM users WHERE email = ? AND status = ?",
-      [email, "active"],
+      "SELECT * FROM users WHERE email = ? AND status = ? AND UPPER(COALESCE(department, 'CCS')) = ?",
+      [email, "active", selectedDepartmentCode],
     );
+
+    if (users.length === 0) {
+      const usersInOtherDept = await query(
+        "SELECT id FROM users WHERE email = ? AND status = ? LIMIT 1",
+        [email, "active"],
+      );
+
+      if (usersInOtherDept.length > 0) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "This account is not registered under the selected department.",
+        });
+      }
+    }
 
     if (users.length === 0) {
       return res
@@ -53,10 +234,6 @@ router.post("/login", async (req, res) => {
     }
 
     const user = users[0];
-    const hashedPassword = crypto
-      .createHash("sha256")
-      .update(password)
-      .digest("hex");
 
     if (hashedPassword !== user.password) {
       return res
@@ -64,12 +241,7 @@ router.post("/login", async (req, res) => {
         .json({ success: false, message: "Invalid email or password." });
     }
 
-    const payload = {
-      id: user.id,
-      user_id: user.user_id,
-      email: user.email,
-      role: user.role,
-    };
+    const payload = buildLoginPayload(user, selectedDepartmentCode, false);
 
     const jwtSecret = getJwtSecret();
     if (!jwtSecret) {
@@ -94,6 +266,8 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        department_code: normalizeDepartmentCode(user.department),
+        is_super_admin: false,
       },
     });
   } catch (error) {
