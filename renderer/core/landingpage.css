@@ -129,7 +129,7 @@ body::-webkit-scrollbar {
 .settings-btn {
   position: absolute;
   top: 20px;
-  right: 24px;
+  right: 76px;
   z-index: 3;
   width: 44px;
   height: 44px;
@@ -163,6 +163,46 @@ body::-webkit-scrollbar {
 }
 
 .settings-btn:active {
+  transform: translateY(0);
+}
+
+.close-app-btn {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(18, 30, 18, 0.42);
+  color: #f5f7f9;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.2s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.close-app-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.close-app-btn:hover {
+  background: rgba(255, 96, 96, 0.9);
+  color: #290b0b;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+}
+
+.close-app-btn:active {
   transform: translateY(0);
 }
 

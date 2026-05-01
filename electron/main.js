@@ -1549,6 +1549,21 @@ ipcMain.handle("logout", async () => {
   }
 });
 
+ipcMain.handle("closeApp", async (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && !win.isDestroyed()) {
+      win.close();
+    } else {
+      app.quit();
+    }
+    return { success: true };
+  } catch (error) {
+    console.error("Close app error:", error);
+    return { success: false, message: "Failed to close app." };
+  }
+});
+
 ipcMain.handle("sendOTP", async (event, email) => {
   try {
     return await api.post("/auth/send-otp", {

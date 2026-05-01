@@ -21,6 +21,24 @@
     <!-- Main landing page -->
     <div class="landing-page" id="main-content">
       <button
+        id="landing-close-btn"
+        class="close-app-btn"
+        type="button"
+        aria-label="Close App"
+        title="Close App"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M18 6 6 18M6 6l12 12"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+
+      <button
         id="landing-settings-btn"
         class="settings-btn"
         type="button"
@@ -234,6 +252,7 @@
         const loginBtn = document.getElementById("landing-login-btn");
         const offlineModal = document.getElementById("offline-modal");
         const offlineRetryBtn = document.getElementById("offline-retry-btn");
+        const closeBtn = document.getElementById("landing-close-btn");
         const settingsBtn = document.getElementById("landing-settings-btn");
         const settingsModal = document.getElementById("settings-modal");
         const settingsCloseBtn = document.getElementById("settings-close-btn");
@@ -705,6 +724,15 @@
         });
 
         settingsSaveBtn.addEventListener("click", saveSettings);
+
+        closeBtn.addEventListener("click", async function () {
+          if (electronAPI && typeof electronAPI.closeApp === "function") {
+            await electronAPI.closeApp();
+            return;
+          }
+
+          window.close();
+        });
 
         loginBtn.addEventListener("click", function () {
           if (!navigator.onLine) {
