@@ -9,6 +9,7 @@ const ojtStudentRoutes = require("./routes/ojt-students");
 const metaRoutes = require("./routes/meta");
 const gdriveRoutes = require("./routes/gdrive");
 const uploadRoutes = require("./routes/upload");
+const { syncAllArchiveOjtLinks } = require("./helpers/archive-ojt-link");
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -69,6 +70,47 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ success: false, message: "Internal server error." });
 });
 
+function startArchiveOjtLinkScheduler() {
+  const intervalMs = Number.parseInt(
+    process.env.ARCHIVE_OJT_LINK_SYNC_INTERVAL_MS || "300000",
+    10,
+  );
+  const safeIntervalMs =
+    Number.isInteger(intervalMs) && intervalMs >= 60000 ? intervalMs : 300000;
+
+  let running = false;
+
+  const runSync = async (source) => {
+    if (running) return;
+    running = true;
+
+    try {
+      await syncAllArchiveOjtLinks();
+      console.log(
+        `[archive-ojt-link] sync complete via ${source} at ${new Date().toISOString()}`,
+      );
+    } catch (error) {
+      console.error("[archive-ojt-link] periodic sync failed:", error);
+    } finally {
+      running = false;
+    }
+  };
+
+  // Initial sync shortly after startup.
+  setTimeout(() => {
+    runSync("startup");
+  }, 5000);
+
+  setInterval(() => {
+    runSync("interval");
+  }, safeIntervalMs);
+
+  console.log(
+    `[archive-ojt-link] scheduler started (interval: ${safeIntervalMs} ms)`,
+  );
+}
+
 app.listen(PORT, () => {
   console.log(`Smart Academic Backend running on port ${PORT}`);
+  startArchiveOjtLinkScheduler();
 });

@@ -766,6 +766,8 @@
       lucide.createIcons();
 
       const APP_SETTINGS_KEY = "sas.app.settings";
+      const MANAGE_ARCHIVES_PENDING_SEARCH_KEY =
+        "sas.manageArchives.pendingSearch";
       const DEFAULT_DEPARTMENT_CODE = "CCS";
       let ACTIVE_DEPARTMENT_CODE = DEFAULT_DEPARTMENT_CODE;
 
@@ -788,6 +790,38 @@
       if (typeof window.loadArchiveDropdownOptions === "function") {
         window.loadArchiveDropdownOptions();
       }
+
+      function applyPendingArchiveSearchFromSession() {
+        try {
+          const raw = sessionStorage.getItem(
+            MANAGE_ARCHIVES_PENDING_SEARCH_KEY,
+          );
+          if (!raw) return;
+
+          const parsed = JSON.parse(raw);
+          const title = String(parsed?.title || "").trim();
+          if (!title) {
+            sessionStorage.removeItem(MANAGE_ARCHIVES_PENDING_SEARCH_KEY);
+            return;
+          }
+
+          const searchInput = document.getElementById("archive-search");
+          if (!searchInput) return;
+
+          searchInput.value = title;
+          searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+          if (window.archiveSearchFilter?.refresh) {
+            window.archiveSearchFilter.refresh();
+          }
+
+          sessionStorage.removeItem(MANAGE_ARCHIVES_PENDING_SEARCH_KEY);
+        } catch (_error) {
+          // Ignore parse/read failures and continue normal page flow.
+        }
+      }
+
+      window.setTimeout(applyPendingArchiveSearchFromSession, 120);
 
       // ── Archive action floating menu ──────────────────────────────────────
       const archiveActionMenu = document.getElementById("archive-action-menu");

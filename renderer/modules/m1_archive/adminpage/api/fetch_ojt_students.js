@@ -39,7 +39,7 @@ function renderOjtStudentsTableMessage(tbody, title, detail) {
 
   tbody.innerHTML = `
     <tr data-placeholder="ojt-student-status">
-      <td colspan="12" style="text-align:center; padding: 42px 24px; color: var(--text-secondary);">
+      <td colspan="11" style="text-align:center; padding: 42px 24px; color: var(--text-secondary);">
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
           <strong style="color: var(--text-primary);">${safeTitle}</strong>
           ${safeDetail ? `<span>${safeDetail}</span>` : ""}

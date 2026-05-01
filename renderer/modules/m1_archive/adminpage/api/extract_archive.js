@@ -95,13 +95,15 @@ function normalizeExtractedAuthorName(value) {
   const tokens = given.split(" ").filter(Boolean);
   if (!tokens.length) return surname;
 
-  const firstName = toTitleCaseNamePart(tokens[0]);
-  const middleToken = tokens.length > 1 ? tokens[1] : "";
-  const middleInitial = middleToken
-    ? `${String(middleToken).charAt(0).toUpperCase()}.`
+  const lastToken = String(tokens[tokens.length - 1] || "").trim();
+  const hasTrailingInitial = /^[A-Za-z]\.?$/.test(lastToken);
+  const givenNameTokens = hasTrailingInitial ? tokens.slice(0, -1) : tokens;
+  const givenNames = toTitleCaseNamePart(givenNameTokens.join(" "));
+  const middleInitial = hasTrailingInitial
+    ? `${lastToken.charAt(0).toUpperCase()}.`
     : "";
 
-  return [firstName, middleInitial, surname].filter(Boolean).join(" ");
+  return [givenNames, middleInitial, surname].filter(Boolean).join(" ");
 }
 
 function parsePdfAdvisor(lines) {

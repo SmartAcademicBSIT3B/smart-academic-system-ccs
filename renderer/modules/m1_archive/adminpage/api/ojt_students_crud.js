@@ -177,7 +177,7 @@
 
     tbody.innerHTML = `
       <tr data-placeholder="ojt-student-status">
-        <td colspan="12" style="text-align:center; padding: 42px 24px; color: var(--text-secondary);">
+        <td colspan="11" style="text-align:center; padding: 42px 24px; color: var(--text-secondary);">
           <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
             <strong style="color: var(--text-primary);">No OJT students found.</strong>
             <span>Use the + button to add your first OJT student.</span>
@@ -438,6 +438,12 @@
       status: asText(row?.dataset?.status),
       external_partner_assigned: asText(row?.dataset?.externalPartnerAssigned),
       nature_of_business: asText(row?.dataset?.natureOfBusiness),
+      linked_archive_count: Number.parseInt(
+        asText(row?.dataset?.linkedArchiveCount),
+        10,
+      ),
+      linked_archive_title: asText(row?.dataset?.linkedArchiveTitle),
+      linked_archive_id: asText(row?.dataset?.linkedArchiveId),
     };
   }
 
@@ -454,6 +460,22 @@
       student.external_partner_assigned,
     );
     row.dataset.natureOfBusiness = asText(student.nature_of_business);
+    row.dataset.linkedArchiveCount = String(
+      Number.parseInt(student.linked_archive_count, 10) || 0,
+    );
+    row.dataset.linkedArchiveTitle = asText(student.linked_archive_title);
+    row.dataset.linkedArchiveId = asText(student.linked_archive_id);
+  }
+
+  function renderLinkedArchiveCell(student) {
+    const linkCount = Number.parseInt(student.linked_archive_count, 10) || 0;
+    const linkedTitle = asText(student.linked_archive_title);
+
+    if (linkCount <= 0 || !linkedTitle) {
+      return '<span class="ojt-linked-doc-empty" aria-label="No linked archive">-</span>';
+    }
+
+    return `<button class="ojt-linked-doc-btn" type="button" title="Open linked archive: ${esc(linkedTitle)}" aria-label="Open linked archive for ${esc(student.name)}" data-linked-title="${esc(linkedTitle)}"><i data-lucide="file-text"></i><span class="ojt-linked-doc-count">${linkCount}</span></button>`;
   }
 
   function normalizeOjtStatus(value) {
@@ -509,6 +531,7 @@
       <td><input type="checkbox" class="archive-checkbox row-check" /></td>
       <td>${esc(student.student_id)}</td>
       <td>${esc(student.name)}</td>
+      <td class="col-linked">${renderLinkedArchiveCell(student)}</td>
       <td>${esc(student.section)}</td>
       <td>${esc(student.email)}</td>
       <td>${esc(student.contact_no)}</td>
@@ -517,6 +540,86 @@
       <td class="col-status">${renderOjtStatusSelect(statusValue)}</td>
       <td class="action-cell"><button class="dots-btn" type="button"><i data-lucide="more-vertical"></i></button></td>
     `;
+  }
+
+  function applyArchiveSearchToManageArchivesFrame(frame, title) {
+    const frameDoc = frame?.contentDocument;
+    const searchInput = frameDoc?.getElementById("archive-search");
+    if (!searchInput) return false;
+
+    searchInput.value = title;
+    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+    if (frameDoc.defaultView?.archiveSearchFilter?.refresh) {
+      frameDoc.defaultView.archiveSearchFilter.refresh();
+    }
+
+    return true;
+  }
+
+  function openLinkedArchiveForRow(row) {
+    const ui = window.OjtStudentsUI;
+    const student = studentFromRow(row);
+    const linkedTitle = asText(student.linked_archive_title);
+
+    if (!linkedTitle) {
+      ui?.showToast("No linked archive found for this student.", "info");
+      return;
+    }
+
+    try {
+      if (window.parent && window.parent !== window) {
+        const parentWindow = window.parent;
+        const frame = parentWindow.document?.getElementById("content-frame");
+
+        if (frame && typeof parentWindow.loadPageByKey === "function") {
+          const menuItems = Array.from(
+            parentWindow.document.querySelectorAll("li"),
+          );
+          const manageArchivesMenu = menuItems.find((item) =>
+            String(item.getAttribute("onclick") || "").includes(
+              "manage_archives",
+            ),
+          );
+
+          const applySearchAfterLoad = () => {
+            window.setTimeout(() => {
+              applyArchiveSearchToManageArchivesFrame(frame, linkedTitle);
+            }, 90);
+          };
+
+          frame.addEventListener("load", applySearchAfterLoad, { once: true });
+
+          parentWindow.sessionStorage?.setItem(
+            "sas.manageArchives.pendingSearch",
+            JSON.stringify({
+              title: linkedTitle,
+              source: "ojt-students",
+              ts: Date.now(),
+            }),
+          );
+
+          parentWindow.loadPageByKey("manage_archives", manageArchivesMenu);
+          ui?.showToast("Opening linked archive...", "success", 1800);
+          return;
+        }
+      }
+    } catch (_error) {
+      // Fall through to same-frame fallback.
+    }
+
+    try {
+      sessionStorage.setItem(
+        "sas.manageArchives.pendingSearch",
+        JSON.stringify({
+          title: linkedTitle,
+          source: "ojt-students",
+          ts: Date.now(),
+        }),
+      );
+    } catch (_error) {}
+
+    window.location.href = "manage_archives.html";
   }
 
   function getUpdatePayloadFromRow(row, nextStatus) {
@@ -1491,6 +1594,17 @@
       });
 
     document.addEventListener("click", (event) => {
+      const linkedDocBtn = event.target.closest(".ojt-linked-doc-btn");
+      if (linkedDocBtn) {
+        const row = linkedDocBtn.closest("tr");
+        if (row) {
+          event.preventDefault();
+          event.stopPropagation();
+          openLinkedArchiveForRow(row);
+        }
+        return;
+      }
+
       const dots = event.target.closest(".dots-btn");
       const row = event.target.closest("#ojt-students-table-body tr");
 
@@ -1539,6 +1653,7 @@
       if (!row || row.dataset.placeholder) return;
       if (
         event.target.closest(".dots-btn") ||
+        event.target.closest(".ojt-linked-doc-btn") ||
         event.target.closest(".row-check") ||
         event.target.closest(".ojt-row-status-select")
       )

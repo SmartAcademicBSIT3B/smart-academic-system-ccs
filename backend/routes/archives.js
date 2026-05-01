@@ -7,6 +7,11 @@ const {
   normalizeArchiveStatus,
   toSqlDateTime,
 } = require("../helpers/normalize");
+const {
+  ensureArchiveOjtLinksTable,
+  syncArchiveLinksByArchiveId,
+  removeArchiveLinksByArchiveId,
+} = require("../helpers/archive-ojt-link");
 const gdriveService = require("../services/gdrive");
 
 const router = express.Router();
@@ -34,6 +39,7 @@ function sanitizeDriveFolderSegment(value) {
 // ── GET /api/archives ─────────────────────────────────────────────────────────
 router.get("/", requireAuth, async (req, res) => {
   try {
+    await ensureArchiveOjtLinksTable();
     const department = getDept(req);
     const rows = await query(
       `SELECT id, title, authors, section, advisor, date_published, keywords,
@@ -46,18 +52,17 @@ router.get("/", requireAuth, async (req, res) => {
     return res.json({ success: true, archives: rows });
   } catch (error) {
     console.error("getArchives error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to fetch archives.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch archives.",
+    });
   }
 });
 
 // ── POST /api/archives ────────────────────────────────────────────────────────
 router.post("/", requireAuth, upload.single("file"), async (req, res) => {
   try {
+    await ensureArchiveOjtLinksTable();
     const department = getDept(req);
     const driveFolderPath = `CTA Files/Documents/${sanitizeDriveFolderSegment(department)}`;
 
@@ -74,12 +79,10 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
     ).trim();
 
     if (!title || !authors || !keywords) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Title, Authors, and Keywords are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Title, Authors, and Keywords are required.",
+      });
     }
     if (!type) {
       return res
@@ -87,12 +90,10 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
         .json({ success: false, message: "Type must be thesis or capstone." });
     }
     if (!status) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Status must be pending, approved, or rejected.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Status must be pending, approved, or rejected.",
+      });
     }
 
     if (!req.file) {
@@ -156,6 +157,8 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
       [result.insertId],
     );
 
+    await syncArchiveLinksByArchiveId(result.insertId);
+
     return res.status(201).json({
       success: true,
       archive: rows[0],
@@ -166,18 +169,17 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
     });
   } catch (error) {
     console.error("createArchive error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to save archive.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to save archive.",
+    });
   }
 });
 
 // ── PATCH /api/archives/:id ───────────────────────────────────────────────────
 router.patch("/:id", requireAuth, async (req, res) => {
   try {
+    await ensureArchiveOjtLinksTable();
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id) || id <= 0) {
       return res
@@ -195,12 +197,10 @@ router.patch("/:id", requireAuth, async (req, res) => {
     const status = normalizeArchiveStatus(req.body.status || "Pending");
 
     if (!title || !authors || !keywords) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Title, Authors, and Keywords are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Title, Authors, and Keywords are required.",
+      });
     }
     if (!type) {
       return res.status(400).json({ success: false, message: "Invalid type." });
@@ -246,6 +246,8 @@ router.patch("/:id", requireAuth, async (req, res) => {
       [id],
     );
 
+    await syncArchiveLinksByArchiveId(id);
+
     return res.json({
       success: true,
       archive: rows[0],
@@ -253,18 +255,17 @@ router.patch("/:id", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("updateArchive error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to update archive.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update archive.",
+    });
   }
 });
 
 // ── DELETE /api/archives/:id ──────────────────────────────────────────────────
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
+    await ensureArchiveOjtLinksTable();
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id) || id <= 0) {
       return res
@@ -277,12 +278,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
       [id],
     );
     if (!rows || rows.length === 0) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Archive not found or already deleted.",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Archive not found or already deleted.",
+      });
     }
 
     const archive = rows[0];
@@ -305,6 +304,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
       }
     }
 
+    await removeArchiveLinksByArchiveId(id);
     await query("DELETE FROM archives WHERE id = ?", [id]);
     return res.json({
       success: true,
@@ -312,12 +312,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("deleteArchive error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to delete archive.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete archive.",
+    });
   }
 });
 

@@ -6,6 +6,12 @@ const {
   createOrUpdateStudentUser,
   sendStudentWelcomeEmail,
 } = require("../services/student-user");
+const {
+  ensureArchiveOjtLinksTable,
+  syncArchiveLinksByStudentId,
+  removeArchiveLinksByStudentId,
+  hydrateStudentLinkMetadata,
+} = require("../helpers/archive-ojt-link");
 
 const router = express.Router();
 
@@ -21,6 +27,7 @@ function getDept(req) {
 // ── GET /api/ojt-students ─────────────────────────────────────────────────────
 router.get("/", requireAuth, async (req, res) => {
   try {
+    await ensureArchiveOjtLinksTable();
     const department = getDept(req);
     const rows = await query(
       `SELECT id, student_id, name, section, department, email, contact_no,
@@ -31,7 +38,8 @@ router.get("/", requireAuth, async (req, res) => {
        ORDER BY id DESC`,
       [department],
     );
-    return res.json({ success: true, students: rows });
+    const students = await hydrateStudentLinkMetadata(rows);
+    return res.json({ success: true, students });
   } catch (error) {
     console.error("getOjtStudents error:", error);
     return res.status(500).json({
@@ -45,6 +53,7 @@ router.get("/", requireAuth, async (req, res) => {
 router.post("/", requireAuth, async (req, res) => {
   let connection;
   try {
+    await ensureArchiveOjtLinksTable();
     const department = getDept(req);
     const emailDispatchMode = String(req.body?.email_dispatch_mode || "")
       .trim()
@@ -141,7 +150,9 @@ router.post("/", requireAuth, async (req, res) => {
       [insertResult.insertId],
     );
 
-    const createdStudent = rows[0];
+    await syncArchiveLinksByStudentId(insertResult.insertId);
+    const hydratedRows = await hydrateStudentLinkMetadata(rows);
+    const createdStudent = hydratedRows[0];
 
     return res.status(201).json({
       success: true,
@@ -177,6 +188,7 @@ router.post("/", requireAuth, async (req, res) => {
 // ── PATCH /api/ojt-students/:id ───────────────────────────────────────────────
 router.patch("/:id", requireAuth, async (req, res) => {
   try {
+    await ensureArchiveOjtLinksTable();
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({
@@ -235,9 +247,12 @@ router.patch("/:id", requireAuth, async (req, res) => {
       [id, department],
     );
 
+    await syncArchiveLinksByStudentId(id);
+    const hydratedRows = await hydrateStudentLinkMetadata(rows);
+
     return res.json({
       success: true,
-      student: rows[0],
+      student: hydratedRows[0],
       message: "OJT student updated successfully.",
     });
   } catch (error) {
@@ -252,6 +267,7 @@ router.patch("/:id", requireAuth, async (req, res) => {
 // ── DELETE /api/ojt-students/:id ──────────────────────────────────────────────
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
+    await ensureArchiveOjtLinksTable();
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({
@@ -272,6 +288,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
       });
     }
 
+    await removeArchiveLinksByStudentId(id);
     await query("DELETE FROM ojt_students WHERE id = ? AND department = ?", [
       id,
       department,
