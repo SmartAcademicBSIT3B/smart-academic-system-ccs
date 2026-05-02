@@ -121,6 +121,35 @@
     </div>
 
     <div
+      id="close-confirm-modal"
+      class="close-confirm-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="close-confirm-title"
+    >
+      <div class="close-confirm-content">
+        <h3 id="close-confirm-title">Close Application?</h3>
+        <p>Are you sure you want to close Smart Academic System?</p>
+        <div class="close-confirm-actions">
+          <button
+            id="close-confirm-cancel-btn"
+            class="close-confirm-cancel-btn"
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            id="close-confirm-submit-btn"
+            class="close-confirm-submit-btn"
+            type="button"
+          >
+            Close App
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
       id="settings-modal"
       class="settings-modal"
       role="dialog"
@@ -252,6 +281,15 @@
         const loginBtn = document.getElementById("landing-login-btn");
         const offlineModal = document.getElementById("offline-modal");
         const offlineRetryBtn = document.getElementById("offline-retry-btn");
+        const closeConfirmModal = document.getElementById(
+          "close-confirm-modal",
+        );
+        const closeConfirmCancelBtn = document.getElementById(
+          "close-confirm-cancel-btn",
+        );
+        const closeConfirmSubmitBtn = document.getElementById(
+          "close-confirm-submit-btn",
+        );
         const closeBtn = document.getElementById("landing-close-btn");
         const settingsBtn = document.getElementById("landing-settings-btn");
         const settingsModal = document.getElementById("settings-modal");
@@ -476,6 +514,22 @@
           showSettingsFeedback("", "");
         }
 
+        function openCloseConfirmModal() {
+          closeConfirmModal.classList.add("is-open");
+        }
+
+        function closeCloseConfirmModal() {
+          closeConfirmModal.classList.remove("is-open");
+        }
+
+        function requestAppClose() {
+          if (electronAPI && typeof electronAPI.closeApp === "function") {
+            electronAPI.closeApp();
+            return;
+          }
+          window.close();
+        }
+
         function closeSettingsModal() {
           settingsModal.classList.remove("is-open");
         }
@@ -616,6 +670,21 @@
           }
         });
 
+        closeConfirmCancelBtn.addEventListener("click", function () {
+          closeCloseConfirmModal();
+        });
+
+        closeConfirmSubmitBtn.addEventListener("click", function () {
+          closeCloseConfirmModal();
+          requestAppClose();
+        });
+
+        closeConfirmModal.addEventListener("click", function (event) {
+          if (event.target === closeConfirmModal) {
+            closeCloseConfirmModal();
+          }
+        });
+
         browsePathBtn.addEventListener("click", async function () {
           if (
             !electronAPI ||
@@ -726,7 +795,14 @@
         settingsSaveBtn.addEventListener("click", saveSettings);
 
         closeBtn.addEventListener("click", function () {
-          window.close();
+          openCloseConfirmModal();
+        });
+
+        document.addEventListener("keydown", function (event) {
+          if (event.key !== "Escape") return;
+          if (closeConfirmModal.classList.contains("is-open")) {
+            closeCloseConfirmModal();
+          }
         });
 
         loginBtn.addEventListener("click", function () {

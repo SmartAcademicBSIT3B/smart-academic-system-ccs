@@ -901,12 +901,11 @@ input:invalid + .error-msg {
 }
 
 /* ── Add/Edit form loading overlay ──────────────────────────── */
-/* The overlay is a child of .modal-content but uses position:fixed
-   so it escapes the scrollable container and always covers the full
-   visible modal-content box regardless of scroll position. */
+/* Centered overlay for add/edit form modal content. */
 .um-form-loading {
   display: none;
-  position: fixed;
+  position: absolute;
+  inset: 0;
   z-index: 1100;
   border-radius: 10px;
   background: rgba(11, 13, 16, 0.82);
@@ -916,7 +915,6 @@ input:invalid + .error-msg {
   align-items: center;
   justify-content: center;
   gap: 14px;
-  /* Coordinates are set inline by JS to match the modal-content bounding box */
 }
 
 .um-form-spinner {
@@ -943,4 +941,8 @@ input:invalid + .error-msg {
 /* Ensure the modal-content is a non-static parent (kept for JS getBoundingClientRect reference) */
 #user-modal .modal-content {
   position: relative;
+}
+
+#user-modal .modal-content.is-busy {
+  overflow: hidden;
 }

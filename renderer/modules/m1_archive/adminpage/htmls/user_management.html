@@ -1742,28 +1742,34 @@
           }
 
           const loadingOverlay = document.getElementById("user-modal-loading");
+          const userModalContent = document.querySelector(
+            "#user-modal .modal-content",
+          );
           const saveBtn = document.getElementById("user-save-btn");
           const cancelBtn = document.getElementById("user-cancel-btn");
 
           function setFormBusy(busy) {
             if (loadingOverlay) {
               if (busy) {
-                // Pin the fixed overlay exactly over the visible modal-content box
-                const modalContent = document.querySelector(
-                  "#user-modal .modal-content",
-                );
-                if (modalContent) {
-                  const r = modalContent.getBoundingClientRect();
-                  loadingOverlay.style.top = `${r.top}px`;
-                  loadingOverlay.style.left = `${r.left}px`;
-                  loadingOverlay.style.width = `${r.width}px`;
-                  loadingOverlay.style.height = `${r.height}px`;
+                if (userModalContent) {
+                  const scrollTop = userModalContent.scrollTop || 0;
+                  loadingOverlay.style.top = `${scrollTop}px`;
+                  loadingOverlay.style.left = "0";
+                  loadingOverlay.style.width = "100%";
+                  loadingOverlay.style.height = `${userModalContent.clientHeight}px`;
                 }
                 loadingOverlay.style.display = "flex";
               } else {
                 loadingOverlay.style.display = "none";
+                loadingOverlay.style.top = "";
+                loadingOverlay.style.left = "";
+                loadingOverlay.style.width = "";
+                loadingOverlay.style.height = "";
               }
               loadingOverlay.setAttribute("aria-hidden", String(!busy));
+            }
+            if (userModalContent) {
+              userModalContent.classList.toggle("is-busy", Boolean(busy));
             }
             if (saveBtn) saveBtn.disabled = busy;
             if (cancelBtn) cancelBtn.disabled = busy;

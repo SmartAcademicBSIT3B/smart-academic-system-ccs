@@ -569,6 +569,8 @@
         let editingSectionName = null;
         let editingSectionId = null;
         let pendingSectionDelete = null;
+        const professorActivityByName = new Map();
+        const professorActivityByEmail = new Map();
 
         async function loadSectionButtons() {
           const container = document.getElementById("sa-section-buttons");
@@ -1022,6 +1024,72 @@
           return String(value || "").trim();
         }
 
+        function normalizeLookupKey(value) {
+          return asText(value).toLowerCase();
+        }
+
+        function upsertProfessorActivity(name, email, isActive) {
+          const active = Boolean(isActive);
+          const nameKey = normalizeLookupKey(name);
+          const emailKey = normalizeLookupKey(email);
+
+          if (nameKey) {
+            const existing = professorActivityByName.get(nameKey);
+            professorActivityByName.set(
+              nameKey,
+              existing === true ? true : active,
+            );
+          }
+
+          if (emailKey) {
+            professorActivityByEmail.set(emailKey, active);
+          }
+        }
+
+        function resolveProfessorInactive(
+          entry,
+          professorName,
+          professorEmail,
+        ) {
+          const explicitStatus = asText(
+            entry?.professor_status ||
+              entry?.status ||
+              entry?.user_status ||
+              entry?.account_status,
+          ).toLowerCase();
+
+          if (explicitStatus) {
+            return explicitStatus !== "active";
+          }
+
+          const explicitFlag = entry?.professorInactive;
+          if (explicitFlag === true || explicitFlag === "true") {
+            return true;
+          }
+
+          const emailKey = normalizeLookupKey(professorEmail);
+          if (emailKey && professorActivityByEmail.has(emailKey)) {
+            return !professorActivityByEmail.get(emailKey);
+          }
+
+          const nameKey = normalizeLookupKey(professorName);
+          if (nameKey && professorActivityByName.has(nameKey)) {
+            return !professorActivityByName.get(nameKey);
+          }
+
+          return false;
+        }
+
+        function isActiveUserRow(row) {
+          const status = asText(
+            row?.status || row?.user_status || row?.account_status,
+          ).toLowerCase();
+
+          // If status is missing, preserve legacy behavior and allow the record.
+          if (!status) return true;
+          return status === "active";
+        }
+
         function esc(value) {
           return String(value || "")
             .replace(/&/g, "&amp;")
@@ -1155,12 +1223,22 @@
         }
 
         function rowFromData(entry) {
+          const professorName = asText(
+            entry.professorName || entry.professor_name,
+          );
+          const professorEmail = asText(
+            entry.professorEmail || entry.professor_email || entry.email,
+          );
+
           return {
             id: Number.parseInt(entry.id, 10) || nextNumericId(),
             sectionName: asText(entry.sectionName || entry.section_name),
-            professorName: asText(entry.professorName || entry.professor_name),
-            professorEmail: asText(
-              entry.professorEmail || entry.professor_email || entry.email,
+            professorName,
+            professorEmail,
+            professorInactive: resolveProfessorInactive(
+              entry,
+              professorName,
+              professorEmail,
             ),
             createdAt: asText(entry.createdAt || entry.created_at),
             updatedAt: asText(entry.updatedAt || entry.updated_at),
@@ -1172,12 +1250,46 @@
           row.dataset.sectionName = asText(data.sectionName);
           row.dataset.professorName = asText(data.professorName);
           row.dataset.professorEmail = asText(data.professorEmail);
+          row.dataset.professorInactive = data.professorInactive
+            ? "true"
+            : "false";
           row.dataset.createdAt = asText(data.createdAt);
           row.dataset.updatedAt = asText(data.updatedAt);
         }
 
+        function buildProfessorCellMarkup(data) {
+          const name = esc(data.professorName);
+          if (!data.professorInactive) {
+            return name;
+          }
+
+          return `${name} <span style="display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;line-height:1.4;background:#3d1f1f;color:#ffb4b4;border:1px solid #7a2f2f;vertical-align:middle;">Inactive</span>`;
+        }
+
         function buildRowMarkup(data) {
-          return `<td><input type="checkbox" class="archive-checkbox row-check" /></td><td>${esc(data.sectionName)}</td><td>${esc(data.professorName)}</td><td>${esc(data.professorEmail)}</td><td class="action-cell"><button class="dots-btn" type="button"><i data-lucide="more-vertical"></i></button></td>`;
+          return `<td><input type="checkbox" class="archive-checkbox row-check" /></td><td>${esc(data.sectionName)}</td><td>${buildProfessorCellMarkup(data)}</td><td>${esc(data.professorEmail)}</td><td class="action-cell"><button class="dots-btn" type="button"><i data-lucide="more-vertical"></i></button></td>`;
+        }
+
+        function refreshProfessorInactiveIndicators() {
+          getDataRows().forEach((row) => {
+            const resolved = rowFromData({
+              id: row.dataset.id,
+              sectionName: row.dataset.sectionName,
+              professorName: row.dataset.professorName,
+              professorEmail: row.dataset.professorEmail,
+              createdAt: row.dataset.createdAt,
+              updatedAt: row.dataset.updatedAt,
+              professorInactive: row.dataset.professorInactive,
+            });
+
+            row.dataset.professorInactive = resolved.professorInactive
+              ? "true"
+              : "false";
+
+            if (row.cells && row.cells[2]) {
+              row.cells[2].innerHTML = buildProfessorCellMarkup(resolved);
+            }
+          });
         }
 
         function flashInsertedRow(row) {
@@ -1629,12 +1741,9 @@
         function syncModalOptionsFromRows() {
           const rows = getDataRows();
           const sections = new Set();
-          const professors = new Set();
 
           rows.forEach((row) => {
             if (row.dataset.sectionName) sections.add(row.dataset.sectionName);
-            if (row.dataset.professorName)
-              professors.add(row.dataset.professorName);
           });
 
           const existingSections = getModalOptionValues("sa-section");
@@ -1644,21 +1753,23 @@
             ...existingSections,
             ...Array.from(sections),
           ]);
-          setModalOptions("sa-professor", [
-            ...existingProfessors,
-            ...Array.from(professors),
-          ]);
+
+          // Keep current professor options as-is. They should come from active users.
+          setModalOptions("sa-professor", existingProfessors);
         }
 
         async function loadMetaOptions() {
           const api = getElectronAPI();
           if (!api) {
             syncModalOptionsFromRows();
+            refreshProfessorInactiveIndicators();
             return;
           }
 
           const sectionOptions = [];
           const professorOptions = [];
+          professorActivityByName.clear();
+          professorActivityByEmail.clear();
 
           try {
             if (typeof api.getSections === "function") {
@@ -1682,8 +1793,14 @@
                 : [];
 
               rows.forEach((row) => {
+                const isActive = isActiveUserRow(row);
                 const name = asText(row.name || row.professor_name);
-                if (name) professorOptions.push(name);
+                const email = asText(
+                  row.email || row.professor_email || row.user_email,
+                );
+
+                upsertProfessorActivity(name, email, isActive);
+                if (isActive && name) professorOptions.push(name);
               });
             } else if (typeof api.getProfessors === "function") {
               const professorsResult = await api.getProfessors();
@@ -1692,8 +1809,14 @@
                 : [];
 
               rows.forEach((row) => {
+                const isActive = isActiveUserRow(row);
                 const name = asText(row.name || row.professor_name);
-                if (name) professorOptions.push(name);
+                const email = asText(
+                  row.email || row.professor_email || row.user_email,
+                );
+
+                upsertProfessorActivity(name, email, isActive);
+                if (isActive && name) professorOptions.push(name);
               });
             }
           } catch (_error) {}
@@ -1705,10 +1828,8 @@
             ...existingSections,
             ...sectionOptions,
           ]);
-          setModalOptions("sa-professor", [
-            ...existingProfessors,
-            ...professorOptions,
-          ]);
+          setModalOptions("sa-professor", professorOptions);
+          refreshProfessorInactiveIndicators();
         }
 
         function resetForm() {
