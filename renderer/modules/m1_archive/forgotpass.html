@@ -172,11 +172,41 @@
       </div>
     </div>
 
+    <div
+      id="processLoadingOverlay"
+      class="process-loading-overlay"
+      aria-hidden="true"
+    >
+      <div class="process-loading-card" role="status" aria-live="polite">
+        <div class="process-loading-spinner" aria-hidden="true"></div>
+        <p id="processLoadingMessage">Processing request...</p>
+      </div>
+    </div>
+
     <script>
       let currentEmail = "";
+      let isProcessingRequest = false;
       const APP_SETTINGS_KEY = "sas.app.settings";
       const DEFAULT_DEPARTMENT_NAME = "College of Computer Studies";
       const DEFAULT_DEPARTMENT_LOGO = "images/CCSLOGO.png";
+
+      function setLoadingState(isLoading, message = "Processing request...") {
+        const overlay = document.getElementById("processLoadingOverlay");
+        const messageEl = document.getElementById("processLoadingMessage");
+        if (!overlay || !messageEl) return;
+
+        isProcessingRequest = Boolean(isLoading);
+        messageEl.textContent = message;
+
+        if (isLoading) {
+          overlay.classList.add("is-visible");
+          overlay.setAttribute("aria-hidden", "false");
+          return;
+        }
+
+        overlay.classList.remove("is-visible");
+        overlay.setAttribute("aria-hidden", "true");
+      }
 
       function applyDepartmentBranding(settings) {
         const department = settings?.department || {};
@@ -306,6 +336,7 @@
         .getElementById("emailForm")
         .addEventListener("submit", async function (e) {
           e.preventDefault();
+          if (isProcessingRequest) return;
 
           document.getElementById("errorMessage").textContent = "";
           document.getElementById("successMessage").textContent = "";
@@ -319,6 +350,7 @@
             return;
           }
 
+          setLoadingState(true, "Sending OTP to your email...");
           try {
             const result = await sendOTP(email);
 
@@ -336,12 +368,16 @@
           } catch (error) {
             document.getElementById("errorMessage").textContent =
               "An error occurred. Please try again.";
+          } finally {
+            setLoadingState(false);
           }
         });
 
       document
         .getElementById("verifyOtpBtn")
         .addEventListener("click", async function () {
+          if (isProcessingRequest) return;
+
           document.getElementById("otpErrorMessage").textContent = "";
           document.getElementById("otpSuccessMessage").textContent = "";
 
@@ -353,6 +389,7 @@
             return;
           }
 
+          setLoadingState(true, "Verifying OTP...");
           try {
             const result = await verifyOTP(currentEmail, otp);
 
@@ -369,15 +406,20 @@
           } catch (error) {
             document.getElementById("otpErrorMessage").textContent =
               "An error occurred. Please try again.";
+          } finally {
+            setLoadingState(false);
           }
         });
 
       document
         .getElementById("resendOtpBtn")
         .addEventListener("click", async function () {
+          if (isProcessingRequest) return;
+
           document.getElementById("otpErrorMessage").textContent = "";
           document.getElementById("otpSuccessMessage").textContent = "";
 
+          setLoadingState(true, "Resending OTP...");
           try {
             const result = await sendOTP(currentEmail);
 
@@ -392,6 +434,8 @@
           } catch (error) {
             document.getElementById("otpErrorMessage").textContent =
               "An error occurred. Please try again.";
+          } finally {
+            setLoadingState(false);
           }
         });
 
@@ -399,6 +443,7 @@
         .getElementById("passwordResetForm")
         .addEventListener("submit", async function (e) {
           e.preventDefault();
+          if (isProcessingRequest) return;
 
           document.getElementById("passwordErrorMessage").textContent = "";
           document.getElementById("passwordSuccessMessage").textContent = "";
@@ -425,6 +470,7 @@
             return;
           }
 
+          setLoadingState(true, "Resetting your password...");
           try {
             const result = await resetPassword(currentEmail, newPassword);
 
@@ -442,6 +488,8 @@
           } catch (error) {
             document.getElementById("passwordErrorMessage").textContent =
               "An error occurred. Please try again.";
+          } finally {
+            setLoadingState(false);
           }
         });
 
@@ -487,10 +535,12 @@
       }
 
       function closeModal() {
+        if (isProcessingRequest) return;
         document.getElementById("passwordModal").style.display = "none";
       }
 
       window.onclick = function (event) {
+        if (isProcessingRequest) return;
         const modal = document.getElementById("passwordModal");
         if (event.target === modal) {
           modal.style.display = "none";
@@ -498,6 +548,7 @@
       };
 
       function goBack() {
+        if (isProcessingRequest) return;
         window.location.href = "login.html";
       }
     </script>

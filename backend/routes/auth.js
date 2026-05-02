@@ -23,9 +23,81 @@ const transporter = nodemailer.createTransport({
 
 // ── In-memory OTP store ───────────────────────────────────────────────────────
 const otpStore = new Map(); // key: email|purpose  value: { otp, expiresAt, used }
+const loginFailures = new Map(); // key: normalized email value: { count, firstFailedAt, lockedUntil }
+const LOGIN_MAX_FAILURES = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
 
 function otpKey(email, purpose) {
   return `${String(email).toLowerCase()}|${purpose}`;
+}
+
+function loginKey(email) {
+  return String(email || "")
+    .trim()
+    .toLowerCase();
+}
+
+function clearLoginFailures(email) {
+  loginFailures.delete(loginKey(email));
+}
+
+function isLoginBlocked(email) {
+  const key = loginKey(email);
+  const entry = loginFailures.get(key);
+  if (!entry) return false;
+
+  const now = Date.now();
+  if (entry.lockedUntil && entry.lockedUntil > now) {
+    return true;
+  }
+
+  if (entry.lockedUntil && entry.lockedUntil <= now) {
+    loginFailures.delete(key);
+    return false;
+  }
+
+  if (entry.firstFailedAt && now - entry.firstFailedAt > LOGIN_WINDOW_MS) {
+    loginFailures.delete(key);
+  }
+
+  return false;
+}
+
+function getRetryAfterSeconds(email) {
+  const entry = loginFailures.get(loginKey(email));
+  if (!entry || !entry.lockedUntil) return 0;
+
+  const remainingMs = entry.lockedUntil - Date.now();
+  if (remainingMs <= 0) return 0;
+
+  return Math.ceil(remainingMs / 1000);
+}
+
+function recordFailedLogin(email) {
+  const key = loginKey(email);
+  const now = Date.now();
+  const existing = loginFailures.get(key);
+
+  if (!existing || now - existing.firstFailedAt > LOGIN_WINDOW_MS) {
+    loginFailures.set(key, {
+      count: 1,
+      firstFailedAt: now,
+      lockedUntil: null,
+    });
+    return;
+  }
+
+  const nextCount = existing.count + 1;
+  const nextEntry = {
+    count: nextCount,
+    firstFailedAt: existing.firstFailedAt,
+    lockedUntil:
+      nextCount >= LOGIN_MAX_FAILURES
+        ? now + LOGIN_LOCK_MS
+        : existing.lockedUntil,
+  };
+  loginFailures.set(key, nextEntry);
 }
 
 function getJwtSecret() {
@@ -102,12 +174,22 @@ async function ensureSuperAdminUser() {
   }
 }
 
-function buildLoginPayload(user, selectedDepartmentCode, isSuperAdmin) {
+function buildLoginPayload(
+  user,
+  selectedDepartmentCode,
+  isSuperAdmin,
+  roleOverride = "",
+) {
+  const normalizedOverride = String(roleOverride || "")
+    .trim()
+    .toLowerCase();
+  const resolvedRole = normalizedOverride || user.role;
+
   return {
     id: user.id,
     user_id: user.user_id,
     email: user.email,
-    role: user.role,
+    role: resolvedRole,
     department_code: isSuperAdmin
       ? normalizeDepartmentCode(selectedDepartmentCode)
       : normalizeDepartmentCode(user.department),
@@ -139,6 +221,9 @@ router.post("/login", async (req, res) => {
       req.body.secretLogin === true ||
       req.body.secretLogin === "true" ||
       hasSecretDepartmentPrefix;
+    const preferredRole = String(req.body.preferredRole || "")
+      .trim()
+      .toLowerCase();
 
     if (!email || !password) {
       return res
@@ -146,10 +231,20 @@ router.post("/login", async (req, res) => {
         .json({ success: false, message: "Email and password are required." });
     }
 
+    if (isLoginBlocked(email)) {
+      const retryAfter = getRetryAfterSeconds(email);
+      return res.status(429).json({
+        success: false,
+        message: `Too many login attempts. Try again in ${retryAfter} seconds.`,
+        retryAfter,
+      });
+    }
+
     const hashedPassword = hashPassword(password);
 
     if (email === SUPER_ADMIN_EMAIL) {
       if (!isSecretLogin) {
+        recordFailedLogin(email);
         return res.status(403).json({
           success: false,
           message: "to use this account, please contact the developers",
@@ -171,6 +266,7 @@ router.post("/login", async (req, res) => {
       ).find((row) => String(row.password || "") === hashedPassword);
 
       if (superAdminUser) {
+        clearLoginFailures(email);
         const payload = buildLoginPayload(
           superAdminUser,
           selectedDepartmentCode,
@@ -205,6 +301,11 @@ router.post("/login", async (req, res) => {
           },
         });
       }
+
+      recordFailedLogin(email);
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid email or password." });
     }
 
     const users = await query(
@@ -219,6 +320,7 @@ router.post("/login", async (req, res) => {
       );
 
       if (usersInOtherDept.length > 0) {
+        recordFailedLogin(email);
         return res.status(403).json({
           success: false,
           message:
@@ -228,20 +330,85 @@ router.post("/login", async (req, res) => {
     }
 
     if (users.length === 0) {
+      recordFailedLogin(email);
       return res
         .status(401)
         .json({ success: false, message: "Invalid email or password." });
     }
 
-    const user = users[0];
+    const matchedUsers = users.filter(
+      (user) => String(user.password || "") === hashedPassword,
+    );
 
-    if (hashedPassword !== user.password) {
+    if (matchedUsers.length === 0) {
+      recordFailedLogin(email);
       return res
         .status(401)
         .json({ success: false, message: "Invalid email or password." });
     }
 
-    const payload = buildLoginPayload(user, selectedDepartmentCode, false);
+    const matchedAdminUser = matchedUsers.find(
+      (item) =>
+        String(item.role || "")
+          .trim()
+          .toLowerCase() === "admin",
+    );
+
+    if (matchedAdminUser && !preferredRole) {
+      return res.json({
+        success: false,
+        requiresRoleSelection: true,
+        availableRoles: ["admin", "coordinator"],
+        message: "Select a role to continue.",
+      });
+    }
+
+    if (
+      preferredRole &&
+      preferredRole !== "admin" &&
+      preferredRole !== "coordinator"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role selection.",
+      });
+    }
+
+    let user = matchedUsers[0];
+    let effectiveRole = String(user.role || "")
+      .trim()
+      .toLowerCase();
+
+    if (matchedAdminUser && preferredRole) {
+      user = matchedAdminUser;
+      effectiveRole = preferredRole;
+    } else if (preferredRole) {
+      const roleMatchedUser = matchedUsers.find(
+        (item) =>
+          String(item.role || "")
+            .trim()
+            .toLowerCase() === preferredRole,
+      );
+      if (!roleMatchedUser) {
+        recordFailedLogin(email);
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid email or password." });
+      }
+      user = roleMatchedUser;
+      effectiveRole = String(user.role || "")
+        .trim()
+        .toLowerCase();
+    }
+
+    clearLoginFailures(email);
+
+    const payload = buildLoginPayload(
+      user,
+      selectedDepartmentCode,
+      false,
+      effectiveRole,
+    );
 
     const jwtSecret = getJwtSecret();
     if (!jwtSecret) {
@@ -265,7 +432,7 @@ router.post("/login", async (req, res) => {
         user_id: user.user_id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: effectiveRole,
         department_code: normalizeDepartmentCode(user.department),
         is_super_admin: false,
       },
@@ -372,11 +539,31 @@ router.post("/send-otp", async (req, res) => {
 
     otpStore.set(otpKey(email, purpose), { otp, expiresAt, used: false });
 
+    const expiryMinutes = 10;
+    const safeOtp = otp.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: email,
       subject: "Your OTP Code - Smart Academic System",
-      html: `<p>Your OTP code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+      text: `Your Smart Academic System OTP is ${otp}. This code expires in ${expiryMinutes} minutes. If you did not request this code, you can ignore this email.`,
+      html: `
+        <div style="margin:0;padding:24px;background:#f3f5f9;font-family:Arial,sans-serif;color:#1f2937;">
+          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #dbe2ea;overflow:hidden;">
+            <div style="padding:18px 24px;background:#111827;color:#f9fafb;">
+              <h2 style="margin:0;font-size:18px;letter-spacing:0.4px;">Smart Academic System</h2>
+            </div>
+            <div style="padding:24px;">
+              <p style="margin:0 0 12px;font-size:15px;line-height:1.6;">Use the one-time password below to continue your account recovery request.</p>
+              <div style="margin:16px 0 18px;padding:14px 16px;border-radius:12px;background:#eef4ff;border:1px solid #bfd5ff;text-align:center;">
+                <span style="display:block;font-size:12px;letter-spacing:1px;color:#4b5563;margin-bottom:6px;text-transform:uppercase;">Your OTP Code</span>
+                <span style="font-size:32px;letter-spacing:6px;font-weight:700;color:#111827;">${safeOtp}</span>
+              </div>
+              <p style="margin:0 0 10px;font-size:14px;color:#4b5563;">This code expires in <strong>${expiryMinutes} minutes</strong> and can be used only once.</p>
+              <p style="margin:0;font-size:13px;color:#6b7280;">If you did not request this code, you can safely ignore this email.</p>
+            </div>
+          </div>
+        </div>`,
     });
 
     return res.json({

@@ -844,12 +844,22 @@ app.whenReady().then(async () => {
 });
 ipcMain.handle(
   "login",
-  async (event, email, password, departmentCode, secretLogin) => {
+  async (
+    event,
+    email,
+    password,
+    departmentCode,
+    secretLogin,
+    preferredRole,
+  ) => {
     try {
       const requestedDepartmentCode = String(departmentCode || "")
         .trim()
         .toUpperCase();
       const isSecretLogin = secretLogin === true;
+      const normalizedPreferredRole = String(preferredRole || "")
+        .trim()
+        .toLowerCase();
       if (requestedDepartmentCode) {
         api.setDepartmentCode(requestedDepartmentCode);
       }
@@ -859,6 +869,7 @@ ipcMain.handle(
         password,
         departmentCode: requestedDepartmentCode,
         secretLogin: isSecretLogin,
+        preferredRole: normalizedPreferredRole || undefined,
       });
       if (result.success && result.token) {
         api.setToken(result.token);

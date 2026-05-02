@@ -2,8 +2,15 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
   closeApp: () => ipcRenderer.invoke("closeApp"),
-  login: (email, password, departmentCode, secretLogin) =>
-    ipcRenderer.invoke("login", email, password, departmentCode, secretLogin),
+  login: (email, password, departmentCode, secretLogin, preferredRole) =>
+    ipcRenderer.invoke(
+      "login",
+      email,
+      password,
+      departmentCode,
+      secretLogin,
+      preferredRole,
+    ),
   getProfile: (userId) => ipcRenderer.invoke("getProfile", userId),
   getSections: (departmentCode) =>
     ipcRenderer.invoke("getSections", departmentCode),

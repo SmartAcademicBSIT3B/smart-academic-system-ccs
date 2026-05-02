@@ -426,3 +426,58 @@ button[type="submit"]:hover,
   color: var(--primary-text);
   transform: translateY(-2px);
 }
+
+/* ===============================
+   REQUEST LOADING OVERLAY
+=================================*/
+.process-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 14, 0.7);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+
+.process-loading-overlay.is-visible {
+  display: flex;
+}
+
+.process-loading-card {
+  min-width: 260px;
+  max-width: 88vw;
+  background: #181c22;
+  border: 1px solid #3a3f46;
+  border-radius: 16px;
+  padding: 20px 22px;
+  color: #c9ccd1;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.process-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid rgba(157, 198, 255, 0.2);
+  border-top-color: #9dc6ff;
+  animation: processSpin 0.9s linear infinite;
+  flex: 0 0 auto;
+}
+
+#processLoadingMessage {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+@keyframes processSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

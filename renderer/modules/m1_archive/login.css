@@ -375,3 +375,34 @@ button[type="submit"]:hover {
   border-color: #9dc6ff;
   color: #9dc6ff;
 }
+
+.role-modal-card {
+  max-width: 500px;
+}
+
+.role-option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 4px 0 14px;
+}
+
+.role-option-btn {
+  border: 1px solid #3a3f46;
+  background: rgba(255, 255, 255, 0.04);
+  color: #c9ccd1;
+  border-radius: 12px;
+  min-height: 52px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-option-btn:hover,
+.role-option-btn:focus-visible {
+  border-color: #9dc6ff;
+  color: #9dc6ff;
+  box-shadow: 0 0 0 2px rgba(157, 198, 255, 0.2);
+  transform: translateY(-1px);
+}

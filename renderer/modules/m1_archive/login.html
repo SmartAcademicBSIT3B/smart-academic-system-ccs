@@ -145,6 +145,31 @@
       </div>
     </div>
 
+    <div id="roleSelectionModal" class="secret-modal" aria-hidden="true">
+      <div
+        class="secret-modal-card role-modal-card"
+        role="dialog"
+        aria-modal="true"
+      >
+        <button
+          id="roleSelectionCloseBtn"
+          class="secret-close-btn"
+          type="button"
+          aria-label="Close role selection"
+        >
+          x
+        </button>
+        <h3>Choose Login Role</h3>
+        <p class="secret-subtitle">
+          This account has multiple roles. Select which role to use for this
+          session.
+        </p>
+
+        <div id="roleSelectionButtons" class="role-option-grid"></div>
+        <div id="roleSelectionError" class="error"></div>
+      </div>
+    </div>
+
     <script>
       const REMEMBER_EMAIL_KEY = "rememberedEmail";
       const REMEMBER_ME_KEY = "rememberMeEnabled";
@@ -158,6 +183,7 @@
       let secretHoldTimer = null;
       let secretConfirmTimer = null;
       let secretHoldTriggered = false;
+      let pendingRoleLogin = null;
 
       function loadRememberedLogin() {
         const rememberMeEl = document.getElementById("rememberMe");
@@ -269,6 +295,7 @@
         rememberMe,
         errorElementId,
         isSecretLogin = false,
+        preferredRole = "",
       ) {
         const selectedDepartmentCode = getSelectedDepartmentCode();
         const departmentCodeForRequest = isSecretLogin
@@ -282,15 +309,31 @@
           String(password || ""),
           departmentCodeForRequest,
           Boolean(isSecretLogin),
+          String(preferredRole || "")
+            .trim()
+            .toLowerCase(),
         );
 
         if (!result || !result.success) {
+          if (result?.requiresRoleSelection) {
+            openRoleSelectionModal(result.availableRoles, {
+              email: String(email || "").trim(),
+              password: String(password || ""),
+              rememberMe: Boolean(rememberMe),
+              isSecretLogin: Boolean(isSecretLogin),
+            });
+            return false;
+          }
+
           if (errorEl) {
             errorEl.textContent =
               result?.message || "An error occurred during login.";
           }
-          return;
+          return false;
         }
+
+        closeRoleSelectionModal({ clearPending: true });
+        if (isSecretLogin) closeSecretModal();
 
         if (rememberMe) {
           localStorage.setItem(REMEMBER_ME_KEY, "true");
@@ -307,10 +350,90 @@
           result.user.role === "coordinator"
         ) {
           window.location.href = "adminpage/htmls/1main_menu.html";
-          return;
+          return true;
         }
 
         if (errorEl) errorEl.textContent = "Role not recognized.";
+        return false;
+      }
+
+      function normalizeRoleLabel(role) {
+        const normalized = String(role || "")
+          .trim()
+          .toLowerCase();
+        if (normalized === "admin") return "Administrator";
+        if (normalized === "coordinator") return "Coordinator";
+        return normalized || "Unknown";
+      }
+
+      function closeRoleSelectionModal({ clearPending = false } = {}) {
+        const modal = document.getElementById("roleSelectionModal");
+        const errorEl = document.getElementById("roleSelectionError");
+        if (!modal) return;
+
+        modal.classList.remove("is-open");
+        modal.setAttribute("aria-hidden", "true");
+        if (errorEl) errorEl.textContent = "";
+        if (clearPending) pendingRoleLogin = null;
+      }
+
+      function openRoleSelectionModal(roles, loginContext) {
+        const modal = document.getElementById("roleSelectionModal");
+        const buttonsContainer = document.getElementById(
+          "roleSelectionButtons",
+        );
+        const errorEl = document.getElementById("roleSelectionError");
+        if (!modal || !buttonsContainer) return;
+
+        const normalizedRoles = Array.isArray(roles)
+          ? roles
+              .map((role) =>
+                String(role || "")
+                  .trim()
+                  .toLowerCase(),
+              )
+              .filter((role) => role === "admin" || role === "coordinator")
+          : [];
+
+        pendingRoleLogin = {
+          email: String(loginContext?.email || ""),
+          password: String(loginContext?.password || ""),
+          rememberMe: Boolean(loginContext?.rememberMe),
+          isSecretLogin: Boolean(loginContext?.isSecretLogin),
+        };
+
+        buttonsContainer.innerHTML = "";
+        normalizedRoles.forEach((role) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "role-option-btn";
+          button.dataset.role = role;
+          button.textContent = normalizeRoleLabel(role);
+          button.addEventListener("click", async () => {
+            if (!pendingRoleLogin) return;
+            await attemptLogin(
+              pendingRoleLogin.email,
+              pendingRoleLogin.password,
+              pendingRoleLogin.rememberMe,
+              "roleSelectionError",
+              pendingRoleLogin.isSecretLogin,
+              role,
+            );
+          });
+          buttonsContainer.appendChild(button);
+        });
+
+        if (errorEl) {
+          errorEl.textContent =
+            normalizedRoles.length > 0 ? "" : "No eligible role found.";
+        }
+
+        modal.classList.add("is-open");
+        modal.setAttribute("aria-hidden", "false");
+
+        window.setTimeout(() => {
+          buttonsContainer.querySelector("button")?.focus();
+        }, 0);
       }
 
       function openSecretModal() {
@@ -445,13 +568,26 @@
         ?.addEventListener("click", closeSecretModal);
 
       document
+        .getElementById("roleSelectionCloseBtn")
+        ?.addEventListener("click", () => closeRoleSelectionModal());
+
+      document
         .getElementById("superAdminModal")
         ?.addEventListener("click", function (event) {
           if (event.target === this) closeSecretModal();
         });
 
+      document
+        .getElementById("roleSelectionModal")
+        ?.addEventListener("click", function (event) {
+          if (event.target === this) closeRoleSelectionModal();
+        });
+
       document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") closeSecretModal();
+        if (event.key === "Escape") {
+          closeSecretModal();
+          closeRoleSelectionModal();
+        }
       });
 
       loadRememberedLogin();
