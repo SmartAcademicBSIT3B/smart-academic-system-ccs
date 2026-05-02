@@ -725,12 +725,7 @@
 
         settingsSaveBtn.addEventListener("click", saveSettings);
 
-        closeBtn.addEventListener("click", async function () {
-          if (electronAPI && typeof electronAPI.closeApp === "function") {
-            await electronAPI.closeApp();
-            return;
-          }
-
+        closeBtn.addEventListener("click", function () {
           window.close();
         });
 
