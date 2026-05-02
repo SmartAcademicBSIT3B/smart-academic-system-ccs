@@ -623,6 +623,20 @@
     if (cb) cb.checked = selected;
   }
 
+  function initDragSelect() {
+    if (typeof window.initArchiveDragSelect !== "function") return;
+
+    window.initArchiveDragSelect({
+      tableBodyId: "external-partners-table-body",
+      dragBoxId: "drag-select-box",
+      onSelectionChange(row, selected) {
+        if (!row || row.dataset.placeholder) return;
+        setRowSelected(row, selected);
+        updateSelectionUI();
+      },
+    });
+  }
+
   function openDeleteConfirm(rows) {
     pendingDeleteRows = Array.isArray(rows) ? rows : [];
 
@@ -1183,6 +1197,8 @@
 
   function bindEvents() {
     const ui = window.ExternalPartnersUI;
+
+    initDragSelect();
 
     document
       .getElementById("external-partner-open-modal")

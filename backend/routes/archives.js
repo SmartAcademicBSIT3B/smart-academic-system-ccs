@@ -1,5 +1,7 @@
 const express = require("express");
 const multer = require("multer");
+const path = require("path");
+const crypto = require("crypto");
 const { query } = require("../db/connect");
 const { requireAuth } = require("../middleware/auth");
 const {
@@ -34,6 +36,23 @@ function sanitizeDriveFolderSegment(value) {
   const raw = String(value || "").trim();
   if (!raw) return "CCS";
   return raw.replace(/[\\/:*?"<>|]+/g, "-").trim() || "CCS";
+}
+
+function slugifyTitle(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  const slug = raw
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return slug || "archive";
+}
+
+function buildDriveFileName(title, originalName) {
+  const ext = String(path.extname(String(originalName || "")) || "").trim();
+  const safeExt = ext && /^\.[a-z0-9]+$/i.test(ext) ? ext : ".pdf";
+  const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+  const unique = crypto.randomBytes(3).toString("hex");
+  return `${slugifyTitle(title)}__${stamp}__${unique}${safeExt}`;
 }
 
 // ── GET /api/archives ─────────────────────────────────────────────────────────
@@ -102,7 +121,20 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
         .json({ success: false, message: "Please upload a PDF file." });
     }
 
-    const storedFileName = `archive_${Date.now()}_${req.file.originalname}`;
+    const duplicateRows = await query(
+      "SELECT id FROM archives WHERE department = ? AND title = ? LIMIT 1",
+      [department, title],
+    );
+    if (duplicateRows && duplicateRows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        code: "DUPLICATE_TITLE",
+        field: "title",
+        message: `An archive with the same title already exists in ${department}.`,
+      });
+    }
+
+    const storedFileName = buildDriveFileName(title, req.file.originalname);
     let filePath = "";
     let usedFallback = false;
 
@@ -212,13 +244,31 @@ router.patch("/:id", requireAuth, async (req, res) => {
     }
 
     const existing = await query(
-      "SELECT id FROM archives WHERE id = ? LIMIT 1",
+      "SELECT id, department, title FROM archives WHERE id = ? LIMIT 1",
       [id],
     );
     if (!existing || existing.length === 0) {
       return res
         .status(404)
         .json({ success: false, message: "Archive not found." });
+    }
+
+    const existingDepartment =
+      String(existing[0].department || getDept(req)).trim() || getDept(req);
+    const existingTitle = String(existing[0].title || "");
+    if (title !== existingTitle) {
+      const duplicateRows = await query(
+        "SELECT id FROM archives WHERE department = ? AND title = ? AND id <> ? LIMIT 1",
+        [existingDepartment, title, id],
+      );
+      if (duplicateRows && duplicateRows.length > 0) {
+        return res.status(409).json({
+          success: false,
+          code: "DUPLICATE_TITLE",
+          field: "title",
+          message: `An archive with the same title already exists in ${existingDepartment}.`,
+        });
+      }
     }
 
     await query(

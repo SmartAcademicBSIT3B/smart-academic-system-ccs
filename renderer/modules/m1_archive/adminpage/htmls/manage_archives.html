@@ -1467,6 +1467,13 @@
         lucide.createIcons();
       }
 
+      function showDuplicateTitleAlert(result, fallbackTitle) {
+        const message =
+          result?.message ||
+          `An archive with the title "${fallbackTitle || ""}" already exists in this department.`;
+        showArchiveAlert("Duplicate Title", message);
+      }
+
       function closeArchiveAlertModal() {
         closeModal(archiveAlertModal);
       }
@@ -2742,6 +2749,10 @@
               const result = await window.updateArchiveRecord(updatePayload);
 
               if (!result || !result.success) {
+                if (result?.code === "DUPLICATE_TITLE") {
+                  showDuplicateTitleAlert(result, title);
+                  return;
+                }
                 showArchiveAlert(
                   "Update Failed",
                   result?.message || "Failed to update archive.",
@@ -2813,6 +2824,10 @@
               }
 
               if (!result || !result.success) {
+                if (result?.code === "DUPLICATE_TITLE") {
+                  showDuplicateTitleAlert(result, title);
+                  return;
+                }
                 showArchiveAlert(
                   "Save Failed",
                   result?.message || "Failed to save archive.",

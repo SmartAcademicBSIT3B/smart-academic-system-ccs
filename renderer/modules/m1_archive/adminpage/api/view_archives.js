@@ -161,6 +161,28 @@
     });
   }
 
+  function normalizeArchiveStatus(value) {
+    const normalized = String(value || "")
+      .trim()
+      .toLowerCase();
+    if (normalized === "approved") return "Approved";
+    if (normalized === "rejected") return "Rejected";
+    return "Pending";
+  }
+
+  function statusDotClassFromStatus(value) {
+    const status = normalizeArchiveStatus(value);
+    if (status === "Approved") return "dot-approved";
+    if (status === "Rejected") return "dot-rejected";
+    return "dot-pending";
+  }
+
+  function renderStatusIndicatorMarkup(value) {
+    const status = normalizeArchiveStatus(value);
+    const dotClass = statusDotClassFromStatus(status);
+    return `<span class="va-status-indicator"><span class="va-status-dot ${dotClass}"></span>${escapeHtml(status)}</span>`;
+  }
+
   function getKeywordsSnippet(keywords) {
     const raw = String(keywords || "").trim();
     if (!raw) return "No keywords provided.";
@@ -629,6 +651,7 @@
             <h3>${escapeHtml(archive.title || "Untitled")}</h3>
             <p>${escapeHtml(archive.authors || "No author")}</p>
             <span>${escapeHtml(formatMonthYear(archive.date_published))}</span>
+            <div class="archive-card-status">${renderStatusIndicatorMarkup(archive.status)}</div>
             <div class="archive-card-keywords">${renderListKeywordTagsMarkup(archive.keywords, id, 3)}</div>
           </div>
         `;
@@ -691,6 +714,7 @@
               <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Section:</strong> ${escapeHtml(archive.section || "N/A")}</p>
               <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Advisor:</strong> ${escapeHtml(archive.advisor || "N/A")}</p>
               <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Published:</strong> ${escapeHtml(formatMonthYear(archive.date_published))}</p>
+              <p style="font-size:13px; color:#9AA0A6;"><strong style="color:#C9CCD1;">Status:</strong> ${renderStatusIndicatorMarkup(archive.status)}</p>
               <div class="preview-keywords-section">
                 <span class="preview-meta-label">Keywords</span>
                 <div class="preview-keywords">${renderKeywordTagsMarkup(archive.keywords)}</div>

@@ -14,7 +14,10 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
       rel="stylesheet"
     />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../api/multi_select.js"></script>
   </head>
 
   <body>
@@ -29,7 +32,7 @@
               type="text"
               id="section-search"
               class="search-input"
-              placeholder="Search section, professor..."
+              placeholder="Search section, professor, email..."
               autocomplete="off"
             />
           </div>
@@ -40,6 +43,7 @@
               <option value="id">ID</option>
               <option value="sectionName">Section</option>
               <option value="professorName">Professor</option>
+              <option value="professorEmail">Professor Email</option>
             </select>
             <span class="arrow"></span>
           </div>
@@ -400,6 +404,10 @@
                 <p id="sav-professor">-</p>
               </div>
               <div class="va-field">
+                <label>Professor Email</label>
+                <p id="sav-professor-email">-</p>
+              </div>
+              <div class="va-field">
                 <label>Created At</label>
                 <p id="sav-created-at">-</p>
               </div>
@@ -490,6 +498,7 @@
                 </th>
                 <th>SECTION</th>
                 <th>PROFESSOR</th>
+                <th>EMAIL</th>
                 <th class="col-actions"></th>
               </tr>
             </thead>
@@ -497,6 +506,8 @@
           </table>
         </div>
       </div>
+
+      <div id="drag-select-box" style="display: none"></div>
     </div>
 
     <div id="toast-container"></div>
@@ -525,6 +536,7 @@
           id: "id",
           sectionName: "sectionName",
           professorName: "professorName",
+          professorEmail: "professorEmail",
         };
 
         const selectToFilterKey = {
@@ -1130,8 +1142,9 @@
 
           const safeTitle = esc(title || "");
           const safeDetail = esc(detail || "");
+          const isLoading = /loading/i.test(String(title || ""));
 
-          tbody.innerHTML = `<tr data-placeholder="section-assignment-status"><td colspan="4" class="users-status-cell"><div class="users-status-box"><strong class="users-status-title">${safeTitle}</strong>${safeDetail ? `<span>${safeDetail}</span>` : ""}</div></td></tr>`;
+          tbody.innerHTML = `<tr data-placeholder="section-assignment-status"><td colspan="5" class="users-status-cell"><div class="users-status-box">${isLoading ? '<div class="table-loading-spinner" aria-hidden="true"></div>' : ""}<strong class="users-status-title">${safeTitle}</strong>${safeDetail ? `<span>${safeDetail}</span>` : ""}</div></td></tr>`;
         }
 
         function nextNumericId() {
@@ -1146,6 +1159,9 @@
             id: Number.parseInt(entry.id, 10) || nextNumericId(),
             sectionName: asText(entry.sectionName || entry.section_name),
             professorName: asText(entry.professorName || entry.professor_name),
+            professorEmail: asText(
+              entry.professorEmail || entry.professor_email || entry.email,
+            ),
             createdAt: asText(entry.createdAt || entry.created_at),
             updatedAt: asText(entry.updatedAt || entry.updated_at),
           };
@@ -1155,12 +1171,13 @@
           row.dataset.id = String(data.id);
           row.dataset.sectionName = asText(data.sectionName);
           row.dataset.professorName = asText(data.professorName);
+          row.dataset.professorEmail = asText(data.professorEmail);
           row.dataset.createdAt = asText(data.createdAt);
           row.dataset.updatedAt = asText(data.updatedAt);
         }
 
         function buildRowMarkup(data) {
-          return `<td><input type="checkbox" class="archive-checkbox row-check" /></td><td>${esc(data.sectionName)}</td><td>${esc(data.professorName)}</td><td class="action-cell"><button class="dots-btn" type="button"><i data-lucide="more-vertical"></i></button></td>`;
+          return `<td><input type="checkbox" class="archive-checkbox row-check" /></td><td>${esc(data.sectionName)}</td><td>${esc(data.professorName)}</td><td>${esc(data.professorEmail)}</td><td class="action-cell"><button class="dots-btn" type="button"><i data-lucide="more-vertical"></i></button></td>`;
         }
 
         function flashInsertedRow(row) {
@@ -1268,6 +1285,7 @@
             row.dataset.id || "",
             row.dataset.sectionName || "",
             row.dataset.professorName || "",
+            row.dataset.professorEmail || "",
           ];
           return searchable.some((field) => field.toLowerCase().includes(q));
         }
@@ -1504,6 +1522,20 @@
           updateSelectionUI();
         }
 
+        function initDragSelect() {
+          if (typeof window.initArchiveDragSelect !== "function") return;
+
+          window.initArchiveDragSelect({
+            tableBodyId: "section-assignment-table-body",
+            dragBoxId: "drag-select-box",
+            onSelectionChange(row, selected) {
+              if (!row || row.dataset.placeholder) return;
+              setRowSelected(row, selected);
+              updateSelectionUI();
+            },
+          });
+        }
+
         function closeActionMenu() {
           const menu = document.getElementById("archive-action-menu");
           if (menu) menu.style.display = "none";
@@ -1703,6 +1735,7 @@
             id: row.dataset.id,
             sectionName: row.dataset.sectionName,
             professorName: row.dataset.professorName,
+            professorEmail: row.dataset.professorEmail,
             createdAt: row.dataset.createdAt,
             updatedAt: row.dataset.updatedAt,
           };
@@ -1732,6 +1765,8 @@
             assignment.sectionName || "-";
           document.getElementById("sav-professor").textContent =
             assignment.professorName || "-";
+          document.getElementById("sav-professor-email").textContent =
+            assignment.professorEmail || "-";
           document.getElementById("sav-created-at").textContent =
             formatDateTimeDisplay(assignment.createdAt);
           document.getElementById("sav-updated-at").textContent =
@@ -1992,8 +2027,8 @@
         }
 
         function templateCsv() {
-          const headers = ["section_name", "professor_name"];
-          const sample = ["BSIT-3A", "Juan Dela Cruz"];
+          const headers = ["section_name", "professor_name", "professor_email"];
+          const sample = ["BSIT-3A", "Juan Dela Cruz", "juan.delacruz@example.com"];
 
           const toCell = (value) => {
             const s = String(value ?? "");
@@ -2065,6 +2100,11 @@
                 "professor name",
                 "professor_name",
               ]),
+              professorEmail: idx([
+                "email",
+                "professor email",
+                "professor_email",
+              ]),
             };
 
             let imported = 0;
@@ -2080,10 +2120,13 @@
                       map.sectionName >= 0 ? cols[map.sectionName] : "",
                     professor_name:
                       map.professorName >= 0 ? cols[map.professorName] : "",
+                    professor_email:
+                      map.professorEmail >= 0 ? cols[map.professorEmail] : "",
                   }
                 : {
                     section_name: cols[0] || "",
                     professor_name: cols[1] || "",
+                    professor_email: cols[2] || "",
                   };
 
               if (!row.section_name || !row.professor_name) {
@@ -2207,7 +2250,194 @@
           );
         }
 
+        function getVisibleRowsForPdf(table) {
+          if (!table) return [];
+          return Array.from(table.querySelectorAll("tbody tr")).filter((row) => {
+            if (row.dataset.placeholder) return false;
+            const style = window.getComputedStyle(row);
+            return style.display !== "none" && style.visibility !== "hidden";
+          });
+        }
+
+        function getExportColumnsForPdf(table) {
+          if (!table) return [];
+          return Array.from(table.querySelectorAll("thead th"))
+            .map((headerCell, index) => ({
+              index,
+              label: String(headerCell.textContent || "").trim(),
+              headerCell,
+            }))
+            .filter(({ label, headerCell }) => {
+              if (!label) return false;
+              if (headerCell.classList.contains("col-check")) return false;
+              if (headerCell.classList.contains("col-actions")) return false;
+              return true;
+            });
+        }
+
+        function resolveExportCellText(cell) {
+          if (!cell) return "";
+
+          const select = cell.querySelector("select");
+          if (select) {
+            const selected =
+              select.selectedOptions && select.selectedOptions[0]
+                ? select.selectedOptions[0].textContent
+                : select.value;
+            return String(selected || "")
+              .replace(/\s+/g, " ")
+              .trim();
+          }
+
+          const input = cell.querySelector("input, textarea");
+          if (input) {
+            return String(input.value || "")
+              .replace(/\s+/g, " ")
+              .trim();
+          }
+
+          return String(cell.textContent || "")
+            .replace(/\s+/g, " ")
+            .trim();
+        }
+
+        function loadImageAsDataUrl(src) {
+          return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => {
+              const canvas = document.createElement("canvas");
+              canvas.width = image.naturalWidth;
+              canvas.height = image.naturalHeight;
+              const ctx = canvas.getContext("2d");
+              if (!ctx) {
+                reject(new Error("Could not prepare the PDF header image."));
+                return;
+              }
+              ctx.drawImage(image, 0, 0);
+              resolve(canvas.toDataURL("image/png"));
+            };
+            image.onerror = () => reject(new Error("Failed to load the PDF header image."));
+            image.src = src;
+          });
+        }
+
+        async function exportSectionAssignmentsToPdf() {
+          const table = document.getElementById("archives-table");
+          if (!table) {
+            throw new Error("Section assignment table is not available for export.");
+          }
+
+          if (!window.jspdf || !window.jspdf.jsPDF) {
+            throw new Error("PDF library is not loaded.");
+          }
+
+          const columns = getExportColumnsForPdf(table);
+          const rows = getVisibleRowsForPdf(table);
+
+          if (!columns.length) {
+            throw new Error("No exportable columns found.");
+          }
+
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF({
+            orientation: "landscape",
+            unit: "pt",
+            format: "a4",
+            compress: true,
+          });
+
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const marginX = 30;
+          const contentWidth = pageWidth - marginX * 2;
+          let cursorY = 24;
+
+          try {
+            const headerImageUrl = new URL(
+              "../../images/header-template.png",
+              window.location.href,
+            ).href;
+            const headerImageDataUrl = await loadImageAsDataUrl(headerImageUrl);
+            const aspectRatio = 1300 / 220;
+            const headerHeight = Math.min(contentWidth / aspectRatio, 90);
+            doc.addImage(
+              headerImageDataUrl,
+              "PNG",
+              marginX,
+              cursorY,
+              contentWidth,
+              headerHeight,
+            );
+            cursorY += headerHeight + 12;
+          } catch (_error) {
+            cursorY += 8;
+          }
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(17);
+          doc.setTextColor(24, 28, 34);
+          doc.text("Section Assignment Report", pageWidth / 2, cursorY, {
+            align: "center",
+          });
+
+          cursorY += 18;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.setTextColor(85, 93, 104);
+          doc.text(`Generated: ${new Date().toLocaleString("en-US")}`, marginX, cursorY);
+          doc.text(`Rows: ${rows.length}`, pageWidth - marginX, cursorY, {
+            align: "right",
+          });
+
+          cursorY += 14;
+          doc.autoTable({
+            startY: cursorY,
+            head: [["No.", ...columns.map(({ label }) => label)]],
+            body: rows.map((row, rowIndex) => [
+              String(rowIndex + 1),
+              ...columns.map(({ index }) =>
+                resolveExportCellText(row.cells[index]),
+              ),
+            ]),
+            margin: { left: marginX, right: marginX, bottom: 28 },
+            theme: "grid",
+            styles: {
+              font: "helvetica",
+              fontSize: 7.6,
+              cellPadding: 4.5,
+              overflow: "linebreak",
+              lineColor: [210, 216, 224],
+              lineWidth: 0.4,
+              textColor: [24, 28, 34],
+              valign: "middle",
+            },
+            headStyles: {
+              fillColor: [24, 28, 34],
+              textColor: [255, 255, 255],
+              fontStyle: "bold",
+            },
+            alternateRowStyles: {
+              fillColor: [246, 248, 251],
+            },
+            columnStyles: {
+              0: { cellWidth: 28, halign: "center" },
+            },
+            didDrawPage() {
+              const pageNumber = doc.getNumberOfPages();
+              doc.setFontSize(9);
+              doc.setTextColor(100, 108, 118);
+              doc.text(`Page ${pageNumber}`, pageWidth - marginX, pageHeight - 12, {
+                align: "right",
+              });
+            },
+          });
+
+          doc.save(`${getReportName()}.pdf`);
+        }
+
         function bindEvents() {
+          initDragSelect();
+
           document
             .getElementById("section-open-modal")
             ?.addEventListener("click", () => {
@@ -2348,9 +2578,14 @@
 
           document
             .getElementById("section-export-pdf-btn")
-            ?.addEventListener("click", () => {
+            ?.addEventListener("click", async () => {
               closeModal(document.getElementById("section-export-modal"));
-              window.print();
+              try {
+                await exportSectionAssignmentsToPdf();
+                showToast("PDF report downloaded.", "success");
+              } catch (error) {
+                showToast(error?.message || "PDF export failed.", "error");
+              }
             });
 
           document
@@ -2547,7 +2782,7 @@
 
               populateFilterDropdowns();
               renderActiveTags();
-              applyVisibility();
+              applyAll();
             });
           });
 
@@ -2555,7 +2790,7 @@
             .getElementById("section-search")
             ?.addEventListener("input", () => {
               state.query = document.getElementById("section-search").value;
-              applyVisibility();
+              applyAll();
             });
 
           document
@@ -2612,7 +2847,7 @@
 
             populateFilterDropdowns();
             renderActiveTags();
-            applyVisibility();
+            applyAll();
           });
 
           [

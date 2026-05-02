@@ -942,6 +942,7 @@
   function updateSelectionUI() {
     const bar = document.getElementById("bulk-action-bar");
     const countEl = document.getElementById("bulk-action-count");
+    const allCb = document.getElementById("select-all-archives");
     if (!bar || !countEl) return;
 
     const count = selectedRows.size;
@@ -955,6 +956,15 @@
       bar.style.visibility = "hidden";
       bar.style.opacity = "0";
       bar.style.pointerEvents = "none";
+    }
+
+    if (allCb) {
+      const rows = Array.from(
+        document.querySelectorAll("#ojt-students-table-body tr:not([data-placeholder])"),
+      );
+      allCb.checked = rows.length > 0 && selectedRows.size === rows.length;
+      allCb.indeterminate =
+        selectedRows.size > 0 && selectedRows.size < rows.length;
     }
   }
 
@@ -982,6 +992,20 @@
     if (selectAll) selectAll.checked = false;
 
     updateSelectionUI();
+  }
+
+  function initDragSelect() {
+    if (typeof window.initArchiveDragSelect !== "function") return;
+
+    window.initArchiveDragSelect({
+      tableBodyId: "ojt-students-table-body",
+      dragBoxId: "drag-select-box",
+      onSelectionChange(row, selected) {
+        if (!row || row.dataset.placeholder) return;
+        setRowSelected(row, selected);
+        updateSelectionUI();
+      },
+    });
   }
 
   function openDeleteConfirm(rows) {
@@ -1494,6 +1518,8 @@
 
   function bindEvents() {
     const ui = window.OjtStudentsUI;
+
+    initDragSelect();
 
     document
       .getElementById("ojt-open-modal")

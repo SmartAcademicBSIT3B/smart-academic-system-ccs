@@ -49,6 +49,24 @@
     const cell = row?.cells?.[columnIndex];
     if (!cell) return "";
 
+    const select = cell.querySelector("select");
+    if (select) {
+      const selectedLabel =
+        select.selectedOptions && select.selectedOptions[0]
+          ? select.selectedOptions[0].textContent
+          : select.value;
+      return String(selectedLabel || "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    const input = cell.querySelector("input, textarea");
+    if (input) {
+      return String(input.value || "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
     return String(cell.textContent || "")
       .replace(/\s+/g, " ")
       .trim();

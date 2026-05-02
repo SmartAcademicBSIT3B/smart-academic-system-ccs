@@ -6,7 +6,7 @@ const router = express.Router();
 
 let sectionAssignmentsPrepared = false;
 let sectionAssignmentsPreparationPromise = null;
-let sectionAssignmentsHasDateAssigned = false;
+let usersHasDepartmentColumn = true;
 
 function asText(value) {
   return String(value || "").trim();
@@ -55,6 +55,7 @@ async function ensureSectionAssignmentsTable() {
          id INT NOT NULL AUTO_INCREMENT,
          section_name VARCHAR(120) NOT NULL,
          professor_name VARCHAR(180) NOT NULL,
+         professor_email VARCHAR(255) NOT NULL DEFAULT '',
          department VARCHAR(120) NOT NULL DEFAULT 'CCS',
          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -65,8 +66,65 @@ async function ensureSectionAssignmentsTable() {
        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
     );
 
+    const professorEmailColumnRows = await query(
+      `SELECT COLUMN_NAME
+         FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'section_assignments'
+          AND COLUMN_NAME = 'professor_email'
+        LIMIT 1`,
+    );
+
+    if (
+      !Array.isArray(professorEmailColumnRows) ||
+      professorEmailColumnRows.length === 0
+    ) {
+      try {
+        await query(
+          `ALTER TABLE section_assignments
+           ADD COLUMN professor_email VARCHAR(255) NOT NULL DEFAULT ''
+           AFTER professor_name`,
+        );
+      } catch (_alterProfessorEmailError) {
+        // If migration races or column already exists due to another process, continue.
+      }
+    }
+
+    await detectUsersDepartmentColumn();
+
+    try {
+      if (usersHasDepartmentColumn) {
+        await query(
+          `UPDATE section_assignments AS sa
+              LEFT JOIN (
+                SELECT name, department, MIN(email) AS email
+                  FROM users
+                 GROUP BY name, department
+              ) AS um
+                ON um.name COLLATE utf8mb4_unicode_ci = sa.professor_name COLLATE utf8mb4_unicode_ci
+               AND um.department COLLATE utf8mb4_unicode_ci = sa.department COLLATE utf8mb4_unicode_ci
+             SET sa.professor_email = COALESCE(um.email, '')
+           WHERE sa.professor_email IS NULL OR TRIM(sa.professor_email) = ''`,
+        );
+      } else {
+        await query(
+          `UPDATE section_assignments AS sa
+              LEFT JOIN (
+                SELECT name, MIN(email) AS email
+                  FROM users
+                 GROUP BY name
+              ) AS um
+                ON um.name COLLATE utf8mb4_unicode_ci = sa.professor_name COLLATE utf8mb4_unicode_ci
+             SET sa.professor_email = COALESCE(um.email, '')
+           WHERE sa.professor_email IS NULL OR TRIM(sa.professor_email) = ''`,
+        );
+      }
+    } catch (_backfillProfessorEmailError) {
+      // Keep startup resilient if user schema differs; create/update paths still populate email.
+    }
+
     const dateAssignedColumnRows = await query(
-      `SELECT COLUMN_NAME, DATA_TYPE
+      `SELECT COLUMN_NAME
          FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE()
           AND TABLE_NAME = 'section_assignments'
@@ -74,33 +132,17 @@ async function ensureSectionAssignmentsTable() {
         LIMIT 1`,
     );
 
-    sectionAssignmentsHasDateAssigned =
+    if (
       Array.isArray(dateAssignedColumnRows) &&
-      dateAssignedColumnRows.length > 0;
-
-    if (sectionAssignmentsHasDateAssigned) {
-      const dataType = String(
-        dateAssignedColumnRows[0]?.DATA_TYPE || "",
-      ).toLowerCase();
+      dateAssignedColumnRows.length > 0
+    ) {
       try {
-        if (dataType === "date") {
-          await query(
-            `ALTER TABLE section_assignments
-             MODIFY COLUMN date_assigned DATE NOT NULL DEFAULT (CURRENT_DATE)`,
-          );
-        } else if (dataType === "datetime") {
-          await query(
-            `ALTER TABLE section_assignments
-             MODIFY COLUMN date_assigned DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`,
-          );
-        } else {
-          await query(
-            `ALTER TABLE section_assignments
-             MODIFY COLUMN date_assigned TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`,
-          );
-        }
-      } catch (_alterDateAssignedError) {
-        // Keep runtime compatibility for older schemas; POST will still set date_assigned explicitly.
+        await query(
+          `ALTER TABLE section_assignments
+           DROP COLUMN date_assigned`,
+        );
+      } catch (_dropDateAssignedError) {
+        // Keep serving requests even if legacy column cannot be dropped immediately.
       }
     }
 
@@ -119,6 +161,9 @@ function sanitizePayload(payload = {}) {
   const professor_name = asText(
     payload.professor_name || payload.professorName,
   );
+  const professor_email = asText(
+    payload.professor_email || payload.professorEmail,
+  );
 
   const errors = [];
   if (!section_name) errors.push("section_name is required.");
@@ -127,6 +172,7 @@ function sanitizePayload(payload = {}) {
   return {
     section_name,
     professor_name,
+    professor_email,
     errors,
   };
 }
@@ -136,10 +182,69 @@ function mapRow(row) {
     id: row.id,
     section_name: row.section_name,
     professor_name: row.professor_name,
+    professor_email: asText(row.professor_email),
     department: row.department,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
+}
+
+async function detectUsersDepartmentColumn() {
+  try {
+    const rows = await query(
+      `SELECT COLUMN_NAME
+         FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'users'
+          AND COLUMN_NAME = 'department'
+        LIMIT 1`,
+    );
+
+    usersHasDepartmentColumn = Array.isArray(rows) && rows.length > 0;
+  } catch (_error) {
+    usersHasDepartmentColumn = false;
+  }
+}
+
+async function resolveProfessorEmail(department, professorName, fallbackEmail) {
+  const fallback = asText(fallbackEmail);
+  if (fallback) return fallback;
+
+  const name = asText(professorName);
+  if (!name) return "";
+
+  try {
+    await detectUsersDepartmentColumn();
+
+    if (usersHasDepartmentColumn) {
+      const rows = await query(
+        `SELECT email
+           FROM users
+          WHERE name = ?
+            AND department = ?
+          ORDER BY id DESC
+          LIMIT 1`,
+        [name, asText(department)],
+      );
+
+      if (Array.isArray(rows) && rows.length > 0) {
+        return asText(rows[0]?.email);
+      }
+    }
+
+    const rows = await query(
+      `SELECT email
+         FROM users
+        WHERE name = ?
+        ORDER BY id DESC
+        LIMIT 1`,
+      [name],
+    );
+
+    return Array.isArray(rows) && rows.length > 0 ? asText(rows[0]?.email) : "";
+  } catch (_error) {
+    return "";
+  }
 }
 
 router.get("/", requireAuth, async (req, res) => {
@@ -148,7 +253,7 @@ router.get("/", requireAuth, async (req, res) => {
     const department = getRequestDepartment(req);
 
     const rows = await query(
-      `SELECT id, section_name, professor_name, department, created_at, updated_at
+      `SELECT id, section_name, professor_name, professor_email, department, created_at, updated_at
          FROM section_assignments
         WHERE department = ?
         ORDER BY id DESC`,
@@ -180,25 +285,30 @@ router.post("/", requireAuth, async (req, res) => {
     }
 
     const department = getRequestDepartment(req);
+    const professorEmail = await resolveProfessorEmail(
+      department,
+      payload.professor_name,
+      payload.professor_email,
+    );
 
-    const result = sectionAssignmentsHasDateAssigned
-      ? await query(
-          `INSERT INTO section_assignments (section_name, professor_name, department, date_assigned)
-           VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
-          [payload.section_name, payload.professor_name, department],
-        )
-      : await query(
-          `INSERT INTO section_assignments (section_name, professor_name, department)
-           VALUES (?, ?, ?)`,
-          [payload.section_name, payload.professor_name, department],
-        );
+    const result = await query(
+      `INSERT INTO section_assignments (section_name, professor_name, professor_email, department)
+       VALUES (?, ?, ?, ?)`,
+      [
+        payload.section_name,
+        payload.professor_name,
+        professorEmail,
+        department,
+      ],
+    );
 
     const rows = await query(
-      `SELECT id, section_name, professor_name, department, created_at, updated_at
+      `SELECT id, section_name, professor_name, professor_email, department, created_at, updated_at
          FROM section_assignments
-        WHERE id = ?
+        WHERE department = ?
+          AND id = ?
         LIMIT 1`,
-      [result.insertId],
+      [department, result.insertId],
     );
 
     return res.status(201).json({
@@ -235,6 +345,11 @@ router.patch("/:id", requireAuth, async (req, res) => {
     }
 
     const department = getRequestDepartment(req);
+    const professorEmail = await resolveProfessorEmail(
+      department,
+      payload.professor_name,
+      payload.professor_email,
+    );
 
     const existing = await query(
       `SELECT id
@@ -254,17 +369,25 @@ router.patch("/:id", requireAuth, async (req, res) => {
     await query(
       `UPDATE section_assignments
           SET section_name = ?,
-              professor_name = ?
+              professor_name = ?,
+              professor_email = ?
         WHERE id = ? AND department = ?`,
-      [payload.section_name, payload.professor_name, id, department],
+      [
+        payload.section_name,
+        payload.professor_name,
+        professorEmail,
+        id,
+        department,
+      ],
     );
 
     const rows = await query(
-      `SELECT id, section_name, professor_name, department, created_at, updated_at
+      `SELECT id, section_name, professor_name, professor_email, department, created_at, updated_at
          FROM section_assignments
-        WHERE id = ?
+        WHERE department = ?
+          AND id = ?
         LIMIT 1`,
-      [id],
+      [department, id],
     );
 
     return res.json({

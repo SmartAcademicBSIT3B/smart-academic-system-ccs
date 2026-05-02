@@ -36,11 +36,13 @@ function renderExternalPartnersTableMessage(tbody, title, detail) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+  const isLoading = /loading/i.test(String(title || ""));
 
   tbody.innerHTML = `
     <tr data-placeholder="external-partner-status">
       <td colspan="12" style="text-align:center; padding: 42px 24px; color: var(--text-secondary);">
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+          ${isLoading ? '<div class="table-loading-spinner" aria-hidden="true"></div>' : ""}
           <strong style="color: var(--text-primary);">${safeTitle}</strong>
           ${safeDetail ? `<span>${safeDetail}</span>` : ""}
         </div>

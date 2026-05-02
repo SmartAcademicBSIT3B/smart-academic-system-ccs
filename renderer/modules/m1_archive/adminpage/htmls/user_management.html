@@ -14,7 +14,10 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
       rel="stylesheet"
     />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../api/multi_select.js"></script>
   </head>
 
   <body>
@@ -541,6 +544,8 @@
           </table>
         </div>
       </div>
+
+      <div id="drag-select-box" style="display: none"></div>
     </div>
 
     <div id="toast-container"></div>
@@ -984,8 +989,9 @@
 
           const safeTitle = esc(title || "");
           const safeDetail = esc(detail || "");
+          const isLoading = /loading/i.test(String(title || ""));
 
-          tbody.innerHTML = `<tr data-placeholder="users-status"><td colspan="8" class="users-status-cell"><div class="users-status-box"><strong class="users-status-title">${safeTitle}</strong>${safeDetail ? `<span>${safeDetail}</span>` : ""}</div></td></tr>`;
+          tbody.innerHTML = `<tr data-placeholder="users-status"><td colspan="8" class="users-status-cell"><div class="users-status-box">${isLoading ? '<div class="table-loading-spinner" aria-hidden="true"></div>' : ""}<strong class="users-status-title">${safeTitle}</strong>${safeDetail ? `<span>${safeDetail}</span>` : ""}</div></td></tr>`;
         }
 
         function nextNumericId() {
@@ -1374,6 +1380,20 @@
             if (cb) cb.checked = false;
           });
           updateSelectionUI();
+        }
+
+        function initDragSelect() {
+          if (typeof window.initArchiveDragSelect !== "function") return;
+
+          window.initArchiveDragSelect({
+            tableBodyId: "user-management-table-body",
+            dragBoxId: "drag-select-box",
+            onSelectionChange(row, selected) {
+              if (!row || row.dataset.placeholder) return;
+              setRowSelected(row, selected);
+              updateSelectionUI();
+            },
+          });
         }
 
         function closeActionMenu() {
@@ -2112,7 +2132,152 @@
           );
         }
 
+        function getVisibleRowsForPdf(table) {
+          if (!table) return [];
+          return Array.from(table.querySelectorAll("tbody tr")).filter((row) => {
+            if (row.dataset.placeholder) return false;
+            const style = window.getComputedStyle(row);
+            return style.display !== "none" && style.visibility !== "hidden";
+          });
+        }
+
+        function getExportColumnsForPdf(table) {
+          if (!table) return [];
+          return Array.from(table.querySelectorAll("thead th"))
+            .map((headerCell, index) => ({
+              index,
+              label: String(headerCell.textContent || "").trim(),
+              headerCell,
+            }))
+            .filter(({ label, headerCell }) => {
+              if (!label) return false;
+              if (headerCell.classList.contains("col-check")) return false;
+              if (headerCell.classList.contains("col-actions")) return false;
+              return true;
+            });
+        }
+
+        function resolveExportCellText(cell) {
+          if (!cell) return "";
+
+          const select = cell.querySelector("select");
+          if (select) {
+            const selected =
+              select.selectedOptions && select.selectedOptions[0]
+                ? select.selectedOptions[0].textContent
+                : select.value;
+            return String(selected || "")
+              .replace(/\s+/g, " ")
+              .trim();
+          }
+
+          const input = cell.querySelector("input, textarea");
+          if (input) {
+            return String(input.value || "")
+              .replace(/\s+/g, " ")
+              .trim();
+          }
+
+          return String(cell.textContent || "")
+            .replace(/\s+/g, " ")
+            .trim();
+        }
+
+        async function exportUsersToPdf() {
+          const table = document.getElementById("archives-table");
+          if (!table) {
+            throw new Error("Users table is not available for export.");
+          }
+
+          if (!window.jspdf || !window.jspdf.jsPDF) {
+            throw new Error("PDF library is not loaded.");
+          }
+
+          const columns = getExportColumnsForPdf(table);
+          const rows = getVisibleRowsForPdf(table);
+
+          if (!columns.length) {
+            throw new Error("No exportable columns found.");
+          }
+
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF({
+            orientation: "landscape",
+            unit: "pt",
+            format: "a4",
+            compress: true,
+          });
+
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const marginX = 30;
+
+          let cursorY = 40;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(17);
+          doc.setTextColor(24, 28, 34);
+          doc.text("User Management Report", pageWidth / 2, cursorY, {
+            align: "center",
+          });
+
+          cursorY += 20;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.setTextColor(85, 93, 104);
+          doc.text(`Generated: ${new Date().toLocaleString("en-US")}`, marginX, cursorY);
+          doc.text(`Rows: ${rows.length}`, pageWidth - marginX, cursorY, {
+            align: "right",
+          });
+
+          cursorY += 14;
+          doc.autoTable({
+            startY: cursorY,
+            head: [["No.", ...columns.map(({ label }) => label)]],
+            body: rows.map((row, rowIndex) => [
+              String(rowIndex + 1),
+              ...columns.map(({ index }) =>
+                resolveExportCellText(row.cells[index]),
+              ),
+            ]),
+            margin: { left: marginX, right: marginX, bottom: 28 },
+            theme: "grid",
+            styles: {
+              font: "helvetica",
+              fontSize: 7.5,
+              cellPadding: 4.5,
+              overflow: "linebreak",
+              lineColor: [210, 216, 224],
+              lineWidth: 0.4,
+              textColor: [24, 28, 34],
+              valign: "middle",
+            },
+            headStyles: {
+              fillColor: [24, 28, 34],
+              textColor: [255, 255, 255],
+              fontStyle: "bold",
+            },
+            alternateRowStyles: {
+              fillColor: [246, 248, 251],
+            },
+            columnStyles: {
+              0: { cellWidth: 28, halign: "center" },
+            },
+            didDrawPage() {
+              const pageNumber = doc.getNumberOfPages();
+              doc.setFontSize(9);
+              doc.setTextColor(100, 108, 118);
+              doc.text(`Page ${pageNumber}`, pageWidth - marginX, pageHeight - 12, {
+                align: "right",
+              });
+            },
+          });
+
+          doc.save(`${getReportName()}.pdf`);
+        }
+
         function bindEvents() {
+          initDragSelect();
+
           document
             .getElementById("user-open-modal")
             ?.addEventListener("click", () => {
@@ -2229,9 +2394,15 @@
 
           document
             .getElementById("user-export-pdf-btn")
-            ?.addEventListener("click", () => {
-              closeModal(document.getElementById("user-export-modal"));
-              window.print();
+            ?.addEventListener("click", async () => {
+              const modal = document.getElementById("user-export-modal");
+              closeModal(modal);
+              try {
+                await exportUsersToPdf();
+                showToast("PDF report downloaded.", "success");
+              } catch (error) {
+                showToast(error?.message || "PDF export failed.", "error");
+              }
             });
 
           document
@@ -2427,7 +2598,7 @@
 
               populateFilterDropdowns();
               renderActiveTags();
-              applyVisibility();
+              applyAll();
             });
           });
 
@@ -2435,7 +2606,7 @@
             .getElementById("user-search")
             ?.addEventListener("input", () => {
               state.query = document.getElementById("user-search").value;
-              applyVisibility();
+              applyAll();
             });
 
           document
