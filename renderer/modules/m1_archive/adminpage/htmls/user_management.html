@@ -528,7 +528,6 @@
                     class="archive-checkbox"
                   />
                 </th>
-                <th>ID</th>
                 <th>USER ID</th>
                 <th>Profile</th>
                 <th>Name</th>
@@ -986,7 +985,7 @@
           const safeTitle = esc(title || "");
           const safeDetail = esc(detail || "");
 
-          tbody.innerHTML = `<tr data-placeholder="users-status"><td colspan="9" class="users-status-cell"><div class="users-status-box"><strong class="users-status-title">${safeTitle}</strong>${safeDetail ? `<span>${safeDetail}</span>` : ""}</div></td></tr>`;
+          tbody.innerHTML = `<tr data-placeholder="users-status"><td colspan="8" class="users-status-cell"><div class="users-status-box"><strong class="users-status-title">${safeTitle}</strong>${safeDetail ? `<span>${safeDetail}</span>` : ""}</div></td></tr>`;
         }
 
         function nextNumericId() {
@@ -1032,7 +1031,7 @@
         }
 
         function buildRowMarkup(user) {
-          return `<td><input type="checkbox" class="archive-checkbox row-check" /></td><td>${String(user.id).padStart(3, "0")}</td><td>${esc(user.userId)}</td>${buildProfileCellMarkup(user)}<td>${esc(user.name)}</td><td>${esc(user.email)}</td><td>${esc(user.role)}</td><td><span class="status-pill ${displayStatus(user.status)}">${displayStatusLabel(user.status)}</span></td><td class="action-cell"><button class="dots-btn" type="button"><i data-lucide="more-vertical"></i></button></td>`;
+          return `<td><input type="checkbox" class="archive-checkbox row-check" /></td><td>${esc(user.userId)}</td>${buildProfileCellMarkup(user)}<td>${esc(user.name)}</td><td>${esc(user.email)}</td><td>${esc(user.role)}</td><td><span class="status-pill ${displayStatus(user.status)}">${displayStatusLabel(user.status)}</span></td><td class="action-cell"><button class="dots-btn" type="button"><i data-lucide="more-vertical"></i></button></td>`;
         }
 
         function applyAvatarFallbackHandlers() {

@@ -42,6 +42,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   createUser: (userData) => ipcRenderer.invoke("createUser", userData),
   updateUser: (userData) => ipcRenderer.invoke("updateUser", userData),
   deleteUser: (userId) => ipcRenderer.invoke("deleteUser", userId),
+  getSectionAssignments: () => ipcRenderer.invoke("getSectionAssignments"),
+  createSectionAssignment: (payload) =>
+    ipcRenderer.invoke("createSectionAssignment", payload),
+  updateSectionAssignment: (payload) =>
+    ipcRenderer.invoke("updateSectionAssignment", payload),
+  deleteSectionAssignment: (id) =>
+    ipcRenderer.invoke("deleteSectionAssignment", id),
+  createSection: (payload) => ipcRenderer.invoke("createSection", payload),
+  updateSection: (payload) => ipcRenderer.invoke("updateSection", payload),
+  deleteSection: (id) => ipcRenderer.invoke("deleteSection", id),
   checkGoogleDriveAuth: () => ipcRenderer.invoke("checkGoogleDriveAuth"),
   getGoogleDriveAuthUrl: () => ipcRenderer.invoke("getGoogleDriveAuthUrl"),
   saveGoogleDriveToken: (authCode) =>

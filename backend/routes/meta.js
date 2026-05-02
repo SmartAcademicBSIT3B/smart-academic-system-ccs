@@ -117,8 +117,18 @@ router.get("/sections", requireAuth, async (req, res) => {
 // ── GET /api/meta/professors ──────────────────────────────────────────────────
 router.get("/professors", requireAuth, async (req, res) => {
   try {
+    const requestedDepartment = String(
+      req.query.department ||
+        req.headers["x-department"] ||
+        req.user?.department ||
+        "CCS",
+    )
+      .trim()
+      .toUpperCase();
+
     const rows = await query(
-      "SELECT * FROM users WHERE role = 'professor' AND status = 'active' ORDER BY name ASC",
+      "SELECT id, user_id, name, email, role, status, department FROM users WHERE department = ? ORDER BY name ASC",
+      [requestedDepartment],
     );
     return res.json({ success: true, professors: rows });
   } catch (error) {

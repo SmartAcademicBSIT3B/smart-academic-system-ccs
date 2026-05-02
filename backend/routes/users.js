@@ -157,12 +157,18 @@ async function ensureUsersDepartmentSupport() {
         try {
           await query(`ALTER TABLE users DROP INDEX \`${indexName}\``);
         } catch (dropErr) {
-          // If MySQL still rejects it (e.g. race or undeclared FK), skip silently
-          // and let the composite unique-index creation proceed.
-          console.warn(
-            `[ensureUsersDepartmentSupport] Could not drop index ${indexName}:`,
-            dropErr?.message,
-          );
+          // If MySQL rejects due FK dependency, keep legacy index and continue.
+          const message = String(dropErr?.message || "").toLowerCase();
+          const isFkProtected =
+            dropErr?.code === "ER_DROP_INDEX_FK" ||
+            message.includes("needed in a foreign key constraint");
+
+          if (!isFkProtected) {
+            console.warn(
+              `[ensureUsersDepartmentSupport] Could not drop index ${indexName}:`,
+              dropErr?.message,
+            );
+          }
         }
       }
     }

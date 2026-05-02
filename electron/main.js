@@ -1410,6 +1410,92 @@ ipcMain.handle("deleteUser", async (event, userId) => {
   }
 });
 
+ipcMain.handle("getSectionAssignments", async () => {
+  try {
+    return await api.get("/section-assignments");
+  } catch (error) {
+    console.error("getSectionAssignments error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to fetch section assignments.",
+    };
+  }
+});
+
+ipcMain.handle("createSectionAssignment", async (event, payload = {}) => {
+  try {
+    return await api.post("/section-assignments", payload);
+  } catch (error) {
+    console.error("createSectionAssignment error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to create section assignment.",
+    };
+  }
+});
+
+ipcMain.handle("updateSectionAssignment", async (event, payload = {}) => {
+  try {
+    const { id, ...rest } = payload;
+    return await api.patch(`/section-assignments/${id}`, rest);
+  } catch (error) {
+    console.error("updateSectionAssignment error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to update section assignment.",
+    };
+  }
+});
+
+ipcMain.handle("deleteSectionAssignment", async (event, id) => {
+  try {
+    return await api.del(`/section-assignments/${id}`);
+  } catch (error) {
+    console.error("deleteSectionAssignment error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to delete section assignment.",
+    };
+  }
+});
+
+ipcMain.handle("createSection", async (event, payload) => {
+  try {
+    return await api.post("/sections", payload);
+  } catch (error) {
+    console.error("createSection error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to create section.",
+    };
+  }
+});
+
+ipcMain.handle("updateSection", async (event, payload) => {
+  try {
+    const id = payload?.id || payload?.sectionId;
+    return await api.patch(`/sections/${id}`, payload);
+  } catch (error) {
+    console.error("updateSection error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to update section.",
+    };
+  }
+});
+
+ipcMain.handle("deleteSection", async (event, id) => {
+  try {
+    return await api.del(`/sections/${id}`);
+  } catch (error) {
+    console.error("deleteSection error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to delete section.",
+    };
+  }
+});
+
 ipcMain.handle("checkGoogleDriveAuth", async () => {
   try {
     return await api.get("/gdrive/status");

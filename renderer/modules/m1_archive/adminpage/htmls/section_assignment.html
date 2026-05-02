@@ -4,8 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Section Assignment</title>
+
     <link rel="stylesheet" href="../css/tables.css" />
+    <link rel="stylesheet" href="../css/manage_archives.css" />
+    <link rel="stylesheet" href="../css/external_partners_manage.css" />
     <link rel="stylesheet" href="../css/form_section_assignement.css" />
+
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
       rel="stylesheet"
@@ -17,338 +21,2648 @@
     <div class="page">
       <h1 class="page-title">SECTION ASSIGNMENT</h1>
 
-      <!-- Controls -->
       <div class="controls">
         <div class="left-controls">
-          <!-- UPDATED SELECT -->
+          <div class="search-wrap">
+            <i data-lucide="search" class="search-icon"></i>
+            <input
+              type="text"
+              id="section-search"
+              class="search-input"
+              placeholder="Search section, professor..."
+              autocomplete="off"
+            />
+          </div>
+
           <div class="select-wrapper">
-            <select>
-              <option>Filter Option</option>
-              <option>Juan Delacruz</option>
-              <option>Maria Lopez</option>
+            <select id="section-sort">
+              <option value="">Sort By</option>
+              <option value="id">ID</option>
+              <option value="sectionName">Section</option>
+              <option value="professorName">Professor</option>
             </select>
             <span class="arrow"></span>
           </div>
 
-          <button class="filter-btn">Filter</button>
+          <button
+            class="sort-dir-btn"
+            id="section-sort-dir"
+            type="button"
+            title="Toggle sort direction"
+          >
+            <i data-lucide="arrow-up-narrow-wide"></i>
+          </button>
+
+          <button
+            class="clear-filters-btn"
+            id="section-clear-filters"
+            type="button"
+          >
+            Clear Filters
+          </button>
         </div>
 
-        <!-- RIGHT BUTTONS -->
         <div class="right-controls">
           <div class="tooltip">
-            <button class="generate-btn">
+            <button
+              class="generate-btn"
+              id="section-generate-btn"
+              type="button"
+            >
               <i data-lucide="printer"></i>
             </button>
             <span class="tooltip-text">Generate Report</span>
           </div>
 
           <div class="tooltip">
-            <button class="add-btn" id="assign-section-btn">+</button>
+            <button
+              class="generate-btn"
+              id="section-download-template-btn"
+              type="button"
+            >
+              <i data-lucide="file-down"></i>
+            </button>
+            <span class="tooltip-text">Download CSV Template</span>
+          </div>
+
+          <div class="tooltip">
+            <button
+              class="generate-btn"
+              id="section-upload-csv-btn"
+              type="button"
+            >
+              <i data-lucide="file-up"></i>
+            </button>
+            <span class="tooltip-text">Bulk Upload CSV</span>
+          </div>
+
+          <div class="tooltip tooltip-add-partner">
+            <button class="add-btn" id="section-open-modal" type="button">
+              +
+            </button>
             <span class="tooltip-text">Assign Section</span>
           </div>
         </div>
       </div>
 
-      <!-- DOWNLOAD OPTIONS MODAL -->
-      <div id="export-modal" class="modal" style="display: none">
+      <input type="file" id="section-csv-input" accept=".csv,text/csv" />
+
+      <div class="filter-bar" id="section-filter-bar">
+        <div class="filter-selects">
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="saf-section">Section</label>
+            <select id="saf-section" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+
+          <div class="filter-pill-wrap">
+            <label class="filter-pill-label" for="saf-professor">
+              Professor
+            </label>
+            <select id="saf-professor" class="filter-pill-select">
+              <option value="">All</option>
+            </select>
+          </div>
+        </div>
+
+        <div
+          class="active-filter-tags-container"
+          id="section-active-filter-tags-container"
+        >
+          <div class="active-filter-tags" id="section-active-filter-tags"></div>
+        </div>
+      </div>
+
+      <div id="section-export-modal" class="modal">
         <div class="modal-content choice-modal-content">
           <div class="form-header">
             <h4>DOWNLOAD REPORT</h4>
           </div>
           <div class="choice-actions">
-            <button type="button" class="choice-btn" id="export-csv-btn">
+            <button
+              type="button"
+              class="choice-btn"
+              id="section-export-csv-btn"
+            >
               <i data-lucide="file-text"></i>
               CSV
             </button>
-            <button type="button" class="choice-btn" id="export-excel-btn">
+            <button
+              type="button"
+              class="choice-btn"
+              id="section-export-excel-btn"
+            >
               <i data-lucide="sheet"></i>
               Excel
             </button>
-            <button type="button" class="choice-btn" id="export-pdf-btn">
+            <button
+              type="button"
+              class="choice-btn"
+              id="section-export-pdf-btn"
+            >
               <i data-lucide="file-output"></i>
               PDF
             </button>
-            <button type="button" class="choice-btn" id="export-doc-btn">
-              <i data-lucide="file"></i>
-              DOC
-            </button>
           </div>
           <div class="form-actions choice-footer">
-            <button class="cancel-btn" id="export-cancel-btn" type="button">
+            <button
+              class="cancel-btn"
+              id="section-export-cancel-btn"
+              type="button"
+            >
               Cancel
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Modal - Section Assigning Form -->
-      <div
-        id="section-assign-modal"
-        class="modal section-assign-modal"
-        style="display: none"
-      >
-        <div class="modal-content">
-          <div class="form-header">SECTION ASSIGNING</div>
+      <div id="section-delete-confirm-modal" class="modal">
+        <div class="modal-content delete-confirm-modal-content">
+          <div class="form-header">
+            <h4>CONFIRM DELETE</h4>
+          </div>
+          <div class="delete-confirm-body">
+            <p
+              id="section-delete-confirm-target"
+              class="delete-confirm-target"
+            ></p>
+            <p class="delete-confirm-helper">
+              Type <strong>DELETE</strong> to continue.
+            </p>
+            <input
+              type="text"
+              id="section-delete-confirm-input"
+              class="delete-confirm-input"
+              placeholder="Type DELETE"
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-actions choice-footer delete-confirm-actions">
+            <button
+              class="cancel-btn"
+              id="section-delete-confirm-cancel"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              class="save-btn"
+              id="section-delete-confirm-submit"
+              type="button"
+              disabled
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
 
+      <div id="section-item-delete-modal" class="modal">
+        <div class="modal-content delete-confirm-modal-content">
+          <div class="form-header">
+            <h4>DELETE SECTION</h4>
+          </div>
+          <div class="delete-confirm-body">
+            <p
+              id="section-item-delete-target"
+              class="delete-confirm-target"
+            ></p>
+            <p class="delete-confirm-helper">
+              This will permanently delete the selected section.
+            </p>
+          </div>
+          <div class="form-actions choice-footer delete-confirm-actions">
+            <button
+              class="cancel-btn"
+              id="section-item-delete-cancel"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              class="save-btn"
+              id="section-item-delete-submit"
+              type="button"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="section-management-modal" class="modal">
+        <div class="modal-content">
+          <div class="form-header">
+            <h4 id="section-mgmt-modal-title">ADD SECTION</h4>
+          </div>
           <div class="form-body">
             <div class="input-group">
-              <label for="section-professor">PROFESSOR</label>
-              <div class="select-wrapper">
-                <select id="section-professor">
-                  <option value="" disabled selected>Professor</option>
-                  <option>Juan Delacruz</option>
-                  <option>Maria Lopez</option>
-                </select>
-                <span class="arrow"></span>
-              </div>
-            </div>
-            <div class="input-group">
-              <label for="section-name">SECTION</label>
-              <div class="select-wrapper">
-                <select id="section-name">
-                  <option value="" disabled selected>Section</option>
-                  <option>BSIT-3A</option>
-                  <option>BSIT-3B</option>
-                </select>
-                <span class="arrow"></span>
-              </div>
+              <label>
+                SECTION NAME
+                <span class="required-asterisk">*</span>
+              </label>
+              <input
+                type="text"
+                id="smm-section-name"
+                class="form-input"
+                placeholder="Enter section name"
+                autocomplete="off"
+              />
+              <div class="field-error" id="smm-section-name-error"></div>
             </div>
           </div>
           <div class="form-actions">
-            <button type="button" class="cancel-btn" id="section-cancel-btn">
+            <button
+              class="cancel-btn"
+              id="section-mgmt-cancel-btn"
+              type="button"
+            >
               Cancel
             </button>
-            <button type="button" class="save-btn" id="section-save-btn">
+            <button class="save-btn" id="section-mgmt-save-btn" type="button">
               Save
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Table -->
+      <div id="section-modal" class="modal">
+        <div class="modal-content">
+          <div class="form-header">
+            <h4 id="section-modal-title">ASSIGN SECTION</h4>
+          </div>
+
+          <div class="form-body section-form-body">
+            <div class="section-form-card">
+              <div class="section-form-title">Section Assignment Fields</div>
+              <div class="section-form-grid">
+                <div class="input-group">
+                  <label>
+                    PROFESSOR
+                    <span class="required-asterisk">*</span>
+                  </label>
+                  <div class="custom-select-wrap">
+                    <select id="sa-professor" class="custom-select">
+                      <option value="">Select professor</option>
+                    </select>
+                    <span class="custom-select-arrow" aria-hidden="true"
+                      ><i data-lucide="chevron-down"></i
+                    ></span>
+                  </div>
+                  <div class="field-error" id="sa-professor-error"></div>
+                </div>
+
+                <div class="input-group">
+                  <div class="label-with-icons">
+                    <label>
+                      SECTION
+                      <span class="required-asterisk">*</span>
+                    </label>
+                    <div class="section-label-icons">
+                      <button
+                        type="button"
+                        id="section-edit-btn"
+                        class="icon-btn"
+                        title="Edit section"
+                        aria-label="Edit section"
+                      >
+                        <i data-lucide="pencil"></i>
+                      </button>
+                      <button
+                        type="button"
+                        id="section-add-btn"
+                        class="icon-btn"
+                        title="Add section"
+                        aria-label="Add section"
+                      >
+                        <i data-lucide="plus"></i>
+                      </button>
+                      <button
+                        type="button"
+                        id="section-delete-toggle-btn"
+                        class="icon-btn"
+                        title="Delete mode"
+                        aria-label="Toggle section delete mode"
+                      >
+                        <i data-lucide="trash-2"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="sa-section-buttons" class="section-buttons-wrap">
+                    <!-- Multi-button section selector will be populated here -->
+                  </div>
+                  <div class="field-error" id="sa-section-error"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="cancel-btn" id="section-cancel-btn" type="button">
+              Cancel
+            </button>
+            <button class="save-btn" id="section-save-btn" type="button">
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="section-view-modal" class="modal">
+        <div
+          class="modal-content view-archive-modal-content external-view-modal-content"
+        >
+          <div class="form-header">
+            <h4>SECTION ASSIGNMENT DETAILS</h4>
+            <button
+              class="view-archive-close-btn"
+              type="button"
+              id="section-view-header-close-btn"
+              aria-label="Close"
+            >
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+
+          <div class="view-archive-body">
+            <div class="va-grid two-col">
+              <div class="va-field">
+                <label>ID</label>
+                <p id="sav-id">-</p>
+              </div>
+              <div class="va-field">
+                <label>Section</label>
+                <p id="sav-section">-</p>
+              </div>
+              <div class="va-field">
+                <label>Professor</label>
+                <p id="sav-professor">-</p>
+              </div>
+              <div class="va-field">
+                <label>Created At</label>
+                <p id="sav-created-at">-</p>
+              </div>
+              <div class="va-field">
+                <label>Updated At</label>
+                <p id="sav-updated-at">-</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions choice-footer">
+            <button
+              class="save-btn view-archive-icon-btn"
+              id="section-view-edit-btn"
+              type="button"
+              aria-label="Edit"
+              title="Edit"
+            >
+              <i data-lucide="pencil"></i>
+            </button>
+            <button
+              class="cancel-btn view-archive-delete-btn view-archive-icon-btn"
+              id="section-view-delete-btn"
+              type="button"
+              aria-label="Delete"
+              title="Delete"
+            >
+              <i data-lucide="trash-2"></i>
+            </button>
+            <button
+              class="cancel-btn"
+              id="section-view-close-btn"
+              type="button"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="archive-action-menu" class="archive-actions-menu">
+        <button class="menu-action view-btn" type="button">
+          <i data-lucide="eye"></i><span>View</span>
+        </button>
+        <button class="menu-action edit-btn" type="button">
+          <i data-lucide="square-pen"></i><span>Edit</span>
+        </button>
+        <button class="menu-action delete-btn danger" type="button">
+          <i data-lucide="trash-2"></i><span>Delete</span>
+        </button>
+      </div>
+
       <div class="table-card">
+        <div id="bulk-action-bar" class="bulk-action-bar">
+          <span id="bulk-action-count" class="bulk-action-count"
+            >0 selected</span
+          >
+          <div class="bulk-action-btns">
+            <button
+              class="bulk-action-btn danger"
+              id="bulk-delete-btn"
+              type="button"
+            >
+              <i data-lucide="trash-2"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+          <button
+            class="bulk-action-clear"
+            id="bulk-clear-btn"
+            type="button"
+            title="Clear selection"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
         <div class="table-wrapper">
-          <table>
+          <table id="archives-table">
             <thead>
               <tr>
-                <th><input type="checkbox" /></th>
-                <th>Section</th>
-                <th>Professor</th>
-                <th>Date Assigned</th>
-                <th></th>
+                <th class="col-check">
+                  <input
+                    type="checkbox"
+                    id="select-all-assignments"
+                    class="archive-checkbox"
+                  />
+                </th>
+                <th>SECTION</th>
+                <th>PROFESSOR</th>
+                <th class="col-actions"></th>
               </tr>
             </thead>
-
-            <tbody>
-              <tr>
-                <td><input type="checkbox" /></td>
-                <td>BSIT-3B</td>
-                <td>Juan Delacruz</td>
-                <td>Feb.21,2026</td>
-                <td class="action-cell">
-                  <div class="dropdown">
-                    <button class="dots-btn">
-                      <i data-lucide="more-vertical"></i>
-                    </button>
-                    <div class="dropdown-menu">
-                      <button>Edit</button>
-                      <button class="danger">Delete</button>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td><input type="checkbox" /></td>
-                <td>BSIT-3A</td>
-                <td>Maria Lopez</td>
-                <td>Feb.22,2026</td>
-                <td class="action-cell">
-                  <div class="dropdown">
-                    <button class="dots-btn">
-                      <i data-lucide="more-vertical"></i>
-                    </button>
-                    <div class="dropdown-menu">
-                      <button>Edit</button>
-                      <button class="danger">Delete</button>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
+            <tbody id="section-assignment-table-body"></tbody>
           </table>
         </div>
       </div>
     </div>
 
+    <div id="toast-container"></div>
+
     <script>
-      lucide.createIcons();
+      (function () {
+        const modalAnimationMs = 220;
+        const selectedRows = new Set();
 
-      document.querySelectorAll(".dots-btn").forEach((btn) => {
-        btn.addEventListener("click", function (e) {
-          e.stopPropagation();
+        let editingRow = null;
+        let viewingRow = null;
+        let pendingDeleteRows = [];
+        let activeActionRow = null;
 
-          document.querySelectorAll(".dropdown-menu").forEach((menu) => {
-            menu.classList.remove("show");
+        const state = {
+          query: "",
+          sortField: "",
+          sortDir: "asc",
+          filters: {
+            sectionName: [],
+            professorName: [],
+          },
+        };
+
+        const sortFieldDataAttr = {
+          id: "id",
+          sectionName: "sectionName",
+          professorName: "professorName",
+        };
+
+        const selectToFilterKey = {
+          "saf-section": "sectionName",
+          "saf-professor": "professorName",
+        };
+
+        const filterKeyToSelect = {
+          sectionName: "saf-section",
+          professorName: "saf-professor",
+        };
+
+        const filterKeyLabel = {
+          sectionName: "Section",
+          professorName: "Professor",
+        };
+
+        const sectionIpcChannelByMethod = {
+          getSectionAssignments: "getSectionAssignments",
+          createSectionAssignment: "createSectionAssignment",
+          updateSectionAssignment: "updateSectionAssignment",
+          deleteSectionAssignment: "deleteSectionAssignment",
+        };
+
+        let allAvailableSections = [];
+        let allAvailableSectionsWithIds = {};
+        let selectedSectionsForAssignment = new Set();
+        let sectionDeleteMode = false;
+        let sectionManagementMode = "add";
+        let editingSectionName = null;
+        let editingSectionId = null;
+        let pendingSectionDelete = null;
+
+        async function loadSectionButtons() {
+          const container = document.getElementById("sa-section-buttons");
+          if (!container) return;
+
+          const api = getElectronAPI();
+          try {
+            const sectionsList = [];
+            const sectionNamesSeen = new Set();
+            allAvailableSectionsWithIds = {};
+            if (typeof api?.getSections === "function") {
+              const result = await api.getSections();
+              const rows = Array.isArray(result?.sections)
+                ? result.sections
+                : [];
+              rows.forEach((row) => {
+                const name = asText(row.sections_name || row.section_name);
+                const id = row.id;
+                if (name) {
+                  const normalized = name.toLowerCase();
+                  if (!sectionNamesSeen.has(normalized)) {
+                    sectionsList.push(name);
+                    sectionNamesSeen.add(normalized);
+                  }
+                  allAvailableSectionsWithIds[name] = id;
+                }
+              });
+            }
+
+            allAvailableSections = sectionsList;
+
+            const assignments = await invokeSectionAPI("getSectionAssignments");
+            const existingAssignments = Array.isArray(
+              assignments?.sectionAssignments,
+            )
+              ? assignments.sectionAssignments
+              : [];
+            const selectedProfessor = asText(
+              document.getElementById("sa-professor")?.value,
+            );
+
+            const disabledSections = new Set();
+            if (selectedProfessor) {
+              existingAssignments.forEach((assign) => {
+                if (assign.professor_name === selectedProfessor) {
+                  disabledSections.add(assign.section_name);
+                }
+              });
+            }
+
+            selectedSectionsForAssignment = new Set(
+              Array.from(selectedSectionsForAssignment).filter(
+                (section) =>
+                  sectionsList.includes(section) &&
+                  (sectionDeleteMode || !disabledSections.has(section)),
+              ),
+            );
+
+            container.innerHTML = sectionsList
+              .map((section) => {
+                const isDisabled =
+                  !sectionDeleteMode && disabledSections.has(section);
+                return `<button type="button" class="section-btn ${sectionDeleteMode ? "section-btn-delete-mode" : ""}" data-section="${esc(section)}" data-section-id="${allAvailableSectionsWithIds[section] || ""}" ${selectedSectionsForAssignment.has(section) ? "data-selected=true" : ""} ${isDisabled ? "disabled" : ""}><span class="section-btn-text">${esc(section)}</span>${sectionDeleteMode ? '<span class="section-btn-delete-mark"><i data-lucide="x"></i></span>' : ""}</button>`;
+              })
+              .join("");
+
+            if (typeof lucide !== "undefined") {
+              lucide.createIcons({ nodes: [container] });
+            }
+
+            // Apply selected styling
+            container.querySelectorAll(".section-btn").forEach((btn) => {
+              if (selectedSectionsForAssignment.has(btn.dataset.section)) {
+                btn.classList.add("section-btn-selected");
+              } else {
+                btn.classList.remove("section-btn-selected");
+              }
+            });
+          } catch (_error) {
+            container.innerHTML =
+              '<p style="color: var(--color-error); font-size: 0.875rem;">Failed to load sections</p>';
+          }
+        }
+
+        function getSelectedSections() {
+          return Array.from(selectedSectionsForAssignment);
+        }
+
+        function setSectionDeleteMode(enabled) {
+          sectionDeleteMode = Boolean(enabled);
+
+          const toggleBtn = document.getElementById(
+            "section-delete-toggle-btn",
+          );
+          if (toggleBtn) {
+            toggleBtn.classList.toggle(
+              "icon-btn-danger-active",
+              sectionDeleteMode,
+            );
+            toggleBtn.title = sectionDeleteMode
+              ? "Exit delete mode"
+              : "Delete mode";
+            toggleBtn.setAttribute(
+              "aria-label",
+              sectionDeleteMode
+                ? "Exit section delete mode"
+                : "Toggle section delete mode",
+            );
+          }
+
+          loadSectionButtons();
+        }
+
+        function toggleSectionButtonSelection(sectionName) {
+          const buttons = document.querySelectorAll(".section-btn");
+          buttons.forEach((btn) => {
+            if (btn.dataset.section !== sectionName) return;
+
+            const isSelected = selectedSectionsForAssignment.has(sectionName);
+            if (isSelected) {
+              selectedSectionsForAssignment.delete(sectionName);
+              btn.classList.remove("section-btn-selected");
+            } else {
+              selectedSectionsForAssignment.add(sectionName);
+              btn.classList.add("section-btn-selected");
+            }
+          });
+        }
+
+        function selectSingleSection(sectionName) {
+          selectedSectionsForAssignment.clear();
+          if (sectionName) selectedSectionsForAssignment.add(sectionName);
+
+          document.querySelectorAll(".section-btn").forEach((btn) => {
+            if (btn.dataset.section === sectionName) {
+              btn.classList.add("section-btn-selected");
+            } else {
+              btn.classList.remove("section-btn-selected");
+            }
+          });
+        }
+
+        async function deleteSectionEntry(sectionId, sectionName) {
+          const id = Number.parseInt(sectionId, 10);
+          if (!Number.isInteger(id) || id <= 0) {
+            showToast("Invalid section ID.", "error");
+            return;
+          }
+
+          pendingSectionDelete = {
+            id,
+            sectionName: asText(sectionName),
+          };
+
+          const target = document.getElementById("section-item-delete-target");
+          if (target) {
+            target.textContent = `Are you sure you want to delete section \"${pendingSectionDelete.sectionName || "Unknown"}\"?`;
+          }
+
+          openModal(document.getElementById("section-item-delete-modal"));
+        }
+
+        function closeSectionItemDeleteConfirm() {
+          pendingSectionDelete = null;
+          closeModal(document.getElementById("section-item-delete-modal"));
+        }
+
+        async function confirmSectionItemDelete() {
+          if (!pendingSectionDelete?.id) {
+            closeSectionItemDeleteConfirm();
+            return;
+          }
+
+          const { id, sectionName } = pendingSectionDelete;
+
+          try {
+            const api = getElectronAPI();
+            if (!api || typeof api.deleteSection !== "function") {
+              showToast("Section delete API is unavailable.", "error");
+              closeSectionItemDeleteConfirm();
+              return;
+            }
+
+            const result = await api.deleteSection(id);
+            if (!result || !result.success) {
+              showToast(
+                result?.message || "Failed to delete section.",
+                "error",
+              );
+              closeSectionItemDeleteConfirm();
+              return;
+            }
+
+            selectedSectionsForAssignment.delete(asText(sectionName));
+            showToast("Section deleted successfully.", "success");
+            closeSectionItemDeleteConfirm();
+            loadSectionButtons();
+            loadMetaOptions();
+          } catch (error) {
+            showToast(error?.message || "Failed to delete section.", "error");
+            closeSectionItemDeleteConfirm();
+          }
+        }
+
+        function startEditingSection(sectionName) {
+          const container = document.getElementById("sa-section-buttons");
+          const button = container.querySelector(
+            `[data-section="${esc(sectionName)}"]`,
+          );
+          if (!button) return;
+
+          const sectionId = button.dataset.sectionId;
+          editingSectionId = sectionId;
+          editingSectionName = sectionName;
+
+          const textSpan = button.querySelector(".section-btn-text");
+          button.innerHTML = `
+            <input type="text" class="section-edit-input" value="${esc(sectionName)}" />
+            <button type="button" class="section-edit-cancel-btn" title="Cancel">Cancel</button>
+            <button type="button" class="section-edit-save-btn" title="Save">Save</button>
+          `;
+
+          const input = button.querySelector(".section-edit-input");
+          const cancelBtn = button.querySelector(".section-edit-cancel-btn");
+          const saveBtn = button.querySelector(".section-edit-save-btn");
+
+          input?.focus();
+          input?.select();
+
+          cancelBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            loadSectionButtons();
           });
 
-          this.nextElementSibling.classList.toggle("show");
-        });
-      });
+          saveBtn?.addEventListener("click", async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const newName = asText(input?.value);
+            if (!newName) {
+              showToast("Section name cannot be empty.", "error");
+              return;
+            }
+            if (newName === sectionName) {
+              loadSectionButtons();
+              return;
+            }
 
-      document.addEventListener("click", () => {
-        document.querySelectorAll(".dropdown-menu").forEach((menu) => {
-          menu.classList.remove("show");
-        });
-      });
+            try {
+              const api = getElectronAPI();
+              const result = await api.updateSection({
+                id: sectionId,
+                section_name: newName,
+              });
 
-      // Export modal + downloads
-      const exportModal = document.getElementById("export-modal");
-      const exportCancelBtn = document.getElementById("export-cancel-btn");
-      const exportCsvBtn = document.getElementById("export-csv-btn");
-      const exportExcelBtn = document.getElementById("export-excel-btn");
-      const exportPdfBtn = document.getElementById("export-pdf-btn");
-      const exportDocBtn = document.getElementById("export-doc-btn");
+              if (!result || !result.success) {
+                showToast(
+                  result?.message || "Failed to update section.",
+                  "error",
+                );
+                loadSectionButtons();
+                return;
+              }
 
-      function openModal(modalEl) {
-        modalEl.style.display = "flex";
-      }
-      function closeModal(modalEl) {
-        modalEl.style.display = "none";
-      }
+              showToast(
+                `Section updated from "${sectionName}" to "${newName}" successfully.`,
+                "success",
+              );
+              if (selectedSectionsForAssignment.has(sectionName)) {
+                selectedSectionsForAssignment.delete(sectionName);
+                selectedSectionsForAssignment.add(newName);
+              }
+              loadSectionButtons();
+            } catch (error) {
+              showToast(error?.message || "Failed to update section.", "error");
+              loadSectionButtons();
+            }
+          });
+        }
 
-      function getReportName() {
-        const title = (
-          document.querySelector(".page-title")?.textContent || "report"
-        )
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, "_");
-        const date = new Date().toISOString().slice(0, 10);
-        return `${title}_${date}`;
-      }
+        function resetSectionManagementForm() {
+          document.getElementById("smm-section-name").value = "";
+          clearFieldError("smm-section-name");
+          document.getElementById("section-mgmt-modal-title").textContent =
+            "ADD SECTION";
+          sectionManagementMode = "add";
+          editingSectionName = null;
+          editingSectionId = null;
+        }
 
-      function getTable() {
-        return document.querySelector("table");
-      }
+        function openSectionManagementModal(
+          mode = "add",
+          sectionName = null,
+          sectionId = null,
+        ) {
+          sectionManagementMode = mode;
+          editingSectionName = sectionName;
+          editingSectionId = sectionId || null;
 
-      function escapeCsvCell(value) {
-        const s = String(value ?? "");
-        if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-        return s;
-      }
-
-      function tableToCsv(table) {
-        const rows = Array.from(table.querySelectorAll("tr"));
-        return rows
-          .map((row) => {
-            const cells = Array.from(row.querySelectorAll("th,td")).map(
-              (cell) => {
-                return escapeCsvCell(cell.textContent.trim());
-              },
-            );
-            return cells.join(",");
-          })
-          .join("\n");
-      }
-
-      function downloadBlob(content, mime, filename) {
-        const blob =
-          content instanceof Blob
-            ? content
-            : new Blob([content], { type: mime });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      }
-
-      function downloadTableAsHtmlDoc(table, filename, mime) {
-        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${table.outerHTML}</body></html>`;
-        downloadBlob(html, mime, filename);
-      }
-
-      document.querySelector(".generate-btn").addEventListener("click", () => {
-        openModal(exportModal);
-        lucide.createIcons();
-      });
-
-      exportCancelBtn.addEventListener("click", () => closeModal(exportModal));
-      exportModal.addEventListener("click", (e) => {
-        if (e.target === exportModal) closeModal(exportModal);
-      });
-
-      exportCsvBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        const csv = tableToCsv(table);
-        downloadBlob(csv, "text/csv;charset=utf-8", `${getReportName()}.csv`);
-        closeModal(exportModal);
-      });
-
-      exportExcelBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        downloadTableAsHtmlDoc(
-          table,
-          `${getReportName()}.xls`,
-          "application/vnd.ms-excel",
-        );
-        closeModal(exportModal);
-      });
-
-      exportDocBtn.addEventListener("click", () => {
-        const table = getTable();
-        if (!table) return;
-        downloadTableAsHtmlDoc(
-          table,
-          `${getReportName()}.doc`,
-          "application/msword",
-        );
-        closeModal(exportModal);
-      });
-
-      exportPdfBtn.addEventListener("click", () => {
-        closeModal(exportModal);
-        window.print();
-      });
-
-      const select = document.querySelector(".select-wrapper select");
-      select.addEventListener("change", () => {
-        select.blur();
-      });
-
-      // Section Assign Modal - open/close
-      const sectionModal = document.getElementById("section-assign-modal");
-      document
-        .getElementById("assign-section-btn")
-        .addEventListener("click", () => {
-          sectionModal.style.display =
-            sectionModal.style.display === "none" || !sectionModal.style.display
-              ? "flex"
-              : "none";
-        });
-
-      document
-        .getElementById("section-cancel-btn")
-        .addEventListener("click", () => {
-          sectionModal.style.display = "none";
-        });
-
-      document
-        .getElementById("section-save-btn")
-        .addEventListener("click", () => {
-          const professor = document.getElementById("section-professor").value;
-          const section = document.getElementById("section-name").value;
-          if (professor && section) {
-            // Optional: add row to table or submit data
-            sectionModal.style.display = "none";
+          if (mode === "edit" && sectionName) {
+            document.getElementById("section-mgmt-modal-title").textContent =
+              "EDIT SECTION";
+            document.getElementById("smm-section-name").value = sectionName;
+          } else {
+            document.getElementById("section-mgmt-modal-title").textContent =
+              "ADD SECTION";
+            document.getElementById("smm-section-name").value = "";
           }
-        });
+
+          clearFieldError("smm-section-name");
+          openModal(document.getElementById("section-management-modal"));
+          setTimeout(() => {
+            const input = document.getElementById("smm-section-name");
+            if (!input) return;
+            input.disabled = false;
+            input.readOnly = false;
+            input.focus();
+            input.select();
+          }, 0);
+        }
+
+        async function saveSectionManagement() {
+          clearFieldError("smm-section-name");
+
+          const sectionName = asText(
+            document.getElementById("smm-section-name")?.value,
+          );
+          if (!sectionName) {
+            setFieldError("smm-section-name", "Section name is required.");
+            return;
+          }
+
+          try {
+            const api = getElectronAPI();
+            let result;
+
+            if (sectionManagementMode === "edit" && editingSectionId) {
+              result = await api.updateSection({
+                id: editingSectionId,
+                section_name: sectionName,
+              });
+              if (!result || !result.success) {
+                showToast(
+                  result?.message || "Failed to update section.",
+                  "error",
+                );
+                return;
+              }
+            } else {
+              result = await api.createSection({
+                section_name: sectionName,
+              });
+              if (!result || !result.success) {
+                showToast(
+                  result?.message || "Failed to create section.",
+                  "error",
+                );
+                return;
+              }
+            }
+
+            showToast(
+              sectionManagementMode === "add"
+                ? `Section "${sectionName}" added successfully.`
+                : `Section "${sectionName}" updated successfully.`,
+              "success",
+            );
+
+            closeModal(document.getElementById("section-management-modal"));
+            resetSectionManagementForm();
+
+            if (
+              sectionManagementMode === "add" &&
+              !allAvailableSections.includes(sectionName)
+            ) {
+              allAvailableSections.push(sectionName);
+            }
+
+            loadSectionButtons();
+          } catch (error) {
+            showToast(error?.message || "Failed to save section.", "error");
+          }
+        }
+
+        function openModal(modalEl) {
+          if (!modalEl) return;
+          modalEl.classList.remove("is-closing");
+          modalEl.style.display = "flex";
+          requestAnimationFrame(() => modalEl.classList.add("is-open"));
+        }
+
+        function closeModal(modalEl) {
+          if (!modalEl || modalEl.style.display === "none") return;
+
+          modalEl.classList.remove("is-open");
+          modalEl.classList.add("is-closing");
+
+          const finalizeClose = () => {
+            modalEl.style.display = "none";
+            modalEl.classList.remove("is-closing");
+          };
+
+          const onTransitionEnd = (event) => {
+            if (event.target !== modalEl) return;
+            modalEl.removeEventListener("transitionend", onTransitionEnd);
+            finalizeClose();
+          };
+
+          modalEl.addEventListener("transitionend", onTransitionEnd);
+          window.setTimeout(() => {
+            modalEl.removeEventListener("transitionend", onTransitionEnd);
+            finalizeClose();
+          }, modalAnimationMs + 60);
+        }
+
+        function showToast(message, type = "info", duration = 2600) {
+          const container = document.getElementById("toast-container");
+          if (!container) return null;
+
+          const toast = document.createElement("div");
+          toast.className = `toast toast-${type}`;
+
+          const iconName =
+            type === "success"
+              ? "check-circle"
+              : type === "error"
+                ? "alert-triangle"
+                : "info";
+
+          toast.innerHTML = `<i data-lucide="${iconName}"></i><span>${String(message || "")}</span>`;
+          container.appendChild(toast);
+
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons({ nodes: [toast] });
+          }
+
+          requestAnimationFrame(() => toast.classList.add("toast-show"));
+
+          window.setTimeout(
+            () => {
+              toast.classList.remove("toast-show");
+              window.setTimeout(() => toast.remove(), 220);
+            },
+            Math.max(700, Number(duration) || 2600),
+          );
+
+          return toast;
+        }
+
+        function asText(value) {
+          return String(value || "").trim();
+        }
+
+        function esc(value) {
+          return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        function getElectronAPI() {
+          if (window.electronAPI) return window.electronAPI;
+
+          try {
+            if (
+              window.parent &&
+              window.parent !== window &&
+              window.parent.electronAPI
+            ) {
+              return window.parent.electronAPI;
+            }
+          } catch (_error) {}
+
+          try {
+            if (window.top && window.top !== window && window.top.electronAPI) {
+              return window.top.electronAPI;
+            }
+          } catch (_error) {}
+
+          return null;
+        }
+
+        function getMissingHandlerName(error) {
+          const message = String(error?.message || "");
+          const match = message.match(
+            /No handler registered for ['\"]([^'\"]+)['\"]/i,
+          );
+          return match && match[1] ? match[1] : "";
+        }
+
+        function buildMissingHandlerMessage(handlerName) {
+          return `Electron main process is running without the "${handlerName}" IPC handler. Fully restart the app (close all app windows/processes, then run npm start) and try again.`;
+        }
+
+        async function invokeSectionAPI(methodName, ...args) {
+          const electronAPI = getElectronAPI();
+          if (!electronAPI || typeof electronAPI[methodName] !== "function") {
+            throw new Error(
+              `Section assignment API (${methodName}) is unavailable in this view.`,
+            );
+          }
+
+          try {
+            return await electronAPI[methodName](...args);
+          } catch (error) {
+            const missingHandler = getMissingHandlerName(error);
+            const expectedHandler = sectionIpcChannelByMethod[methodName] || "";
+            if (
+              missingHandler &&
+              (!expectedHandler || missingHandler === expectedHandler)
+            ) {
+              throw new Error(buildMissingHandlerMessage(missingHandler));
+            }
+            throw error;
+          }
+        }
+
+        function parseDateValue(value) {
+          const raw = asText(value);
+          if (!raw) return "";
+          const date = new Date(raw);
+          if (Number.isNaN(date.getTime())) return "";
+          return date.toISOString();
+        }
+
+        function formatDateTimeDisplay(value) {
+          const parsed = parseDateValue(value);
+          if (!parsed) return "-";
+          const d = new Date(parsed);
+          return d.toLocaleString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }
+
+        function formatDateTimeInputValue(value) {
+          const parsed = parseDateValue(value);
+          if (!parsed) return "";
+          const d = new Date(parsed);
+          const pad = (n) => String(n).padStart(2, "0");
+
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+            d.getHours(),
+          )}:${pad(d.getMinutes())}`;
+        }
+
+        function nowDateTimeInputValue() {
+          return formatDateTimeInputValue(new Date().toISOString());
+        }
+
+        function getDataRows() {
+          const tbody = document.getElementById(
+            "section-assignment-table-body",
+          );
+          if (!tbody) return [];
+          return Array.from(
+            tbody.querySelectorAll("tr:not([data-placeholder])"),
+          );
+        }
+
+        function renderTableMessage(title, detail = "") {
+          const tbody = document.getElementById(
+            "section-assignment-table-body",
+          );
+          if (!tbody) return;
+
+          const safeTitle = esc(title || "");
+          const safeDetail = esc(detail || "");
+
+          tbody.innerHTML = `<tr data-placeholder="section-assignment-status"><td colspan="4" class="users-status-cell"><div class="users-status-box"><strong class="users-status-title">${safeTitle}</strong>${safeDetail ? `<span>${safeDetail}</span>` : ""}</div></td></tr>`;
+        }
+
+        function nextNumericId() {
+          const ids = getDataRows()
+            .map((row) => Number.parseInt(row.dataset.id, 10))
+            .filter((n) => Number.isInteger(n));
+          return (ids.length ? Math.max(...ids) : 0) + 1;
+        }
+
+        function rowFromData(entry) {
+          return {
+            id: Number.parseInt(entry.id, 10) || nextNumericId(),
+            sectionName: asText(entry.sectionName || entry.section_name),
+            professorName: asText(entry.professorName || entry.professor_name),
+            createdAt: asText(entry.createdAt || entry.created_at),
+            updatedAt: asText(entry.updatedAt || entry.updated_at),
+          };
+        }
+
+        function syncRowDataset(row, data) {
+          row.dataset.id = String(data.id);
+          row.dataset.sectionName = asText(data.sectionName);
+          row.dataset.professorName = asText(data.professorName);
+          row.dataset.createdAt = asText(data.createdAt);
+          row.dataset.updatedAt = asText(data.updatedAt);
+        }
+
+        function buildRowMarkup(data) {
+          return `<td><input type="checkbox" class="archive-checkbox row-check" /></td><td>${esc(data.sectionName)}</td><td>${esc(data.professorName)}</td><td class="action-cell"><button class="dots-btn" type="button"><i data-lucide="more-vertical"></i></button></td>`;
+        }
+
+        function flashInsertedRow(row) {
+          if (!row) return;
+          row.classList.remove("row-inserted");
+          void row.offsetWidth;
+          row.classList.add("row-inserted");
+
+          if (row.offsetParent !== null) {
+            row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+
+          window.setTimeout(() => {
+            row.classList.remove("row-inserted");
+          }, 2400);
+        }
+
+        function addSectionAssignmentRow(input, options = {}) {
+          const data = rowFromData(input);
+          const highlight = Boolean(options.highlight);
+
+          const tbody = document.getElementById(
+            "section-assignment-table-body",
+          );
+          if (!tbody) return;
+
+          const existing = tbody.querySelector(
+            `tr[data-id='${String(data.id)}']`,
+          );
+          if (existing) {
+            syncRowDataset(existing, data);
+            existing.innerHTML = buildRowMarkup(data);
+            if (typeof lucide !== "undefined") {
+              lucide.createIcons({ nodes: [existing] });
+            }
+            return;
+          }
+
+          const row = document.createElement("tr");
+          syncRowDataset(row, data);
+          row.innerHTML = buildRowMarkup(data);
+
+          const firstDataRow = tbody.querySelector(
+            "tr:not([data-placeholder])",
+          );
+          if (firstDataRow) {
+            tbody.insertBefore(row, firstDataRow);
+          } else {
+            tbody.appendChild(row);
+          }
+
+          if (highlight) flashInsertedRow(row);
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons({ nodes: [row] });
+          }
+        }
+
+        async function loadSectionAssignments() {
+          renderTableMessage("Loading section assignments...", "");
+
+          try {
+            const result = await invokeSectionAPI("getSectionAssignments");
+            if (!result || !result.success) {
+              renderTableMessage(
+                "Failed to load section assignments.",
+                result?.message ||
+                  "The main process returned an unsuccessful response.",
+              );
+              return;
+            }
+
+            const rows = Array.isArray(result.sectionAssignments)
+              ? result.sectionAssignments
+              : [];
+            const tbody = document.getElementById(
+              "section-assignment-table-body",
+            );
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            if (!rows.length) {
+              renderTableMessage(
+                "No section assignments found.",
+                "Use the + button to create your first section assignment.",
+              );
+              return;
+            }
+
+            rows.forEach((entry) => addSectionAssignmentRow(entry));
+            refreshFiltersAndTable();
+            updateSelectionUI();
+            syncModalOptionsFromRows();
+          } catch (error) {
+            renderTableMessage(
+              "Error loading section assignments.",
+              error?.message || "Unexpected error while fetching assignments.",
+            );
+          }
+        }
+
+        function rowMatchesQuery(row, query) {
+          if (!query) return true;
+          const q = query.toLowerCase();
+          const searchable = [
+            row.dataset.id || "",
+            row.dataset.sectionName || "",
+            row.dataset.professorName || "",
+          ];
+          return searchable.some((field) => field.toLowerCase().includes(q));
+        }
+
+        function rowMatchesFilters(row) {
+          const { sectionName, professorName } = state.filters;
+
+          if (
+            sectionName.length &&
+            !sectionName.includes(row.dataset.sectionName || "")
+          ) {
+            return false;
+          }
+
+          if (
+            professorName.length &&
+            !professorName.includes(row.dataset.professorName || "")
+          ) {
+            return false;
+          }
+
+          return true;
+        }
+
+        function applyVisibility() {
+          const rows = getDataRows();
+          const query = state.query.trim();
+
+          rows.forEach((row) => {
+            const visible =
+              rowMatchesQuery(row, query) && rowMatchesFilters(row);
+            row.style.display = visible ? "" : "none";
+          });
+        }
+
+        function compareDateLike(aVal, bVal) {
+          const aTs = Date.parse(aVal || "") || 0;
+          const bTs = Date.parse(bVal || "") || 0;
+          return aTs - bTs;
+        }
+
+        function sortRows() {
+          const attrKey = sortFieldDataAttr[state.sortField];
+          if (!attrKey) return;
+
+          const tbody = document.getElementById(
+            "section-assignment-table-body",
+          );
+          if (!tbody) return;
+
+          const rows = getDataRows();
+          rows.sort((a, b) => {
+            const aVal = String(a.dataset[attrKey] || "").toLowerCase();
+            const bVal = String(b.dataset[attrKey] || "").toLowerCase();
+
+            let cmp = 0;
+            if (attrKey === "id") {
+              cmp =
+                (Number.parseInt(aVal, 10) || 0) -
+                (Number.parseInt(bVal, 10) || 0);
+            } else {
+              cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+            }
+
+            return state.sortDir === "asc" ? cmp : -cmp;
+          });
+
+          rows.forEach((row) => tbody.appendChild(row));
+        }
+
+        function fillSelect(id, options, selectedValues) {
+          const el = document.getElementById(id);
+          if (!el) return;
+
+          const selected = Array.isArray(selectedValues) ? selectedValues : [];
+          const allLabel = selected.length
+            ? `All (${selected.length} selected)`
+            : "All";
+
+          el.innerHTML =
+            `<option value="">${allLabel}</option>` +
+            options
+              .map((option) => {
+                const isSelected = selected.includes(option);
+                const label = isSelected ? `${option} [selected]` : option;
+                return `<option value="${esc(option)}" data-selected="${isSelected ? "true" : "false"}">${esc(label)}</option>`;
+              })
+              .join("");
+
+          el.value = "";
+        }
+
+        function populateFilterDropdowns() {
+          const rows = getDataRows();
+          const sections = new Set();
+          const professors = new Set();
+
+          rows.forEach((row) => {
+            if (row.dataset.sectionName) sections.add(row.dataset.sectionName);
+            if (row.dataset.professorName)
+              professors.add(row.dataset.professorName);
+          });
+
+          fillSelect(
+            "saf-section",
+            Array.from(sections).sort(),
+            state.filters.sectionName,
+          );
+          fillSelect(
+            "saf-professor",
+            Array.from(professors).sort(),
+            state.filters.professorName,
+          );
+        }
+
+        function renderActiveTags() {
+          const bar = document.getElementById("section-active-filter-tags");
+          if (!bar) return;
+
+          const tags = Object.entries(state.filters).flatMap(
+            ([key, values]) => {
+              const list = Array.isArray(values) ? values : [];
+              return list.map((value) => ({ key, value }));
+            },
+          );
+
+          if (!tags.length) {
+            bar.innerHTML = "";
+            return;
+          }
+
+          bar.innerHTML = tags
+            .map(
+              (tag) =>
+                `<span class="filter-tag" data-key="${tag.key}">${esc(filterKeyLabel[tag.key])}: ${esc(tag.value)}<button class="filter-tag-remove" type="button" aria-label="Remove ${esc(filterKeyLabel[tag.key])} filter" data-key="${tag.key}" data-value="${esc(tag.value)}">x</button></span>`,
+            )
+            .join("");
+        }
+
+        function toggleFilterValue(filterKey, value) {
+          const normalized = String(value || "").trim();
+          if (!normalized || !(state.filters[filterKey] instanceof Array)) {
+            return;
+          }
+
+          const list = state.filters[filterKey];
+          const idx = list.indexOf(normalized);
+          if (idx >= 0) {
+            list.splice(idx, 1);
+          } else {
+            list.push(normalized);
+          }
+        }
+
+        function updateSortDirBtn() {
+          const btn = document.getElementById("section-sort-dir");
+          if (!btn) return;
+
+          if (!state.sortField) {
+            btn.style.display = "none";
+            return;
+          }
+
+          btn.style.display = "";
+          const icon =
+            state.sortDir === "asc"
+              ? "arrow-up-narrow-wide"
+              : "arrow-down-narrow-wide";
+          btn.innerHTML = `<i data-lucide="${icon}"></i>`;
+
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons({ nodes: [btn] });
+          }
+        }
+
+        function applyAll() {
+          sortRows();
+          applyVisibility();
+        }
+
+        function refreshFiltersAndTable() {
+          populateFilterDropdowns();
+          renderActiveTags();
+          applyAll();
+        }
+
+        function updateSelectionUI() {
+          const bar = document.getElementById("bulk-action-bar");
+          const countEl = document.getElementById("bulk-action-count");
+          const allCb = document.getElementById("select-all-assignments");
+          const rows = getDataRows();
+
+          if (countEl) countEl.textContent = `${selectedRows.size} selected`;
+
+          if (bar) {
+            const hasSelection = selectedRows.size > 0;
+            bar.style.visibility = hasSelection ? "visible" : "hidden";
+            bar.style.opacity = hasSelection ? "1" : "0";
+            bar.style.pointerEvents = hasSelection ? "auto" : "none";
+          }
+
+          if (allCb) {
+            allCb.checked =
+              rows.length > 0 && selectedRows.size === rows.length;
+            allCb.indeterminate =
+              selectedRows.size > 0 && selectedRows.size < rows.length;
+          }
+        }
+
+        function setRowSelected(row, selected) {
+          if (!row) return;
+          const key = row.dataset.id;
+          if (!key) return;
+
+          if (selected) {
+            selectedRows.add(key);
+            row.classList.add("row-selected");
+          } else {
+            selectedRows.delete(key);
+            row.classList.remove("row-selected");
+          }
+
+          const cb = row.querySelector(".row-check");
+          if (cb) cb.checked = selected;
+        }
+
+        function clearSelection() {
+          selectedRows.clear();
+          getDataRows().forEach((row) => {
+            row.classList.remove("row-selected");
+            const cb = row.querySelector(".row-check");
+            if (cb) cb.checked = false;
+          });
+          updateSelectionUI();
+        }
+
+        function closeActionMenu() {
+          const menu = document.getElementById("archive-action-menu");
+          if (menu) menu.style.display = "none";
+          activeActionRow = null;
+        }
+
+        function openActionMenu(dotsBtn, row) {
+          const menu = document.getElementById("archive-action-menu");
+          if (!menu || !dotsBtn) return;
+
+          activeActionRow = row;
+          menu.style.display = "flex";
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons({ nodes: [menu] });
+          }
+
+          const rect = dotsBtn.getBoundingClientRect();
+          const menuW = 210;
+          const menuH = menu.offsetHeight || 156;
+
+          const spaceBelow = window.innerHeight - rect.bottom;
+          const spaceAbove = rect.top;
+          let top;
+          if (spaceBelow >= menuH || spaceBelow >= spaceAbove) {
+            top = rect.bottom + 4;
+          } else {
+            top = rect.top - menuH - 4;
+          }
+
+          let left = rect.right - menuW;
+          if (left < 8) left = 8;
+          if (left + menuW > window.innerWidth - 8) {
+            left = window.innerWidth - menuW - 8;
+          }
+
+          menu.style.left = `${left}px`;
+          menu.style.top = `${Math.max(8, top)}px`;
+        }
+
+        function clearFieldError(fieldId) {
+          const errorEl = document.getElementById(`${fieldId}-error`);
+          const inputEl = document.getElementById(fieldId);
+          if (errorEl) {
+            errorEl.textContent = "";
+            errorEl.classList.remove("show");
+          }
+          if (inputEl) inputEl.classList.remove("input-invalid");
+        }
+
+        function setFieldError(fieldId, message) {
+          const errorEl = document.getElementById(`${fieldId}-error`);
+          const inputEl = document.getElementById(fieldId);
+          if (errorEl) {
+            errorEl.textContent = String(message || "");
+            errorEl.classList.add("show");
+          }
+          if (inputEl) inputEl.classList.add("input-invalid");
+        }
+
+        function getModalOptionValues(selectId) {
+          const el = document.getElementById(selectId);
+          if (!el) return [];
+          return Array.from(el.options)
+            .map((option) => asText(option.value))
+            .filter(Boolean);
+        }
+
+        function setModalOptions(selectId, options, selectedValue = "") {
+          const el = document.getElementById(selectId);
+          if (!el) return;
+
+          const uniqueOptions = Array.from(
+            new Set(options.map((item) => asText(item)).filter(Boolean)),
+          ).sort((a, b) => a.localeCompare(b));
+
+          const label = selectId === "sa-section" ? "section" : "professor";
+          el.innerHTML = `<option value="">Select ${label}</option>${uniqueOptions
+            .map((item) => `<option value="${esc(item)}">${esc(item)}</option>`)
+            .join("")}`;
+
+          if (selectedValue) {
+            const match = uniqueOptions.find(
+              (item) => item.toLowerCase() === selectedValue.toLowerCase(),
+            );
+            if (match) {
+              el.value = match;
+            }
+          }
+        }
+
+        function syncModalOptionsFromRows() {
+          const rows = getDataRows();
+          const sections = new Set();
+          const professors = new Set();
+
+          rows.forEach((row) => {
+            if (row.dataset.sectionName) sections.add(row.dataset.sectionName);
+            if (row.dataset.professorName)
+              professors.add(row.dataset.professorName);
+          });
+
+          const existingSections = getModalOptionValues("sa-section");
+          const existingProfessors = getModalOptionValues("sa-professor");
+
+          setModalOptions("sa-section", [
+            ...existingSections,
+            ...Array.from(sections),
+          ]);
+          setModalOptions("sa-professor", [
+            ...existingProfessors,
+            ...Array.from(professors),
+          ]);
+        }
+
+        async function loadMetaOptions() {
+          const api = getElectronAPI();
+          if (!api) {
+            syncModalOptionsFromRows();
+            return;
+          }
+
+          const sectionOptions = [];
+          const professorOptions = [];
+
+          try {
+            if (typeof api.getSections === "function") {
+              const sectionsResult = await api.getSections();
+              const rows = Array.isArray(sectionsResult?.sections)
+                ? sectionsResult.sections
+                : [];
+
+              rows.forEach((row) => {
+                const name = asText(row.sections_name || row.section_name);
+                if (name) sectionOptions.push(name);
+              });
+            }
+          } catch (_error) {}
+
+          try {
+            if (typeof api.getUsers === "function") {
+              const usersResult = await api.getUsers();
+              const rows = Array.isArray(usersResult?.users)
+                ? usersResult.users
+                : [];
+
+              rows.forEach((row) => {
+                const name = asText(row.name || row.professor_name);
+                if (name) professorOptions.push(name);
+              });
+            } else if (typeof api.getProfessors === "function") {
+              const professorsResult = await api.getProfessors();
+              const rows = Array.isArray(professorsResult?.professors)
+                ? professorsResult.professors
+                : [];
+
+              rows.forEach((row) => {
+                const name = asText(row.name || row.professor_name);
+                if (name) professorOptions.push(name);
+              });
+            }
+          } catch (_error) {}
+
+          const existingSections = getModalOptionValues("sa-section");
+          const existingProfessors = getModalOptionValues("sa-professor");
+
+          setModalOptions("sa-section", [
+            ...existingSections,
+            ...sectionOptions,
+          ]);
+          setModalOptions("sa-professor", [
+            ...existingProfessors,
+            ...professorOptions,
+          ]);
+        }
+
+        function resetForm() {
+          document.getElementById("sa-section-buttons").innerHTML = "";
+          const sectionSelect = document.getElementById("sa-section");
+          if (sectionSelect) sectionSelect.value = "";
+          selectedSectionsForAssignment.clear();
+
+          document.getElementById("sa-professor").value = "";
+
+          clearFieldError("sa-section");
+          clearFieldError("sa-professor");
+
+          editingRow = null;
+          document.getElementById("section-modal-title").textContent =
+            "ASSIGN SECTION";
+
+          loadMetaOptions();
+          loadSectionButtons();
+        }
+
+        function rowToAssignment(row) {
+          return {
+            id: row.dataset.id,
+            sectionName: row.dataset.sectionName,
+            professorName: row.dataset.professorName,
+            createdAt: row.dataset.createdAt,
+            updatedAt: row.dataset.updatedAt,
+          };
+        }
+
+        function validateForm(payload) {
+          const errors = {};
+          if (
+            !Array.isArray(payload.section_names) ||
+            !payload.section_names.length
+          )
+            errors["sa-section"] = "Section is required.";
+          if (!payload.professor_name) {
+            errors["sa-professor"] = "Professor is required.";
+          }
+          return errors;
+        }
+
+        function openViewModal(row) {
+          viewingRow = row;
+          const assignment = rowToAssignment(row);
+
+          document.getElementById("sav-id").textContent = String(
+            assignment.id || "-",
+          ).padStart(3, "0");
+          document.getElementById("sav-section").textContent =
+            assignment.sectionName || "-";
+          document.getElementById("sav-professor").textContent =
+            assignment.professorName || "-";
+          document.getElementById("sav-created-at").textContent =
+            formatDateTimeDisplay(assignment.createdAt);
+          document.getElementById("sav-updated-at").textContent =
+            formatDateTimeDisplay(assignment.updatedAt);
+
+          openModal(document.getElementById("section-view-modal"));
+        }
+
+        function openFormForEdit(row) {
+          editingRow = row;
+          const assignment = rowToAssignment(row);
+
+          loadMetaOptions();
+          loadSectionButtons();
+          setTimeout(() => {
+            document.getElementById("sa-professor").value =
+              assignment.professorName || "";
+            selectSingleSection(assignment.sectionName);
+          }, 0);
+
+          clearFieldError("sa-section");
+          clearFieldError("sa-professor");
+
+          document.getElementById("section-modal-title").textContent =
+            "EDIT SECTION ASSIGNMENT";
+          openModal(document.getElementById("section-modal"));
+        }
+
+        function openDeleteConfirm(rows) {
+          pendingDeleteRows = Array.isArray(rows) ? rows : [];
+
+          const label = document.getElementById(
+            "section-delete-confirm-target",
+          );
+          if (label) {
+            if (pendingDeleteRows.length === 1) {
+              label.textContent = `Are you sure you want to delete section assignment for "${pendingDeleteRows[0].dataset.sectionName || "Unknown"}"?`;
+            } else {
+              label.textContent = `Are you sure you want to delete ${pendingDeleteRows.length} section assignments?`;
+            }
+          }
+
+          const input = document.getElementById("section-delete-confirm-input");
+          const submit = document.getElementById(
+            "section-delete-confirm-submit",
+          );
+          if (input) input.value = "";
+          if (submit) submit.disabled = true;
+
+          openModal(document.getElementById("section-delete-confirm-modal"));
+          window.setTimeout(() => input && input.focus(), 0);
+        }
+
+        function closeDeleteConfirm() {
+          pendingDeleteRows = [];
+          const input = document.getElementById("section-delete-confirm-input");
+          const submit = document.getElementById(
+            "section-delete-confirm-submit",
+          );
+          if (input) input.value = "";
+          if (submit) submit.disabled = true;
+          closeModal(document.getElementById("section-delete-confirm-modal"));
+        }
+
+        async function deletePendingRows() {
+          const failed = [];
+
+          for (const row of pendingDeleteRows) {
+            const id = Number.parseInt(row?.dataset?.id, 10);
+            if (!Number.isInteger(id) || id <= 0) continue;
+
+            try {
+              const result = await invokeSectionAPI(
+                "deleteSectionAssignment",
+                id,
+              );
+              if (!result || !result.success) {
+                failed.push(
+                  result?.message ||
+                    `Failed to delete section assignment ID ${id}.`,
+                );
+              } else if (row && row.parentNode) {
+                selectedRows.delete(row.dataset.id);
+                row.parentNode.removeChild(row);
+              }
+            } catch (error) {
+              failed.push(
+                error?.message ||
+                  `Failed to delete section assignment ID ${id}.`,
+              );
+            }
+          }
+
+          closeDeleteConfirm();
+          clearSelection();
+          refreshFiltersAndTable();
+          syncModalOptionsFromRows();
+
+          if (failed.length) {
+            showToast(failed[0], "error");
+          } else {
+            showToast("Section assignment deleted successfully.", "success");
+          }
+        }
+
+        async function saveAssignment() {
+          clearFieldError("sa-section");
+          clearFieldError("sa-professor");
+
+          const selectedSections = getSelectedSections();
+          const payload = {
+            section_names: selectedSections,
+            professor_name: asText(
+              document.getElementById("sa-professor")?.value,
+            ),
+          };
+
+          const errors = validateForm(payload);
+          if (Object.keys(errors).length) {
+            Object.entries(errors).forEach(([fieldId, message]) =>
+              setFieldError(fieldId, message),
+            );
+            const first = Object.keys(errors)[0];
+            const firstEl = document.getElementById(first);
+            if (firstEl) firstEl.focus();
+            return;
+          }
+
+          try {
+            if (editingRow) {
+              if (selectedSections.length !== 1) {
+                setFieldError(
+                  "sa-section",
+                  "Select exactly one section when editing an assignment.",
+                );
+                return;
+              }
+
+              payload.id = Number.parseInt(editingRow.dataset.id, 10);
+              payload.section_name = selectedSections[0];
+              const result = await invokeSectionAPI(
+                "updateSectionAssignment",
+                payload,
+              );
+
+              if (!result || !result.success || !result.sectionAssignment) {
+                showToast(
+                  result?.message || "Failed to update section assignment.",
+                  "error",
+                );
+                return;
+              }
+
+              addSectionAssignmentRow(result.sectionAssignment);
+              showToast("Section assignment updated successfully.", "success");
+            } else {
+              const failed = [];
+              let createdCount = 0;
+
+              for (const sectionName of selectedSections) {
+                const result = await invokeSectionAPI(
+                  "createSectionAssignment",
+                  {
+                    section_name: sectionName,
+                    professor_name: payload.professor_name,
+                  },
+                );
+
+                if (!result || !result.success || !result.sectionAssignment) {
+                  failed.push(
+                    result?.message ||
+                      `Failed to assign section "${sectionName}".`,
+                  );
+                  continue;
+                }
+
+                addSectionAssignmentRow(result.sectionAssignment, {
+                  highlight: true,
+                });
+                createdCount += 1;
+              }
+
+              if (!createdCount) {
+                showToast(
+                  failed[0] || "Failed to create section assignments.",
+                  "error",
+                );
+                return;
+              }
+
+              if (failed.length) {
+                showToast(
+                  `Assigned ${createdCount} section(s). ${failed[0]}`,
+                  "info",
+                );
+              } else {
+                showToast(
+                  `Assigned ${createdCount} section(s) successfully.`,
+                  "success",
+                );
+              }
+            }
+
+            closeModal(document.getElementById("section-modal"));
+            resetForm();
+            refreshFiltersAndTable();
+            clearSelection();
+            syncModalOptionsFromRows();
+
+            if (typeof lucide !== "undefined") {
+              lucide.createIcons();
+            }
+          } catch (error) {
+            showToast(
+              error?.message || "Failed to save section assignment.",
+              "error",
+            );
+          }
+        }
+
+        function parseCsvRow(line) {
+          const out = [];
+          let cur = "";
+          let inQuotes = false;
+
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+              if (inQuotes && line[i + 1] === '"') {
+                cur += '"';
+                i += 1;
+              } else {
+                inQuotes = !inQuotes;
+              }
+              continue;
+            }
+
+            if (ch === "," && !inQuotes) {
+              out.push(cur.trim());
+              cur = "";
+              continue;
+            }
+
+            cur += ch;
+          }
+
+          out.push(cur.trim());
+          return out.map((v) => v.replace(/^"|"$/g, "").trim());
+        }
+
+        function normalizeHeader(h) {
+          return String(h || "")
+            .replace(/^\uFEFF/, "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .replace(/[._-]/g, " ");
+        }
+
+        function templateCsv() {
+          const headers = ["section_name", "professor_name"];
+          const sample = ["BSIT-3A", "Juan Dela Cruz"];
+
+          const toCell = (value) => {
+            const s = String(value ?? "");
+            if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+            return s;
+          };
+
+          return `${headers.map(toCell).join(",")}\n${sample.map(toCell).join(",")}`;
+        }
+
+        function downloadCsvTemplate() {
+          const blob = new Blob([templateCsv()], {
+            type: "text/csv;charset=utf-8",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "section_assignments_template.csv";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          showToast("CSV template downloaded.", "success");
+        }
+
+        async function importCsv(file) {
+          if (!file) return;
+
+          const isCsv =
+            file.type === "text/csv" ||
+            file.name.toLowerCase().endsWith(".csv");
+          if (!isCsv) {
+            showToast("Please select a CSV file.", "error");
+            return;
+          }
+
+          try {
+            const text = await file.text();
+            const lines = text
+              .split(/\r?\n/)
+              .map((line) => line.trim())
+              .filter(Boolean);
+
+            if (!lines.length) {
+              showToast("CSV is empty.", "error");
+              return;
+            }
+
+            const first = parseCsvRow(lines[0]);
+            const hasHeader = first.some((v) => /[a-zA-Z]/.test(v));
+
+            let headers = [];
+            let start = 0;
+            if (hasHeader) {
+              headers = first.map(normalizeHeader);
+              start = 1;
+            }
+
+            const idx = (aliases) => {
+              if (!headers.length) return -1;
+              const set = new Set(aliases.map(normalizeHeader));
+              return headers.findIndex((h) => set.has(h));
+            };
+
+            const map = {
+              sectionName: idx(["section", "section name", "section_name"]),
+              professorName: idx([
+                "professor",
+                "professor name",
+                "professor_name",
+              ]),
+            };
+
+            let imported = 0;
+            const failedRows = [];
+
+            for (let i = start; i < lines.length; i++) {
+              const cols = parseCsvRow(lines[i]);
+              if (cols.every((c) => !c)) continue;
+
+              const row = headers.length
+                ? {
+                    section_name:
+                      map.sectionName >= 0 ? cols[map.sectionName] : "",
+                    professor_name:
+                      map.professorName >= 0 ? cols[map.professorName] : "",
+                  }
+                : {
+                    section_name: cols[0] || "",
+                    professor_name: cols[1] || "",
+                  };
+
+              if (!row.section_name || !row.professor_name) {
+                failedRows.push(i + 1);
+                continue;
+              }
+
+              try {
+                const result = await invokeSectionAPI(
+                  "createSectionAssignment",
+                  row,
+                );
+                if (result && result.success && result.sectionAssignment) {
+                  addSectionAssignmentRow(result.sectionAssignment, {
+                    highlight: true,
+                  });
+                  imported += 1;
+                } else {
+                  failedRows.push(i + 1);
+                }
+              } catch (_error) {
+                failedRows.push(i + 1);
+              }
+            }
+
+            refreshFiltersAndTable();
+            clearSelection();
+            syncModalOptionsFromRows();
+
+            if (imported) {
+              if (failedRows.length) {
+                showToast(
+                  `Imported ${imported} row(s). Skipped ${failedRows.length} row(s).`,
+                  "info",
+                );
+              } else {
+                showToast(`Imported ${imported} row(s) from CSV.`, "success");
+              }
+            } else {
+              showToast(
+                "No valid rows imported. Check section assignment CSV format.",
+                "error",
+              );
+            }
+          } catch (error) {
+            showToast(error?.message || "Failed to read CSV.", "error");
+          }
+        }
+
+        function getReportName() {
+          const title = (
+            document.querySelector(".page-title")?.textContent || "report"
+          )
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+          const date = new Date().toISOString().slice(0, 10);
+          return `${title}_${date}`;
+        }
+
+        function escapeCsvCell(value) {
+          const s = String(value ?? "");
+          if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+          return s;
+        }
+
+        function getVisibleTableRowsForExport() {
+          const table = document.getElementById("archives-table");
+          if (!table) return [];
+
+          const rows = Array.from(table.querySelectorAll("tr"));
+          return rows.filter((row) => {
+            if (row.parentElement && row.parentElement.tagName === "THEAD") {
+              return true;
+            }
+            return row.style.display !== "none";
+          });
+        }
+
+        function tableToCsv() {
+          const rows = getVisibleTableRowsForExport();
+          return rows
+            .map((row) => {
+              const cells = Array.from(row.querySelectorAll("th,td"));
+              return cells
+                .filter((_, index) => index !== 0 && index !== 4)
+                .map((cell) => {
+                  const text = (cell.textContent || "")
+                    .replace(/\s+/g, " ")
+                    .trim();
+                  return escapeCsvCell(text);
+                })
+                .join(",");
+            })
+            .join("\n");
+        }
+
+        function downloadBlob(content, mime, filename) {
+          const blob =
+            content instanceof Blob
+              ? content
+              : new Blob([content], { type: mime });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+
+        function exportExcel() {
+          const table = document.getElementById("archives-table");
+          if (!table) return;
+          const html = `<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body>${table.outerHTML}</body></html>`;
+          downloadBlob(
+            html,
+            "application/vnd.ms-excel",
+            `${getReportName()}.xls`,
+          );
+        }
+
+        function bindEvents() {
+          document
+            .getElementById("section-open-modal")
+            ?.addEventListener("click", () => {
+              selectedSectionsForAssignment.clear();
+              resetForm();
+              openModal(document.getElementById("section-modal"));
+            });
+
+          document
+            .getElementById("sa-professor")
+            ?.addEventListener("change", () => {
+              loadSectionButtons();
+            });
+
+          document
+            .getElementById("section-edit-btn")
+            ?.addEventListener("click", () => {
+              const selectedSections = getSelectedSections();
+              if (selectedSections.length !== 1) {
+                showToast("Select exactly one section to edit.", "error");
+                return;
+              }
+
+              const selectedSection = selectedSections[0];
+              const sectionId =
+                allAvailableSectionsWithIds[selectedSection] || null;
+              openSectionManagementModal("edit", selectedSection, sectionId);
+            });
+
+          document
+            .getElementById("section-add-btn")
+            ?.addEventListener("click", () => {
+              setSectionDeleteMode(false);
+              openSectionManagementModal("add");
+            });
+
+          document
+            .getElementById("section-delete-toggle-btn")
+            ?.addEventListener("click", () => {
+              setSectionDeleteMode(!sectionDeleteMode);
+            });
+
+          document
+            .getElementById("section-management-modal")
+            ?.addEventListener("click", (event) => {
+              if (event.target.id === "section-management-modal") {
+                closeModal(event.target);
+              }
+            });
+
+          document
+            .getElementById("section-mgmt-cancel-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("section-management-modal"));
+            });
+
+          document
+            .getElementById("section-mgmt-save-btn")
+            ?.addEventListener("click", saveSectionManagement);
+
+          document
+            .getElementById("section-item-delete-cancel")
+            ?.addEventListener("click", closeSectionItemDeleteConfirm);
+
+          document
+            .getElementById("section-item-delete-submit")
+            ?.addEventListener("click", confirmSectionItemDelete);
+
+          document
+            .getElementById("sa-section-buttons")
+            ?.addEventListener("click", (event) => {
+              const btn = event.target.closest(".section-btn");
+              if (!btn) return;
+
+              const sectionName = btn.dataset.section;
+              if (sectionDeleteMode) {
+                deleteSectionEntry(btn.dataset.sectionId, sectionName);
+                return;
+              }
+
+              if (btn.disabled) return;
+              toggleSectionButtonSelection(sectionName);
+            });
+
+          // Add right-click edit functionality for section buttons
+          document
+            .getElementById("sa-section-buttons")
+            ?.addEventListener("contextmenu", (event) => {
+              if (sectionDeleteMode) return;
+
+              const btn = event.target.closest(".section-btn");
+              if (!btn || btn.disabled) return;
+
+              event.preventDefault();
+              const sectionName = btn.dataset.section;
+              startEditingSection(sectionName);
+            });
+
+          document
+            .getElementById("section-cancel-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("section-modal"));
+            });
+
+          document
+            .getElementById("section-save-btn")
+            ?.addEventListener("click", saveAssignment);
+
+          document
+            .getElementById("section-generate-btn")
+            ?.addEventListener("click", () => {
+              openModal(document.getElementById("section-export-modal"));
+            });
+
+          document
+            .getElementById("section-export-cancel-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("section-export-modal"));
+            });
+
+          document
+            .getElementById("section-export-csv-btn")
+            ?.addEventListener("click", () => {
+              downloadBlob(
+                tableToCsv(),
+                "text/csv;charset=utf-8",
+                `${getReportName()}.csv`,
+              );
+              closeModal(document.getElementById("section-export-modal"));
+            });
+
+          document
+            .getElementById("section-export-excel-btn")
+            ?.addEventListener("click", () => {
+              exportExcel();
+              closeModal(document.getElementById("section-export-modal"));
+            });
+
+          document
+            .getElementById("section-export-pdf-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("section-export-modal"));
+              window.print();
+            });
+
+          document
+            .getElementById("section-download-template-btn")
+            ?.addEventListener("click", downloadCsvTemplate);
+
+          document
+            .getElementById("section-upload-csv-btn")
+            ?.addEventListener("click", () => {
+              const input = document.getElementById("section-csv-input");
+              if (!input) return;
+              input.value = "";
+              input.click();
+            });
+
+          document
+            .getElementById("section-csv-input")
+            ?.addEventListener("change", (event) => {
+              const file = event.target.files && event.target.files[0];
+              importCsv(file);
+            });
+
+          document
+            .getElementById("section-view-close-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("section-view-modal"));
+            });
+
+          document
+            .getElementById("section-view-header-close-btn")
+            ?.addEventListener("click", () => {
+              closeModal(document.getElementById("section-view-modal"));
+            });
+
+          document
+            .getElementById("section-view-edit-btn")
+            ?.addEventListener("click", () => {
+              if (!viewingRow) return;
+              closeModal(document.getElementById("section-view-modal"));
+              openFormForEdit(viewingRow);
+            });
+
+          document
+            .getElementById("section-view-delete-btn")
+            ?.addEventListener("click", () => {
+              if (!viewingRow) return;
+              closeModal(document.getElementById("section-view-modal"));
+              openDeleteConfirm([viewingRow]);
+            });
+
+          document
+            .getElementById("section-delete-confirm-cancel")
+            ?.addEventListener("click", closeDeleteConfirm);
+
+          document
+            .getElementById("section-delete-confirm-submit")
+            ?.addEventListener("click", deletePendingRows);
+
+          document
+            .getElementById("section-delete-confirm-input")
+            ?.addEventListener("input", (event) => {
+              const submitBtn = document.getElementById(
+                "section-delete-confirm-submit",
+              );
+              const allowed =
+                String(event.target.value || "").trim() === "DELETE";
+              if (submitBtn) submitBtn.disabled = !allowed;
+            });
+
+          document
+            .getElementById("bulk-delete-btn")
+            ?.addEventListener("click", () => {
+              const rows = Array.from(
+                document.querySelectorAll(
+                  "#section-assignment-table-body tr.row-selected",
+                ),
+              );
+              if (!rows.length) return;
+              openDeleteConfirm(rows);
+            });
+
+          document
+            .getElementById("bulk-clear-btn")
+            ?.addEventListener("click", clearSelection);
+
+          document
+            .getElementById("select-all-assignments")
+            ?.addEventListener("change", (event) => {
+              getDataRows().forEach((row) =>
+                setRowSelected(row, event.target.checked),
+              );
+              updateSelectionUI();
+            });
+
+          document
+            .getElementById("section-assignment-table-body")
+            ?.addEventListener("change", (event) => {
+              const cb = event.target.closest(".row-check");
+              if (!cb) return;
+              const row = cb.closest("tr");
+              setRowSelected(row, cb.checked);
+              updateSelectionUI();
+            });
+
+          document
+            .getElementById("section-assignment-table-body")
+            ?.addEventListener("click", (event) => {
+              const row = event.target.closest("tr");
+              if (!row) return;
+
+              if (
+                event.target.closest(".dots-btn") ||
+                event.target.closest(".row-check") ||
+                event.target.closest("button")
+              ) {
+                return;
+              }
+
+              const nextSelected = !selectedRows.has(row.dataset.id);
+              setRowSelected(row, nextSelected);
+              updateSelectionUI();
+            });
+
+          document
+            .getElementById("section-assignment-table-body")
+            ?.addEventListener("dblclick", (event) => {
+              const row = event.target.closest("tr");
+              if (!row) return;
+
+              if (
+                event.target.closest(".dots-btn") ||
+                event.target.closest(".row-check") ||
+                event.target.closest("button")
+              ) {
+                return;
+              }
+
+              openViewModal(row);
+            });
+
+          document.addEventListener("click", (event) => {
+            const dotsBtn = event.target.closest(".dots-btn");
+            if (dotsBtn && dotsBtn.closest("#archives-table")) {
+              event.preventDefault();
+              event.stopPropagation();
+              const row = dotsBtn.closest("tr");
+              const menu = document.getElementById("archive-action-menu");
+              const isAlreadyOpen =
+                menu?.style.display === "flex" && activeActionRow === row;
+
+              if (isAlreadyOpen) {
+                closeActionMenu();
+              } else {
+                openActionMenu(dotsBtn, row);
+              }
+              return;
+            }
+
+            if (!event.target.closest("#archive-action-menu")) {
+              closeActionMenu();
+            }
+          });
+
+          document
+            .getElementById("archive-action-menu")
+            ?.addEventListener("click", (event) => {
+              const button = event.target.closest("button.menu-action");
+              if (!button || !activeActionRow) return;
+
+              if (button.classList.contains("view-btn")) {
+                openViewModal(activeActionRow);
+              } else if (button.classList.contains("edit-btn")) {
+                openFormForEdit(activeActionRow);
+              } else if (button.classList.contains("delete-btn")) {
+                openDeleteConfirm([activeActionRow]);
+              }
+
+              closeActionMenu();
+            });
+
+          Object.keys(selectToFilterKey).forEach((selectId) => {
+            const el = document.getElementById(selectId);
+            if (!el) return;
+
+            el.addEventListener("change", () => {
+              const key = selectToFilterKey[selectId];
+              const selectedValue = String(el.value || "").trim();
+
+              if (!selectedValue) {
+                state.filters[key] = [];
+              } else {
+                toggleFilterValue(key, selectedValue);
+              }
+
+              populateFilterDropdowns();
+              renderActiveTags();
+              applyVisibility();
+            });
+          });
+
+          document
+            .getElementById("section-search")
+            ?.addEventListener("input", () => {
+              state.query = document.getElementById("section-search").value;
+              applyVisibility();
+            });
+
+          document
+            .getElementById("section-sort")
+            ?.addEventListener("change", () => {
+              state.sortField = document.getElementById("section-sort").value;
+              state.sortDir = "asc";
+              updateSortDirBtn();
+              applyAll();
+            });
+
+          document
+            .getElementById("section-sort-dir")
+            ?.addEventListener("click", () => {
+              if (!state.sortField) return;
+              state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+              updateSortDirBtn();
+              applyAll();
+            });
+
+          document
+            .getElementById("section-clear-filters")
+            ?.addEventListener("click", () => {
+              state.query = "";
+              state.sortField = "";
+              state.sortDir = "asc";
+              state.filters = { sectionName: [], professorName: [] };
+
+              document.getElementById("section-search").value = "";
+              document.getElementById("section-sort").value = "";
+              Object.keys(selectToFilterKey).forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.value = "";
+              });
+
+              updateSortDirBtn();
+              refreshFiltersAndTable();
+            });
+
+          document.addEventListener("click", (event) => {
+            const btn = event.target.closest(".filter-tag-remove");
+            if (!btn) return;
+
+            const key = btn.dataset.key;
+            const value = String(btn.dataset.value || "").trim();
+            if (!(key in state.filters)) return;
+
+            state.filters[key] = state.filters[key].filter(
+              (item) => item !== value,
+            );
+
+            const selectEl = document.getElementById(filterKeyToSelect[key]);
+            if (selectEl) selectEl.value = "";
+
+            populateFilterDropdowns();
+            renderActiveTags();
+            applyVisibility();
+          });
+
+          [
+            document.getElementById("section-modal"),
+            document.getElementById("section-view-modal"),
+            document.getElementById("section-export-modal"),
+            document.getElementById("section-delete-confirm-modal"),
+            document.getElementById("section-item-delete-modal"),
+          ].forEach((modalEl) => {
+            modalEl?.addEventListener("click", (event) => {
+              if (event.target !== modalEl) return;
+              closeModal(modalEl);
+              if (modalEl.id === "section-item-delete-modal") {
+                pendingSectionDelete = null;
+              }
+            });
+          });
+
+          document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape") return;
+            closeModal(document.getElementById("section-modal"));
+            closeModal(document.getElementById("section-view-modal"));
+            closeModal(document.getElementById("section-export-modal"));
+            closeModal(document.getElementById("section-delete-confirm-modal"));
+            closeModal(document.getElementById("section-item-delete-modal"));
+            pendingSectionDelete = null;
+            closeActionMenu();
+          });
+
+          window.addEventListener("resize", closeActionMenu, { passive: true });
+          window.addEventListener("scroll", closeActionMenu, { passive: true });
+        }
+
+        function init() {
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons();
+          }
+
+          bindEvents();
+          resetForm();
+          loadSectionAssignments();
+          updateSortDirBtn();
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init);
+        } else {
+          init();
+        }
+      })();
     </script>
   </body>
 </html>
