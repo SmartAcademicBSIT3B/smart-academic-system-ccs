@@ -2028,7 +2028,11 @@
 
         function templateCsv() {
           const headers = ["section_name", "professor_name", "professor_email"];
-          const sample = ["BSIT-3A", "Juan Dela Cruz", "juan.delacruz@example.com"];
+          const sample = [
+            "BSIT-3A",
+            "Juan Dela Cruz",
+            "juan.delacruz@example.com",
+          ];
 
           const toCell = (value) => {
             const s = String(value ?? "");
@@ -2252,11 +2256,13 @@
 
         function getVisibleRowsForPdf(table) {
           if (!table) return [];
-          return Array.from(table.querySelectorAll("tbody tr")).filter((row) => {
-            if (row.dataset.placeholder) return false;
-            const style = window.getComputedStyle(row);
-            return style.display !== "none" && style.visibility !== "hidden";
-          });
+          return Array.from(table.querySelectorAll("tbody tr")).filter(
+            (row) => {
+              if (row.dataset.placeholder) return false;
+              const style = window.getComputedStyle(row);
+              return style.display !== "none" && style.visibility !== "hidden";
+            },
+          );
         }
 
         function getExportColumnsForPdf(table) {
@@ -2316,7 +2322,8 @@
               ctx.drawImage(image, 0, 0);
               resolve(canvas.toDataURL("image/png"));
             };
-            image.onerror = () => reject(new Error("Failed to load the PDF header image."));
+            image.onerror = () =>
+              reject(new Error("Failed to load the PDF header image."));
             image.src = src;
           });
         }
@@ -2324,7 +2331,9 @@
         async function exportSectionAssignmentsToPdf() {
           const table = document.getElementById("archives-table");
           if (!table) {
-            throw new Error("Section assignment table is not available for export.");
+            throw new Error(
+              "Section assignment table is not available for export.",
+            );
           }
 
           if (!window.jspdf || !window.jspdf.jsPDF) {
@@ -2384,7 +2393,11 @@
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
           doc.setTextColor(85, 93, 104);
-          doc.text(`Generated: ${new Date().toLocaleString("en-US")}`, marginX, cursorY);
+          doc.text(
+            `Generated: ${new Date().toLocaleString("en-US")}`,
+            marginX,
+            cursorY,
+          );
           doc.text(`Rows: ${rows.length}`, pageWidth - marginX, cursorY, {
             align: "right",
           });
@@ -2426,9 +2439,14 @@
               const pageNumber = doc.getNumberOfPages();
               doc.setFontSize(9);
               doc.setTextColor(100, 108, 118);
-              doc.text(`Page ${pageNumber}`, pageWidth - marginX, pageHeight - 12, {
-                align: "right",
-              });
+              doc.text(
+                `Page ${pageNumber}`,
+                pageWidth - marginX,
+                pageHeight - 12,
+                {
+                  align: "right",
+                },
+              );
             },
           });
 

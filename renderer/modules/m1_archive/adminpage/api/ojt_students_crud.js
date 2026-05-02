@@ -960,7 +960,9 @@
 
     if (allCb) {
       const rows = Array.from(
-        document.querySelectorAll("#ojt-students-table-body tr:not([data-placeholder])"),
+        document.querySelectorAll(
+          "#ojt-students-table-body tr:not([data-placeholder])",
+        ),
       );
       allCb.checked = rows.length > 0 && selectedRows.size === rows.length;
       allCb.indeterminate =

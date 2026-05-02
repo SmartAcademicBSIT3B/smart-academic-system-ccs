@@ -39,7 +39,9 @@ function sanitizeDriveFolderSegment(value) {
 }
 
 function slugifyTitle(value) {
-  const raw = String(value || "").trim().toLowerCase();
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
   const slug = raw
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
@@ -50,7 +52,10 @@ function slugifyTitle(value) {
 function buildDriveFileName(title, originalName) {
   const ext = String(path.extname(String(originalName || "")) || "").trim();
   const safeExt = ext && /^\.[a-z0-9]+$/i.test(ext) ? ext : ".pdf";
-  const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+  const stamp = new Date()
+    .toISOString()
+    .replace(/[-:.TZ]/g, "")
+    .slice(0, 14);
   const unique = crypto.randomBytes(3).toString("hex");
   return `${slugifyTitle(title)}__${stamp}__${unique}${safeExt}`;
 }
