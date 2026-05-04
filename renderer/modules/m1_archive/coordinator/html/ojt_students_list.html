@@ -10,97 +10,193 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
       rel="stylesheet"
     />
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      .search-bar {
+        margin-bottom: 18px;
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .search-input {
+        flex: 1;
+        max-width: 320px;
+        height: 38px;
+        border-radius: 9px;
+        border: 1px solid var(--border-color);
+        background: var(--secondary-bg);
+        color: var(--primary-text);
+        padding: 0 14px;
+        font-size: 13px;
+        outline: none;
+      }
+      .search-input:focus {
+        border-color: var(--accent-blue);
+      }
+      .student-count-badge {
+        font-size: 12px;
+        color: var(--secondary-text);
+        padding: 5px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 99px;
+      }
+      .loading-state,
+      .empty-state {
+        color: var(--secondary-text);
+        font-size: 14px;
+        padding: 20px 0;
+      }
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+    </style>
   </head>
 
   <body>
     <div class="container">
-      <h1 class="page-title">OJT STUDENTS</h1>
+      <h1 class="page-title" id="pageTitle">OJT STUDENTS</h1>
 
       <div class="panel">
         <div class="panel-body">
-          <!-- ⭐ BACK BUTTON INSIDE CARD -->
-          <a href="ojt_students.html" class="back-btn">‹</a>
+          <a href="ojt_students.html" class="back-btn">&#8249;</a>
 
-          <div class="cards-container">
-            <div
-              class="student-card"
-              data-section="BSIT-4B"
-              onclick="openProfile(this)"
-              data-name="Dela Cruz, Juan"
-              data-id="23-00113"
-              data-status="Deployed"
-            >
-              <div class="avatar"></div>
-              <div class="student-id">23-00113</div>
-              <div class="student-name">Dela Cruz, Juan</div>
-              <div class="status deployed">Deployed</div>
-            </div>
+          <div class="search-bar">
+            <input
+              type="text"
+              class="search-input"
+              id="searchInput"
+              placeholder="Search student name or ID…"
+            />
+            <span class="student-count-badge" id="countBadge"></span>
+          </div>
 
-            <div
-              class="student-card"
-              data-section="BSIT-4B"
-              onclick="openProfile(this)"
-              data-name="Reyes, Carlo"
-              data-id="23-00115"
-              data-status="Pending"
-            >
-              <div class="avatar"></div>
-              <div class="student-id">23-00115</div>
-              <div class="student-name">Reyes, Carlo</div>
-              <div class="status pending">Pending</div>
-            </div>
-
-            <div
-              class="student-card"
-              data-section="BSIT-4D"
-              onclick="openProfile(this)"
-              data-name="Santos, Maria"
-              data-id="23-00114"
-              data-status="Pre-Deployment"
-            >
-              <div class="avatar"></div>
-              <div class="student-id">23-00114</div>
-              <div class="student-name">Santos, Maria</div>
-              <div class="status pre-deployment">Pre-Deployment</div>
-            </div>
+          <div id="cardsContainer" class="cards-container">
+            <div class="loading-state">Loading students…</div>
           </div>
         </div>
       </div>
     </div>
 
     <script>
-      function openProfile(card) {
-        let name = card.dataset.name;
-        let id = card.dataset.id;
-        let status = card.dataset.status;
+      const params = new URLSearchParams(window.location.search);
+      const section = params.get("section") || "";
+      let allStudents = [];
 
-        window.location.href =
-          "ojt_students_profile.html?name=" +
-          encodeURIComponent(name) +
-          "&id=" +
-          encodeURIComponent(id) +
-          "&status=" +
-          encodeURIComponent(status);
+      if (section) {
+        document.getElementById("pageTitle").textContent =
+          "OJT STUDENTS — " + section;
       }
 
-      (function () {
-        let params = new URLSearchParams(window.location.search);
-        let section = params.get("section");
+      function statusClass(status) {
+        const s = String(status || "")
+          .toLowerCase()
+          .trim();
+        if (s === "deployed") return "deployed";
+        if (s.includes("pre")) return "pre-deployment";
+        return "pending";
+      }
 
-        if (section) {
-          document.querySelector(".page-title").textContent =
-            "OJT STUDENTS - " + section;
+      function statusLabel(status) {
+        return String(status || "Pending Requirements");
+      }
 
-          document.querySelectorAll(".student-card").forEach(function (card) {
-            if (card.dataset.section !== section) {
-              card.style.display = "none";
-            }
-          });
+      function escapeHtml(str) {
+        return String(str || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function renderCards(students) {
+        const container = document.getElementById("cardsContainer");
+        if (!students.length) {
+          container.innerHTML =
+            '<div class="empty-state">No students found.</div>';
+          document.getElementById("countBadge").textContent = "0 students";
+          return;
         }
-      })();
 
-      lucide.createIcons();
+        document.getElementById("countBadge").textContent =
+          students.length + " student" + (students.length !== 1 ? "s" : "");
+
+        container.innerHTML = students
+          .map((s) => {
+            const imgHtml = s.profile_image_url
+              ? `<img src="${escapeHtml(s.profile_image_url)}" alt="avatar" />`
+              : "";
+            const sc = statusClass(s.status);
+            return `
+            <div
+              class="student-card"
+              data-student-id="${escapeHtml(s.student_id)}"
+              tabindex="0"
+              role="button"
+            >
+              <div class="avatar">${imgHtml}</div>
+              <div class="student-id">${escapeHtml(s.student_id)}</div>
+              <div class="student-name">${escapeHtml(s.display_name || s.name || "")}</div>
+              <div class="status ${sc}">${escapeHtml(statusLabel(s.status))}</div>
+            </div>`;
+          })
+          .join("");
+
+        container.querySelectorAll(".student-card").forEach(function (card) {
+          card.addEventListener("click", function () {
+            const studentId = this.dataset.studentId;
+            window.location.href =
+              "ojt_students_profile.html?student_id=" +
+              encodeURIComponent(studentId) +
+              "&section=" +
+              encodeURIComponent(section);
+          });
+        });
+      }
+
+      async function loadStudents() {
+        const container = document.getElementById("cardsContainer");
+        if (!section) {
+          container.innerHTML =
+            '<div class="empty-state">No section specified.</div>';
+          return;
+        }
+
+        try {
+          const result =
+            await window.electronAPI.getCoordinatorSectionStudents(section);
+          if (!result?.success)
+            throw new Error(result?.message || "Failed to load students.");
+
+          allStudents = result.students || [];
+          renderCards(allStudents);
+        } catch (err) {
+          container.innerHTML =
+            '<div class="empty-state">Error: ' +
+            escapeHtml(err.message) +
+            "</div>";
+        }
+      }
+
+      document
+        .getElementById("searchInput")
+        .addEventListener("input", function () {
+          const q = this.value.trim().toLowerCase();
+          if (!q) {
+            renderCards(allStudents);
+            return;
+          }
+          const filtered = allStudents.filter((s) => {
+            const name = String(s.display_name || s.name || "").toLowerCase();
+            const id = String(s.student_id || "").toLowerCase();
+            return name.includes(q) || id.includes(q);
+          });
+          renderCards(filtered);
+        });
+
+      loadStudents();
     </script>
   </body>
 </html>

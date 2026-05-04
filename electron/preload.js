@@ -84,4 +84,55 @@ contextBridge.exposeInMainWorld("electronAPI", {
   verifyOTP: (email, otp) => ipcRenderer.invoke("verifyOTP", email, otp),
   resetPassword: (email, newPassword) =>
     ipcRenderer.invoke("resetPassword", email, newPassword),
+
+  // ── OJT Coordinator ────────────────────────────────────────────────────────
+  getCoordinatorSections: () => ipcRenderer.invoke("getCoordinatorSections"),
+  getCoordinatorSectionStudents: (section) =>
+    ipcRenderer.invoke("getCoordinatorSectionStudents", section),
+  getCoordinatorStudentProfile: (studentId) =>
+    ipcRenderer.invoke("getCoordinatorStudentProfile", studentId),
+  updateStudentPartner: (payload) =>
+    ipcRenderer.invoke("updateStudentPartner", payload),
+  updateStudentOjtStatus: (payload) =>
+    ipcRenderer.invoke("updateStudentOjtStatus", payload),
+  getStudentStatusHistory: (studentId) =>
+    ipcRenderer.invoke("getStudentStatusHistory", studentId),
+
+  // ── OJT Requirements ───────────────────────────────────────────────────────
+  getOjtRequirementTemplates: (params) =>
+    ipcRenderer.invoke("getOjtRequirementTemplates", params),
+  createOjtRequirementTemplate: (payload) =>
+    ipcRenderer.invoke("createOjtRequirementTemplate", payload),
+  updateOjtRequirementTemplate: (payload) =>
+    ipcRenderer.invoke("updateOjtRequirementTemplate", payload),
+  deleteOjtRequirementTemplate: (id) =>
+    ipcRenderer.invoke("deleteOjtRequirementTemplate", id),
+  getStudentRequirements: (params) =>
+    ipcRenderer.invoke("getStudentRequirements", params),
+  createOjtRequirementSubmission: (payload) =>
+    ipcRenderer.invoke("createOjtRequirementSubmission", payload),
+  updateOjtRequirementSubmission: (payload) =>
+    ipcRenderer.invoke("updateOjtRequirementSubmission", payload),
+  selectOjtFile: () => ipcRenderer.invoke("selectOjtFile"),
+  uploadOjtFile: (payload) => ipcRenderer.invoke("uploadOjtFile", payload),
+  uploadOjtFileFromUrl: (payload) =>
+    ipcRenderer.invoke("uploadOjtFileFromUrl", payload),
+
+  // ── OJT Attendance ─────────────────────────────────────────────────────────
+  getOjtAttendance: (params) => ipcRenderer.invoke("getOjtAttendance", params),
+  createOjtAttendance: (payload) =>
+    ipcRenderer.invoke("createOjtAttendance", payload),
+  updateOjtAttendance: (payload) =>
+    ipcRenderer.invoke("updateOjtAttendance", payload),
+  deleteOjtAttendance: (id) => ipcRenderer.invoke("deleteOjtAttendance", id),
+
+  // ── OJT Weekly Reports ─────────────────────────────────────────────────────
+  getOjtWeeklyReports: (studentId) =>
+    ipcRenderer.invoke("getOjtWeeklyReports", studentId),
+  createOjtWeeklyReport: (payload) =>
+    ipcRenderer.invoke("createOjtWeeklyReport", payload),
+  updateOjtWeeklyReport: (payload) =>
+    ipcRenderer.invoke("updateOjtWeeklyReport", payload),
+  deleteOjtWeeklyReport: (id) =>
+    ipcRenderer.invoke("deleteOjtWeeklyReport", id),
 });

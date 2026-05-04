@@ -6,16 +6,591 @@
     <title>Trainee Profile</title>
     <link rel="stylesheet" href="../css/ojt_students_profile.css" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans:wght@400;600&display=swap"
       rel="stylesheet"
     />
-
     <style>
+      /* ── Tab panel visibility ── */
       .tab-panel {
         display: none;
       }
       .tab-panel.active {
         display: block;
+      }
+
+      /* ── Status pill colour variants ── */
+      .status-pill::before {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        margin-right: 8px;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+      .status-pill.deployed {
+        color: #00c853;
+        border-color: rgba(0, 200, 83, 0.35);
+      }
+      .status-pill.deployed::before {
+        background: #00c853;
+      }
+      .status-pill.pre-deployment {
+        color: #ffb23f;
+        border-color: rgba(255, 178, 63, 0.35);
+      }
+      .status-pill.pre-deployment::before {
+        background: #ffb23f;
+      }
+      .status-pill.pending-requirements {
+        color: #ff5252;
+        border-color: rgba(255, 82, 82, 0.35);
+      }
+      .status-pill.pending-requirements::before {
+        background: #ff5252;
+      }
+
+      /* ── Deadline badges ── */
+      .deadline-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 99px;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+      }
+      .deadline-badge.overdue {
+        background: rgba(255, 82, 82, 0.18);
+        color: #ff5252;
+      }
+      .deadline-badge.soon {
+        background: rgba(255, 178, 63, 0.18);
+        color: #ffb23f;
+      }
+      .deadline-badge.ok {
+        background: rgba(0, 200, 83, 0.12);
+        color: #00c853;
+      }
+
+      /* ── Requirements list ── */
+      .req-meta {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+      }
+      .req-actions {
+        display: flex;
+        gap: 6px;
+        flex-direction: column;
+      }
+      .verify-btn {
+        width: 100%;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid rgba(0, 200, 83, 0.4);
+        background: rgba(0, 200, 83, 0.1);
+        color: #00c853;
+        font-weight: 700;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .verify-btn:hover {
+        background: rgba(0, 200, 83, 0.2);
+      }
+      .verified-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #00c853;
+        padding: 5px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(0, 200, 83, 0.3);
+        background: rgba(0, 200, 83, 0.08);
+      }
+      .view-btn {
+        width: 100%;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid rgba(157, 198, 255, 0.35);
+        background: rgba(157, 198, 255, 0.1);
+        color: #9dc6ff;
+        font-weight: 700;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .view-btn:hover {
+        background: rgba(157, 198, 255, 0.2);
+      }
+
+      /* ── Add-requirement button ── */
+      .add-req-btn {
+        height: 36px;
+        padding: 0 16px;
+        border-radius: 9px;
+        border: 1px dashed var(--border-color);
+        background: transparent;
+        color: var(--secondary-text);
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .add-req-btn:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+      }
+
+      /* ── Partner autocomplete ── */
+      .partner-edit-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .partner-inline-group {
+        position: relative;
+        flex: 1;
+        min-width: 160px;
+      }
+      .partner-inline-input {
+        width: 100%;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--secondary-bg);
+        color: var(--primary-text);
+        padding: 0 10px;
+        font-size: 13px;
+        outline: none;
+      }
+      .partner-inline-input:focus {
+        border-color: var(--accent-blue);
+      }
+      .partner-suggestions {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: #1e2328;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 100;
+        display: none;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      }
+      .partner-suggestions.open {
+        display: block;
+      }
+      .partner-option {
+        padding: 10px 14px;
+        cursor: pointer;
+      }
+      .partner-option:hover {
+        background: rgba(157, 198, 255, 0.08);
+      }
+      .partner-option-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--primary-text);
+      }
+      .partner-option-meta {
+        font-size: 11px;
+        color: var(--secondary-text);
+        margin-top: 2px;
+      }
+      .partner-save-btn,
+      .partner-cancel-btn {
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+        border: 1px solid var(--border-color);
+      }
+      .partner-save-btn {
+        background: var(--accent-blue);
+        color: #0b0d10;
+        border-color: var(--accent-blue);
+      }
+      .partner-cancel-btn {
+        background: transparent;
+        color: var(--secondary-text);
+      }
+      .edit-partner-btn {
+        background: none;
+        border: none;
+        color: var(--secondary-text);
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 2px 6px;
+        text-decoration: underline;
+      }
+      .edit-partner-btn:hover {
+        color: var(--accent-blue);
+      }
+
+      /* ── Attendance table ── */
+      .attendance-table-wrap {
+        overflow-x: auto;
+      }
+      .att-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .att-table th {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--secondary-text);
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+      }
+      .att-table td {
+        padding: 9px 10px;
+        border-bottom: 1px solid rgba(58, 63, 70, 0.4);
+        color: var(--primary-text);
+        vertical-align: middle;
+      }
+      .att-status-pill {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .att-status-pill.present {
+        background: rgba(0, 200, 83, 0.12);
+        color: #00c853;
+      }
+      .att-status-pill.absent {
+        background: rgba(255, 82, 82, 0.12);
+        color: #ff5252;
+      }
+      .att-status-pill.late {
+        background: rgba(255, 178, 63, 0.12);
+        color: #ffb23f;
+      }
+      .att-status-pill.half-day {
+        background: rgba(157, 198, 255, 0.12);
+        color: #9dc6ff;
+      }
+      .att-status-pill.excused {
+        background: rgba(157, 198, 255, 0.08);
+        color: var(--secondary-text);
+      }
+      .att-action-btn {
+        background: none;
+        border: none;
+        color: var(--secondary-text);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+      }
+      .att-action-btn:hover {
+        color: var(--accent-blue);
+        background: rgba(157, 198, 255, 0.08);
+      }
+      .att-del-btn:hover {
+        color: #ff5252;
+        background: rgba(255, 82, 82, 0.08);
+      }
+      .att-summary-row {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+        font-size: 12px;
+      }
+      .att-summary-item {
+        color: var(--secondary-text);
+      }
+      .att-summary-item strong {
+        color: var(--primary-text);
+      }
+      .att-proof-link {
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-size: 12px;
+      }
+      .att-proof-link:hover {
+        text-decoration: underline;
+      }
+
+      /* ── Weekly report cards ── */
+      .weekly-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 14px;
+      }
+      .week-card {
+        background: rgba(24, 28, 34, 0.8);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .week-card-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+      .week-card-date {
+        font-size: 11px;
+        color: var(--secondary-text);
+        margin-bottom: 10px;
+      }
+      .week-status-badge {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+      .week-status-badge.pending {
+        background: rgba(58, 63, 70, 0.5);
+        color: var(--secondary-text);
+      }
+      .week-status-badge.submitted {
+        background: rgba(157, 198, 255, 0.12);
+        color: #9dc6ff;
+      }
+      .week-status-badge.reviewed {
+        background: rgba(0, 200, 83, 0.12);
+        color: #00c853;
+      }
+      .week-status-badge.returned {
+        background: rgba(255, 82, 82, 0.12);
+        color: #ff5252;
+      }
+      .week-upload-btn {
+        width: 100%;
+        height: 34px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: transparent;
+        color: var(--primary-text);
+        font-weight: 700;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .week-upload-btn:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+      }
+      .week-view-link {
+        display: block;
+        width: 100%;
+        height: 34px;
+        line-height: 34px;
+        border-radius: 8px;
+        border: 1px solid rgba(157, 198, 255, 0.3);
+        background: rgba(157, 198, 255, 0.08);
+        color: #9dc6ff;
+        font-weight: 700;
+        font-size: 11px;
+        text-align: center;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .week-view-link:hover {
+        background: rgba(157, 198, 255, 0.18);
+      }
+      .add-week-btn {
+        height: 36px;
+        padding: 0 16px;
+        border-radius: 9px;
+        border: 1px dashed var(--border-color);
+        background: transparent;
+        color: var(--secondary-text);
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .add-week-btn:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+      }
+
+      /* ── Panel header row (title + action) ── */
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .panel-header .panel-title {
+        margin-bottom: 0;
+      }
+
+      /* ── Modal overlay ── */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+        -webkit-backdrop-filter: blur(4px);
+        backdrop-filter: blur(4px);
+      }
+      .modal-overlay.open {
+        display: flex;
+      }
+      .modal-box {
+        background: #1a1e26;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 26px 28px;
+        width: 100%;
+        max-width: 440px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        max-height: 85vh;
+        overflow-y: auto;
+      }
+      .modal-title {
+        font-size: 15px;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 20px;
+      }
+      .form-field {
+        margin-bottom: 14px;
+      }
+      .form-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--secondary-text);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .form-input,
+      .form-select,
+      .form-textarea {
+        width: 100%;
+        border-radius: 9px;
+        border: 1px solid var(--border-color);
+        background: var(--secondary-bg);
+        color: var(--primary-text);
+        padding: 0 12px;
+        font-size: 13px;
+        outline: none;
+        font-family: inherit;
+      }
+      .form-input,
+      .form-select {
+        height: 38px;
+      }
+      .form-textarea {
+        padding: 10px 12px;
+        resize: vertical;
+        min-height: 70px;
+      }
+      .form-input:focus,
+      .form-select:focus,
+      .form-textarea:focus {
+        border-color: var(--accent-blue);
+      }
+      .form-select option {
+        background: #1a1e26;
+      }
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .modal-cancel-btn {
+        height: 38px;
+        padding: 0 16px;
+        border-radius: 9px;
+        border: 1px solid var(--border-color);
+        background: transparent;
+        color: var(--secondary-text);
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .modal-save-btn {
+        height: 38px;
+        padding: 0 20px;
+        border-radius: 9px;
+        border: none;
+        background: var(--accent-blue);
+        color: #0b0d10;
+        font-weight: 800;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .modal-save-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .file-chosen-label {
+        font-size: 11px;
+        color: var(--secondary-text);
+        margin-top: 5px;
+      }
+
+      /* ── Deploy / Complete buttons ── */
+      .deploy-btn[data-enabled="true"] {
+        background: #00c853;
+        border-color: #00c853;
+        color: #0b0d10;
+        cursor: pointer;
+      }
+      .completeojt-btn[data-enabled="true"] {
+        background: #9dc6ff;
+        border-color: #9dc6ff;
+        color: #0b0d10;
+        cursor: pointer;
+      }
+
+      /* ── Toast notification ── */
+      #toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: #232830;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 12px 18px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--primary-text);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        pointer-events: none;
+        z-index: 9999;
+        max-width: 320px;
+      }
+      #toast.show {
+        opacity: 1;
+      }
+      #toast.success {
+        border-color: rgba(0, 200, 83, 0.4);
+        color: #00c853;
+      }
+      #toast.error {
+        border-color: rgba(255, 82, 82, 0.4);
+        color: #ff5252;
       }
     </style>
   </head>
@@ -23,41 +598,118 @@
   <body>
     <div class="profile-page">
       <div class="profile-shell">
-        <a class="back-btn" href="ojt_students_list.html">
-          <span class="back-icon">‹</span>
+        <a class="back-btn" id="backBtn" href="ojt_students_list.html">
+          <span class="back-icon">&#8249;</span>
         </a>
 
         <section class="profile-card">
+          <!-- ── PROFILE HEADER ────────────────────────────────────────── -->
           <header class="profile-top">
-            <div class="avatar"></div>
+            <div class="avatar" id="avatarWrap">
+              <img
+                id="avatarImg"
+                src=""
+                alt="Avatar"
+                style="
+                  width: 100%;
+                  height: 100%;
+                  object-fit: cover;
+                  border-radius: 50%;
+                  display: none;
+                "
+              />
+            </div>
 
             <div class="profile-meta">
               <div class="name-row">
-                <h1 class="student-name">Student Name</h1>
-                <span class="student-id">Student ID</span>
+                <h1 class="student-name" id="studentName">—</h1>
+                <span class="student-id" id="studentIdBadge">—</span>
               </div>
 
-              <!-- ✅ NEW DETAILS ROW -->
               <div class="details-row">
                 <div class="detail">
                   <span class="detail-label">Email</span>
-                  <span class="detail-value student-email"
-                    >sample@email.com</span
-                  >
+                  <span class="detail-value" id="studentEmail">—</span>
                 </div>
-
                 <div class="detail">
                   <span class="detail-label">Contact</span>
-                  <span class="detail-value student-contact">09123456789</span>
+                  <span class="detail-value" id="studentContact">—</span>
+                </div>
+                <div class="detail">
+                  <span class="detail-label">Section</span>
+                  <span class="detail-value" id="studentSection">—</span>
+                </div>
+              </div>
+
+              <!-- External partner row -->
+              <div class="details-row" style="margin-top: 8px">
+                <div class="detail" style="grid-column: 1/3">
+                  <span class="detail-label"
+                    >External Partner &amp; Nature of Business</span
+                  >
+                  <div id="partnerDisplay">
+                    <span class="detail-value" id="partnerText">—</span>
+                    <button
+                      class="edit-partner-btn"
+                      id="editPartnerBtn"
+                      onclick="openPartnerEdit()"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                  <div
+                    id="partnerEditArea"
+                    style="display: none; margin-top: 8px"
+                  >
+                    <div class="partner-edit-row">
+                      <div
+                        class="partner-inline-group"
+                        id="partnerAutocompleteGroup"
+                      >
+                        <input
+                          type="text"
+                          class="partner-inline-input"
+                          id="partnerInput"
+                          placeholder="Partner name…"
+                          autocomplete="off"
+                        />
+                        <div
+                          class="partner-suggestions"
+                          id="partnerSuggestions"
+                        ></div>
+                      </div>
+                      <div
+                        class="partner-inline-group"
+                        style="min-width: 140px"
+                      >
+                        <input
+                          type="text"
+                          class="partner-inline-input"
+                          id="natureInput"
+                          placeholder="Nature / Specialization…"
+                        />
+                      </div>
+                      <button class="partner-save-btn" onclick="savePartner()">
+                        Save
+                      </button>
+                      <button
+                        class="partner-cancel-btn"
+                        onclick="closePartnerEdit()"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div class="status-row">
-                <div class="status-pill">STATUS</div>
+                <div class="status-pill" id="statusPill">—</div>
               </div>
             </div>
           </header>
 
+          <!-- ── TABS ─────────────────────────────────────────────────── -->
           <nav class="tabs">
             <button class="tab active" data-target="prePanel">
               PRE REQUIREMENTS
@@ -73,76 +725,104 @@
             </button>
           </nav>
 
-          <!-- PRE -->
+          <!-- ── PRE REQUIREMENTS ──────────────────────────────────────── -->
           <section class="panel tab-panel active" id="prePanel">
-            <h2 class="panel-title">PRE REQUIREMENTS</h2>
-
-            <div class="requirements-grid">
-              <div class="req">
-                <div class="req-label">CURRICULUM VITAE</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">RECOMMENDATION LETTER</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">TRAINING AGREEMENT</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">OJT SEMINAR CERTIFICATE</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">CERTIFICATE OF ENROLLMENT</div>
-                <button class="upload-btn">Upload File</button>
+            <div class="panel-header">
+              <h2 class="panel-title">PRE REQUIREMENTS</h2>
+              <button class="add-req-btn" onclick="openAddReqModal('pre')">
+                + Add Requirement
+              </button>
+            </div>
+            <div class="requirements-grid" id="preGrid">
+              <div style="color: var(--secondary-text); font-size: 13px">
+                Loading…
               </div>
             </div>
-
             <div class="panel-actions">
-              <button class="deploy-btn">Deploy</button>
+              <button
+                class="deploy-btn"
+                id="deployBtn"
+                disabled
+                onclick="confirmDeploy()"
+              >
+                Deploy
+              </button>
             </div>
           </section>
 
-          <!-- ATTENDANCE -->
+          <!-- ── ATTENDANCE ─────────────────────────────────────────────── -->
           <section class="panel tab-panel" id="attendancePanel">
-            <h2 class="panel-title">ATTENDANCE RECORD</h2>
-            <p>Attendance list here</p>
+            <div class="panel-header">
+              <h2 class="panel-title">ATTENDANCE RECORD</h2>
+              <button class="add-req-btn" onclick="openAddAttendanceModal()">
+                + Add Record
+              </button>
+            </div>
+            <div class="att-summary-row" id="attSummary"></div>
+            <div class="attendance-table-wrap">
+              <table class="att-table">
+                <thead>
+                  <tr>
+                    <th>DATE</th>
+                    <th>TIME IN</th>
+                    <th>TIME OUT</th>
+                    <th>DURATION</th>
+                    <th>STATUS</th>
+                    <th>PROOF</th>
+                    <th>NOTES</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceBody">
+                  <tr>
+                    <td
+                      colspan="8"
+                      style="color: var(--secondary-text); padding: 18px 0"
+                    >
+                      Loading…
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </section>
 
-          <!-- WEEKLY -->
+          <!-- ── WEEKLY REPORTS ─────────────────────────────────────────── -->
           <section class="panel tab-panel" id="weeklyPanel">
-            <h2 class="panel-title">WEEKLY REPORTS</h2>
-            <p>Weekly reports list here</p>
-
-            <div class="panel-actions">
-              <button class="complete-btn">Report Complete</button>
+            <div class="panel-header">
+              <h2 class="panel-title">WEEKLY REPORTS</h2>
+              <button class="add-week-btn" onclick="openAddWeekModal()">
+                + Add Week
+              </button>
+            </div>
+            <div class="weekly-grid" id="weeklyGrid">
+              <div style="color: var(--secondary-text); font-size: 13px">
+                Loading…
+              </div>
             </div>
           </section>
 
-          <!-- POST -->
+          <!-- ── POST REQUIREMENTS ─────────────────────────────────────── -->
           <section class="panel tab-panel" id="postPanel">
-            <h2 class="panel-title">POST REQUIREMENTS</h2>
-
-            <div class="requirements-grid">
-              <div class="req">
-                <div class="req-label">NARRATIVE REPORT</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">EVALUATION SHEET</div>
-                <button class="upload-btn">Upload File</button>
-              </div>
-              <div class="req">
-                <div class="req-label">CERTIFICATE OF COMPLETION</div>
-                <button class="upload-btn">Upload File</button>
+            <div class="panel-header">
+              <h2 class="panel-title">POST REQUIREMENTS</h2>
+              <button class="add-req-btn" onclick="openAddReqModal('post')">
+                + Add Requirement
+              </button>
+            </div>
+            <div class="requirements-grid" id="postGrid">
+              <div style="color: var(--secondary-text); font-size: 13px">
+                Loading…
               </div>
             </div>
-
             <div class="panel-actions">
-              <button class="completeojt-btn">
-                Archive the Student's Files
+              <button
+                class="completeojt-btn"
+                id="archiveBtn"
+                disabled
+                onclick="confirmArchive()"
+              >
+                Archive Student Files
               </button>
             </div>
           </section>
@@ -150,8 +830,1048 @@
       </div>
     </div>
 
+    <!-- ── ADD REQUIREMENT MODAL ──────────────────────────────────────────── -->
+    <div class="modal-overlay" id="addReqModal">
+      <div class="modal-box">
+        <div class="modal-title" id="addReqModalTitle">Add Requirement</div>
+        <div class="form-field">
+          <label class="form-label">Requirement Name</label>
+          <input
+            type="text"
+            class="form-input"
+            id="reqNameInput"
+            placeholder="e.g. Medical Certificate"
+          />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Scope</label>
+          <select class="form-select" id="reqScopeSelect">
+            <option value="department">Department-wide</option>
+            <option value="section">This section only</option>
+            <option value="student">This student only</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Deadline (optional)</label>
+          <input type="date" class="form-input" id="reqDeadlineInput" />
+        </div>
+        <div class="modal-actions">
+          <button class="modal-cancel-btn" onclick="closeAddReqModal()">
+            Cancel
+          </button>
+          <button
+            class="modal-save-btn"
+            id="addReqSaveBtn"
+            onclick="saveNewRequirement()"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADD ATTENDANCE MODAL ───────────────────────────────────────────── -->
+    <div class="modal-overlay" id="addAttModal">
+      <div class="modal-box">
+        <div class="modal-title" id="addAttModalTitle">
+          Add Attendance Record
+        </div>
+        <input type="hidden" id="editAttId" value="" />
+        <div class="form-field">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="attDateInput" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Time In</label>
+          <input type="datetime-local" class="form-input" id="attTimeInInput" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Time Out</label>
+          <input
+            type="datetime-local"
+            class="form-input"
+            id="attTimeOutInput"
+          />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="attStatusSelect">
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+            <option value="late">Late</option>
+            <option value="half-day">Half-day</option>
+            <option value="excused">Excused</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Notes (optional)</label>
+          <textarea
+            class="form-textarea"
+            id="attNotesInput"
+            rows="2"
+          ></textarea>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Proof (optional — PDF or image)</label>
+          <button
+            class="week-upload-btn"
+            onclick="pickAttachmentProof()"
+            id="attProofBtn"
+          >
+            Choose File
+          </button>
+          <div class="file-chosen-label" id="attProofLabel"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-cancel-btn" onclick="closeAddAttModal()">
+            Cancel
+          </button>
+          <button
+            class="modal-save-btn"
+            id="addAttSaveBtn"
+            onclick="saveAttendance()"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADD WEEK MODAL ─────────────────────────────────────────────────── -->
+    <div class="modal-overlay" id="addWeekModal">
+      <div class="modal-box">
+        <div class="modal-title">Add Weekly Report</div>
+        <div class="form-field">
+          <label class="form-label">Week Number</label>
+          <input
+            type="number"
+            class="form-input"
+            id="weekNumberInput"
+            min="1"
+            placeholder="e.g. 1"
+          />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Week Start Date (optional)</label>
+          <input type="date" class="form-input" id="weekStartInput" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">PDF Report File</label>
+          <button
+            class="week-upload-btn"
+            onclick="pickWeeklyFile()"
+            id="weekFileBtn"
+          >
+            Choose PDF / Image
+          </button>
+          <div class="file-chosen-label" id="weekFileLabel"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-cancel-btn" onclick="closeAddWeekModal()">
+            Cancel
+          </button>
+          <button
+            class="modal-save-btn"
+            id="addWeekSaveBtn"
+            onclick="saveWeeklyReport()"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONFIRM MODAL ──────────────────────────────────────────────────── -->
+    <div class="modal-overlay" id="confirmModal">
+      <div class="modal-box" style="max-width: 360px">
+        <div class="modal-title" id="confirmTitle">Confirm</div>
+        <p
+          id="confirmMsg"
+          style="
+            font-size: 13px;
+            color: var(--primary-text);
+            margin-bottom: 20px;
+            line-height: 1.6;
+          "
+        ></p>
+        <div class="modal-actions">
+          <button class="modal-cancel-btn" onclick="closeConfirmModal()">
+            Cancel
+          </button>
+          <button class="modal-save-btn" id="confirmOkBtn">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TOAST ──────────────────────────────────────────────────────────── -->
+    <div id="toast"></div>
+
     <script>
-      // TAB SWITCH
+      // ── State ─────────────────────────────────────────────────────────────────
+      const urlParams = new URLSearchParams(window.location.search);
+      const STUDENT_ID = urlParams.get("student_id") || "";
+      const SECTION = urlParams.get("section") || "";
+
+      let student = null;
+      let allPartners = [];
+      let currentReqType = "pre";
+      let attProofFilePath = null;
+      let weeklyFilePath = null;
+
+      // tabs loaded flags
+      const tabLoaded = {
+        pre: false,
+        attendance: false,
+        weekly: false,
+        post: false,
+      };
+
+      // ── Back button ───────────────────────────────────────────────────────────
+      if (SECTION) {
+        document.getElementById("backBtn").href =
+          "ojt_students_list.html?section=" + encodeURIComponent(SECTION);
+      }
+
+      // ── Utilities ─────────────────────────────────────────────────────────────
+      function esc(str) {
+        return String(str ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function fmt(v) {
+        return v ? String(v) : "—";
+      }
+      function fmtTime(dt) {
+        if (!dt) return "—";
+        try {
+          return new Date(dt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        } catch (_) {
+          return String(dt);
+        }
+      }
+      function fmtDate(d) {
+        if (!d) return "—";
+        try {
+          return new Date(d).toLocaleDateString("en-PH", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
+        } catch (_) {
+          return String(d);
+        }
+      }
+      function fmtDuration(mins) {
+        if (!mins) return "—";
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        return h ? `${h}h ${m}m` : `${m}m`;
+      }
+
+      let _toastTimer;
+      function showToast(msg, type = "info") {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.className = "show " + type;
+        clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => {
+          el.className = "";
+        }, 3200);
+      }
+
+      function statusCssClass(status) {
+        const s = String(status || "")
+          .toLowerCase()
+          .trim();
+        if (s === "deployed") return "deployed";
+        if (s.includes("pre")) return "pre-deployment";
+        return "pending-requirements";
+      }
+
+      function deadlineBadgeHtml(badge) {
+        if (!badge) return "";
+        const labels = {
+          overdue: `${badge.days}d overdue`,
+          soon: `due in ${badge.days}d`,
+          ok: `due in ${badge.days}d`,
+        };
+        return `<span class="deadline-badge ${esc(badge.status)}">${labels[badge.status] || ""}</span>`;
+      }
+
+      // ── Load student profile ───────────────────────────────────────────────────
+      async function loadProfile() {
+        if (!STUDENT_ID) {
+          showToast("No student ID in URL.", "error");
+          return;
+        }
+        try {
+          const result =
+            await window.electronAPI.getCoordinatorStudentProfile(STUDENT_ID);
+          if (!result?.success)
+            throw new Error(result?.message || "Failed to load profile.");
+
+          student = result.student;
+          renderHeader(student);
+          loadPreRequirements();
+          tabLoaded.pre = true;
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      function renderHeader(s) {
+        document.title = `${s.display_name || s.name} — Profile`;
+
+        if (s.profile_image_url) {
+          const img = document.getElementById("avatarImg");
+          img.src = s.profile_image_url;
+          img.style.display = "block";
+        }
+
+        document.getElementById("studentName").textContent =
+          s.display_name || s.name || "—";
+        document.getElementById("studentIdBadge").textContent =
+          s.student_id || "—";
+        document.getElementById("studentEmail").textContent = fmt(s.email);
+        document.getElementById("studentContact").textContent = fmt(
+          s.contact_no,
+        );
+        document.getElementById("studentSection").textContent = fmt(s.section);
+
+        refreshPartnerDisplay(
+          s.external_partner_assigned,
+          s.nature_of_business,
+        );
+
+        const pill = document.getElementById("statusPill");
+        pill.textContent = s.status || "Pending Requirements";
+        pill.className = "status-pill " + statusCssClass(s.status);
+      }
+
+      function refreshPartnerDisplay(partner, nature) {
+        const parts = [fmt(partner), fmt(nature)].filter((v) => v !== "—");
+        document.getElementById("partnerText").textContent =
+          parts.join(" · ") || "—";
+      }
+
+      // ── Partner autocomplete ──────────────────────────────────────────────────
+      async function loadPartners() {
+        if (allPartners.length) return;
+        try {
+          const r = await window.electronAPI.getExternalPartners();
+          allPartners = r?.partners || r?.data || [];
+        } catch (_) {
+          allPartners = [];
+        }
+      }
+
+      function openPartnerEdit() {
+        document.getElementById("partnerDisplay").style.display = "none";
+        document.getElementById("partnerEditArea").style.display = "block";
+        document.getElementById("partnerInput").value =
+          student?.external_partner_assigned || "";
+        document.getElementById("natureInput").value =
+          student?.nature_of_business || "";
+        loadPartners();
+      }
+      function closePartnerEdit() {
+        document.getElementById("partnerDisplay").style.display = "";
+        document.getElementById("partnerEditArea").style.display = "none";
+        document.getElementById("partnerSuggestions").classList.remove("open");
+      }
+
+      document
+        .getElementById("partnerInput")
+        .addEventListener("input", function () {
+          const q = this.value.trim().toLowerCase();
+          const box = document.getElementById("partnerSuggestions");
+          if (!q || !allPartners.length) {
+            box.classList.remove("open");
+            return;
+          }
+          const matches = allPartners
+            .filter((p) =>
+              String(p.partner_name || p.name || "")
+                .toLowerCase()
+                .includes(q),
+            )
+            .slice(0, 8);
+          if (!matches.length) {
+            box.classList.remove("open");
+            return;
+          }
+          box.innerHTML = matches
+            .map(
+              (p) => `
+        <div class="partner-option" data-name="${esc(p.partner_name || p.name || "")}"
+          data-nature="${esc(p.nature_of_business || p.industry || "")}">
+          <div class="partner-option-name">${esc(p.partner_name || p.name || "")}</div>
+          <div class="partner-option-meta">${esc(p.nature_of_business || p.industry || "")}</div>
+        </div>`,
+            )
+            .join("");
+          box.querySelectorAll(".partner-option").forEach((opt) => {
+            opt.addEventListener("click", function () {
+              document.getElementById("partnerInput").value = this.dataset.name;
+              if (!document.getElementById("natureInput").value) {
+                document.getElementById("natureInput").value =
+                  this.dataset.nature;
+              }
+              box.classList.remove("open");
+            });
+          });
+          box.classList.add("open");
+        });
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest("#partnerAutocompleteGroup"))
+          document
+            .getElementById("partnerSuggestions")
+            .classList.remove("open");
+      });
+
+      async function savePartner() {
+        const partner =
+          document.getElementById("partnerInput").value.trim() || null;
+        const nature =
+          document.getElementById("natureInput").value.trim() || null;
+        try {
+          const r = await window.electronAPI.updateStudentPartner({
+            student_id: STUDENT_ID,
+            external_partner_assigned: partner,
+            nature_of_business: nature,
+          });
+          if (!r?.success) throw new Error(r?.message || "Save failed.");
+          student.external_partner_assigned = partner;
+          student.nature_of_business = nature;
+          refreshPartnerDisplay(partner, nature);
+          closePartnerEdit();
+          showToast("Partner updated.", "success");
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      // ── PRE / POST requirements ───────────────────────────────────────────────
+      async function loadPreRequirements() {
+        await loadRequirements("pre");
+      }
+      async function loadPostRequirements() {
+        await loadRequirements("post");
+      }
+
+      async function loadRequirements(type) {
+        const gridId = type === "pre" ? "preGrid" : "postGrid";
+        const grid = document.getElementById(gridId);
+        grid.innerHTML =
+          '<div style="color:var(--secondary-text);font-size:13px;">Loading…</div>';
+        try {
+          const r = await window.electronAPI.getStudentRequirements({
+            studentId: STUDENT_ID,
+            type,
+          });
+          if (!r?.success)
+            throw new Error(r?.message || "Failed to load requirements.");
+          renderRequirementsGrid(type, r.requirements || []);
+        } catch (err) {
+          grid.innerHTML = `<div style="color:#ff5252;font-size:13px;">${esc(err.message)}</div>`;
+        }
+      }
+
+      function renderRequirementsGrid(type, requirements) {
+        const gridId = type === "pre" ? "preGrid" : "postGrid";
+        const grid = document.getElementById(gridId);
+
+        if (!requirements.length) {
+          grid.innerHTML =
+            '<div style="color:var(--secondary-text);font-size:13px;">No requirements found.</div>';
+          return;
+        }
+
+        grid.innerHTML = requirements
+          .map((item) => {
+            const { template: t, submission: sub } = item;
+            const badge = deadlineBadgeHtml(t.deadline_badge);
+            const isVerified = sub?.status === "verified";
+            const isSubmitted =
+              sub?.status === "submitted" || sub?.status === "verified";
+
+            let actionHtml = "";
+            if (isVerified) {
+              actionHtml = `
+            <div class="verified-tag">&#10003; Verified</div>
+            <button class="view-btn" onclick="openFile('${esc(sub.file_url)}')">View File</button>`;
+            } else if (isSubmitted) {
+              actionHtml = `
+            <button class="upload-btn uploaded" onclick="uploadReqFile('${esc(t.id)}','${type}')">&#128196; Uploaded</button>
+            <button class="view-btn" onclick="openFile('${esc(sub?.file_url)}')">View</button>
+            <button class="verify-btn" onclick="verifyRequirement('${esc(sub?.id)}','${type}')">&#10003; Verify</button>`;
+            } else {
+              actionHtml = `
+            <button class="upload-btn" onclick="uploadReqFile('${esc(t.id)}','${type}')">Upload File</button>`;
+            }
+
+            return `
+          <div class="req" data-template-id="${esc(t.id)}">
+            <div class="req-meta">
+              <span class="req-label">${esc(t.name.toUpperCase())}</span>
+              ${badge}
+            </div>
+            <div class="req-actions">${actionHtml}</div>
+          </div>`;
+          })
+          .join("");
+
+        // Enable deploy if all required pre reqs verified
+        if (type === "pre") {
+          const allVerified = requirements.every(
+            (item) =>
+              !item.template.is_required ||
+              item.submission?.status === "verified",
+          );
+          const deployBtn = document.getElementById("deployBtn");
+          deployBtn.disabled = !allVerified;
+          if (allVerified) deployBtn.dataset.enabled = "true";
+          else delete deployBtn.dataset.enabled;
+        }
+        if (type === "post") {
+          const allVerified = requirements.every(
+            (item) =>
+              !item.template.is_required ||
+              item.submission?.status === "verified",
+          );
+          const archBtn = document.getElementById("archiveBtn");
+          archBtn.disabled = !allVerified;
+          if (allVerified) archBtn.dataset.enabled = "true";
+          else delete archBtn.dataset.enabled;
+        }
+      }
+
+      async function uploadReqFile(templateId, type) {
+        try {
+          const fileResult = await window.electronAPI.selectOjtFile();
+          if (!fileResult?.success || fileResult.canceled) return;
+
+          const folderType =
+            type === "pre" ? "Pre Requirements" : "Post Requirements";
+          showToast("Uploading…");
+          const uploadResult = await window.electronAPI.uploadOjtFile({
+            filePath: fileResult.filePath,
+            studentId: STUDENT_ID,
+            folderType,
+          });
+          if (!uploadResult?.success)
+            throw new Error(uploadResult?.message || "Upload failed.");
+
+          const fileName = fileResult.filePath.split(/[/\\]/).pop();
+          const subResult =
+            await window.electronAPI.createOjtRequirementSubmission({
+              student_id: STUDENT_ID,
+              template_id: templateId,
+              file_url: uploadResult.url,
+              cloudinary_public_id: uploadResult.public_id,
+              folder_path: uploadResult.folder,
+              file_name: fileName,
+            });
+          if (!subResult?.success)
+            throw new Error(subResult?.message || "Failed to save submission.");
+
+          showToast("File uploaded.", "success");
+          await loadRequirements(type);
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      async function verifyRequirement(submissionId, type) {
+        try {
+          const r = await window.electronAPI.updateOjtRequirementSubmission({
+            id: submissionId,
+            status: "verified",
+          });
+          if (!r?.success) throw new Error(r?.message || "Verify failed.");
+          showToast("Requirement verified.", "success");
+          await loadRequirements(type);
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      function openFile(url) {
+        if (url && url !== "undefined") {
+          window.electronAPI.openExternalUrl(url);
+        }
+      }
+
+      // ── Add Requirement Modal ─────────────────────────────────────────────────
+      function openAddReqModal(type) {
+        currentReqType = type;
+        document.getElementById("addReqModalTitle").textContent =
+          "Add " + (type === "pre" ? "Pre" : "Post") + " Requirement";
+        document.getElementById("reqNameInput").value = "";
+        document.getElementById("reqDeadlineInput").value = "";
+        document.getElementById("reqScopeSelect").value = "department";
+        document.getElementById("addReqModal").classList.add("open");
+      }
+      function closeAddReqModal() {
+        document.getElementById("addReqModal").classList.remove("open");
+      }
+
+      async function saveNewRequirement() {
+        const name = document.getElementById("reqNameInput").value.trim();
+        const scope = document.getElementById("reqScopeSelect").value;
+        const deadline =
+          document.getElementById("reqDeadlineInput").value || null;
+
+        if (!name) {
+          showToast("Requirement name is required.", "error");
+          return;
+        }
+
+        const btn = document.getElementById("addReqSaveBtn");
+        btn.disabled = true;
+
+        let scopeValue = null;
+        if (scope === "section") scopeValue = SECTION;
+        else if (scope === "student") scopeValue = STUDENT_ID;
+
+        try {
+          const r = await window.electronAPI.createOjtRequirementTemplate({
+            name,
+            type: currentReqType,
+            scope,
+            scope_value: scopeValue,
+            deadline,
+          });
+          if (!r?.success)
+            throw new Error(r?.message || "Failed to create requirement.");
+          closeAddReqModal();
+          showToast("Requirement added.", "success");
+          await loadRequirements(currentReqType);
+        } catch (err) {
+          showToast(err.message, "error");
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      // ── Attendance ────────────────────────────────────────────────────────────
+      async function loadAttendance() {
+        try {
+          const r = await window.electronAPI.getOjtAttendance({
+            studentId: STUDENT_ID,
+          });
+          if (!r?.success)
+            throw new Error(r?.message || "Failed to load attendance.");
+          renderAttendance(r.records || [], r.summary || {});
+        } catch (err) {
+          document.getElementById("attendanceBody").innerHTML =
+            `<tr><td colspan="8" style="color:#ff5252;">${esc(err.message)}</td></tr>`;
+        }
+      }
+
+      function renderAttendance(records, summary) {
+        // Summary
+        const totalHours = Math.floor((summary.total_minutes || 0) / 60);
+        const totalMins = (summary.total_minutes || 0) % 60;
+        document.getElementById("attSummary").innerHTML = `
+        <span class="att-summary-item">Total Records: <strong>${summary.total || 0}</strong></span>
+        <span class="att-summary-item">Present: <strong>${summary.present || 0}</strong></span>
+        <span class="att-summary-item">Absent: <strong>${summary.absent || 0}</strong></span>
+        <span class="att-summary-item">Late: <strong>${summary.late || 0}</strong></span>
+        <span class="att-summary-item">Total Hours: <strong>${totalHours}h ${totalMins}m</strong></span>`;
+
+        const tbody = document.getElementById("attendanceBody");
+        if (!records.length) {
+          tbody.innerHTML =
+            '<tr><td colspan="8" style="color:var(--secondary-text);padding:18px 0;">No attendance records yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = records
+          .map((rec) => {
+            const sc = String(rec.status || "present").replace("-", "-");
+            return `
+          <tr>
+            <td>${fmtDate(rec.attendance_date)}</td>
+            <td>${fmtTime(rec.datetime_in)}</td>
+            <td>${fmtTime(rec.datetime_out)}</td>
+            <td>${fmtDuration(rec.duration_minutes)}</td>
+            <td><span class="att-status-pill ${esc(rec.status || "present")}">${esc(rec.status || "present")}</span></td>
+            <td>${
+              rec.proof_url
+                ? `<a class="att-proof-link" href="#" onclick="openFile('${esc(rec.proof_url)}');return false;">View</a>`
+                : "—"
+            }</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(rec.notes || "")}">${esc(rec.notes || "—")}</td>
+            <td>
+              <button class="att-action-btn" onclick="editAttendance(${rec.id})">Edit</button>
+              <button class="att-action-btn att-del-btn" onclick="deleteAttendance(${rec.id})">Del</button>
+            </td>
+          </tr>`;
+          })
+          .join("");
+      }
+
+      function openAddAttendanceModal() {
+        document.getElementById("addAttModalTitle").textContent =
+          "Add Attendance Record";
+        document.getElementById("editAttId").value = "";
+        document.getElementById("attDateInput").value = "";
+        document.getElementById("attTimeInInput").value = "";
+        document.getElementById("attTimeOutInput").value = "";
+        document.getElementById("attStatusSelect").value = "present";
+        document.getElementById("attNotesInput").value = "";
+        document.getElementById("attProofLabel").textContent = "";
+        attProofFilePath = null;
+        document.getElementById("addAttModal").classList.add("open");
+      }
+      function closeAddAttModal() {
+        document.getElementById("addAttModal").classList.remove("open");
+      }
+
+      async function editAttendance(id) {
+        // Fetch from current rendered records — find in DOM by re-loading or storing state
+        // Simpler: re-fetch and find by id
+        try {
+          const r = await window.electronAPI.getOjtAttendance({
+            studentId: STUDENT_ID,
+          });
+          const rec = (r.records || []).find((x) => x.id === id);
+          if (!rec) return;
+          document.getElementById("addAttModalTitle").textContent =
+            "Edit Attendance Record";
+          document.getElementById("editAttId").value = id;
+          document.getElementById("attDateInput").value = rec.attendance_date
+            ? rec.attendance_date.substring(0, 10)
+            : "";
+          document.getElementById("attTimeInInput").value = rec.datetime_in
+            ? rec.datetime_in.substring(0, 16).replace(" ", "T")
+            : "";
+          document.getElementById("attTimeOutInput").value = rec.datetime_out
+            ? rec.datetime_out.substring(0, 16).replace(" ", "T")
+            : "";
+          document.getElementById("attStatusSelect").value =
+            rec.status || "present";
+          document.getElementById("attNotesInput").value = rec.notes || "";
+          attProofFilePath = null;
+          document.getElementById("attProofLabel").textContent = rec.proof_url
+            ? "(existing proof on file)"
+            : "";
+          document.getElementById("addAttModal").classList.add("open");
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      async function pickAttachmentProof() {
+        const r = await window.electronAPI.selectOjtFile();
+        if (!r?.success || r.canceled) return;
+        attProofFilePath = r.filePath;
+        document.getElementById("attProofLabel").textContent = r.filePath
+          .split(/[/\\]/)
+          .pop();
+      }
+
+      async function saveAttendance() {
+        const editId = document.getElementById("editAttId").value;
+        const date = document.getElementById("attDateInput").value;
+        const timeIn = document.getElementById("attTimeInInput").value || null;
+        const timeOut =
+          document.getElementById("attTimeOutInput").value || null;
+        const status = document.getElementById("attStatusSelect").value;
+        const notes =
+          document.getElementById("attNotesInput").value.trim() || null;
+
+        if (!date) {
+          showToast("Date is required.", "error");
+          return;
+        }
+
+        const btn = document.getElementById("addAttSaveBtn");
+        btn.disabled = true;
+
+        try {
+          let proofUrl = null,
+            proofPublicId = null;
+          if (attProofFilePath) {
+            showToast("Uploading proof…");
+            const up = await window.electronAPI.uploadOjtFile({
+              filePath: attProofFilePath,
+              studentId: STUDENT_ID,
+              folderType: "Daily Reports",
+            });
+            if (!up?.success)
+              throw new Error(up?.message || "Proof upload failed.");
+            proofUrl = up.url;
+            proofPublicId = up.public_id;
+          }
+
+          const payload = {
+            student_id: STUDENT_ID,
+            attendance_date: date,
+            datetime_in: timeIn ? timeIn.replace("T", " ") : null,
+            datetime_out: timeOut ? timeOut.replace("T", " ") : null,
+            status,
+            notes,
+            ...(proofUrl
+              ? { proof_url: proofUrl, proof_public_id: proofPublicId }
+              : {}),
+          };
+
+          let r;
+          if (editId) {
+            r = await window.electronAPI.updateOjtAttendance({
+              id: parseInt(editId),
+              ...payload,
+            });
+          } else {
+            r = await window.electronAPI.createOjtAttendance(payload);
+          }
+          if (!r?.success) throw new Error(r?.message || "Save failed.");
+          closeAddAttModal();
+          showToast("Attendance saved.", "success");
+          await loadAttendance();
+        } catch (err) {
+          showToast(err.message, "error");
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function deleteAttendance(id) {
+        openConfirm(
+          "Delete Record",
+          "Are you sure you want to delete this attendance record?",
+          async () => {
+            try {
+              const r = await window.electronAPI.deleteOjtAttendance(id);
+              if (!r?.success) throw new Error(r?.message || "Delete failed.");
+              showToast("Record deleted.", "success");
+              await loadAttendance();
+            } catch (err) {
+              showToast(err.message, "error");
+            }
+          },
+        );
+      }
+
+      // ── Weekly Reports ────────────────────────────────────────────────────────
+      async function loadWeeklyReports() {
+        try {
+          const r = await window.electronAPI.getOjtWeeklyReports(STUDENT_ID);
+          if (!r?.success)
+            throw new Error(r?.message || "Failed to load weekly reports.");
+          renderWeeklyReports(r.reports || []);
+        } catch (err) {
+          document.getElementById("weeklyGrid").innerHTML =
+            `<div style="color:#ff5252;font-size:13px;">${esc(err.message)}</div>`;
+        }
+      }
+
+      function renderWeeklyReports(reports) {
+        const grid = document.getElementById("weeklyGrid");
+        if (!reports.length) {
+          grid.innerHTML =
+            '<div style="color:var(--secondary-text);font-size:13px;">No weekly reports yet. Click "+ Add Week" to add one.</div>';
+          return;
+        }
+        grid.innerHTML = reports
+          .map((rep) => {
+            const sc = rep.status || "pending";
+            const actionBtn = rep.file_url
+              ? `<a class="week-view-link" href="#" onclick="openFile('${esc(rep.file_url)}');return false;">View Report</a>`
+              : `<button class="week-upload-btn" onclick="uploadWeekReport(${rep.id}, ${rep.week_number})">Upload PDF</button>`;
+            return `
+          <div class="week-card">
+            <div class="week-card-title">Week ${rep.week_number}</div>
+            <div class="week-card-date">${rep.week_start_date ? fmtDate(rep.week_start_date) : "No date set"}</div>
+            <span class="week-status-badge ${esc(sc)}">${esc(sc)}</span>
+            <br />
+            ${actionBtn}
+          </div>`;
+          })
+          .join("");
+      }
+
+      function openAddWeekModal() {
+        document.getElementById("weekNumberInput").value = "";
+        document.getElementById("weekStartInput").value = "";
+        document.getElementById("weekFileLabel").textContent = "";
+        weeklyFilePath = null;
+        document.getElementById("addWeekModal").classList.add("open");
+      }
+      function closeAddWeekModal() {
+        document.getElementById("addWeekModal").classList.remove("open");
+      }
+
+      async function pickWeeklyFile() {
+        const r = await window.electronAPI.selectOjtFile();
+        if (!r?.success || r.canceled) return;
+        weeklyFilePath = r.filePath;
+        document.getElementById("weekFileLabel").textContent = r.filePath
+          .split(/[/\\]/)
+          .pop();
+      }
+
+      async function saveWeeklyReport() {
+        const weekNum = parseInt(
+          document.getElementById("weekNumberInput").value,
+          10,
+        );
+        const weekStart =
+          document.getElementById("weekStartInput").value || null;
+
+        if (!weekNum || weekNum < 1) {
+          showToast("Week number is required.", "error");
+          return;
+        }
+
+        const btn = document.getElementById("addWeekSaveBtn");
+        btn.disabled = true;
+
+        try {
+          let fileUrl = null,
+            publicId = null,
+            folderPath = null,
+            fileName = null;
+          if (weeklyFilePath) {
+            showToast("Uploading report…");
+            const up = await window.electronAPI.uploadOjtFile({
+              filePath: weeklyFilePath,
+              studentId: STUDENT_ID,
+              folderType: "Weekly Reports",
+            });
+            if (!up?.success) throw new Error(up?.message || "Upload failed.");
+            fileUrl = up.url;
+            publicId = up.public_id;
+            folderPath = up.folder;
+            fileName = weeklyFilePath.split(/[/\\]/).pop();
+          }
+
+          const r = await window.electronAPI.createOjtWeeklyReport({
+            student_id: STUDENT_ID,
+            week_number: weekNum,
+            week_start_date: weekStart,
+            file_url: fileUrl,
+            cloudinary_public_id: publicId,
+            folder_path: folderPath,
+            file_name: fileName,
+          });
+          if (!r?.success) throw new Error(r?.message || "Save failed.");
+          closeAddWeekModal();
+          showToast("Weekly report saved.", "success");
+          await loadWeeklyReports();
+        } catch (err) {
+          showToast(err.message, "error");
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function uploadWeekReport(reportId, weekNum) {
+        const r = await window.electronAPI.selectOjtFile();
+        if (!r?.success || r.canceled) return;
+
+        try {
+          showToast("Uploading…");
+          const up = await window.electronAPI.uploadOjtFile({
+            filePath: r.filePath,
+            studentId: STUDENT_ID,
+            folderType: "Weekly Reports",
+          });
+          if (!up?.success) throw new Error(up?.message || "Upload failed.");
+
+          const upd = await window.electronAPI.createOjtWeeklyReport({
+            student_id: STUDENT_ID,
+            week_number: weekNum,
+            file_url: up.url,
+            cloudinary_public_id: up.public_id,
+            folder_path: up.folder,
+            file_name: r.filePath.split(/[/\\]/).pop(),
+          });
+          if (!upd?.success) throw new Error(upd?.message || "Save failed.");
+          showToast("Report uploaded.", "success");
+          await loadWeeklyReports();
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      // ── Deploy / Archive ──────────────────────────────────────────────────────
+      function confirmDeploy() {
+        openConfirm(
+          "Deploy Student",
+          `Mark ${esc(student?.display_name || student?.name || STUDENT_ID)} as Deployed? This will update their OJT status.`,
+          async () => {
+            try {
+              const r = await window.electronAPI.updateStudentOjtStatus({
+                student_id: STUDENT_ID,
+                status: "Deployed",
+                notes: "Deployed by coordinator",
+              });
+              if (!r?.success)
+                throw new Error(r?.message || "Status update failed.");
+              student.status = "Deployed";
+              const pill = document.getElementById("statusPill");
+              pill.textContent = "Deployed";
+              pill.className = "status-pill deployed";
+              showToast("Student deployed.", "success");
+            } catch (err) {
+              showToast(err.message, "error");
+            }
+          },
+        );
+      }
+
+      function confirmArchive() {
+        openConfirm(
+          "Archive Student Files",
+          "This will mark the OJT as complete. Continue?",
+          async () => {
+            try {
+              const r = await window.electronAPI.updateStudentOjtStatus({
+                student_id: STUDENT_ID,
+                status: "OJT Complete",
+                notes: "Post requirements complete — archived by coordinator",
+              });
+              if (!r?.success)
+                throw new Error(r?.message || "Status update failed.");
+              student.status = "OJT Complete";
+              const pill = document.getElementById("statusPill");
+              pill.textContent = "OJT Complete";
+              pill.className = "status-pill deployed";
+              showToast("OJT marked complete.", "success");
+            } catch (err) {
+              showToast(err.message, "error");
+            }
+          },
+        );
+      }
+
+      // ── Confirm modal ─────────────────────────────────────────────────────────
+      let _confirmCallback = null;
+      function openConfirm(title, msg, callback) {
+        document.getElementById("confirmTitle").textContent = title;
+        document.getElementById("confirmMsg").textContent = msg;
+        _confirmCallback = callback;
+        document.getElementById("confirmModal").classList.add("open");
+      }
+      function closeConfirmModal() {
+        document.getElementById("confirmModal").classList.remove("open");
+        _confirmCallback = null;
+      }
+      document
+        .getElementById("confirmOkBtn")
+        .addEventListener("click", async function () {
+          closeConfirmModal();
+          if (_confirmCallback) await _confirmCallback();
+        });
+
+      // ── Tab switching ─────────────────────────────────────────────────────────
       document.addEventListener("DOMContentLoaded", function () {
         const tabs = document.querySelectorAll(".tab");
         const panels = document.querySelectorAll(".tab-panel");
@@ -160,34 +1880,27 @@
           tab.addEventListener("click", function () {
             tabs.forEach((t) => t.classList.remove("active"));
             panels.forEach((p) => p.classList.remove("active"));
-
             this.classList.add("active");
-
             const target = this.dataset.target;
             document.getElementById(target).classList.add("active");
+
+            // Lazy-load tab content on first visit
+            if (target === "attendancePanel" && !tabLoaded.attendance) {
+              tabLoaded.attendance = true;
+              loadAttendance();
+            } else if (target === "weeklyPanel" && !tabLoaded.weekly) {
+              tabLoaded.weekly = true;
+              loadWeeklyReports();
+            } else if (target === "postPanel" && !tabLoaded.post) {
+              tabLoaded.post = true;
+              loadPostRequirements();
+            }
           });
         });
+
+        // Kick off profile load
+        loadProfile();
       });
-
-      // RECEIVE STUDENT DATA
-      (function () {
-        let params = new URLSearchParams(window.location.search);
-
-        let name = params.get("name");
-        let id = params.get("id");
-        let status = params.get("status");
-        let email = params.get("email");
-        let contact = params.get("contact");
-
-        if (name) document.querySelector(".student-name").textContent = name;
-        if (id) document.querySelector(".student-id").textContent = id;
-        if (status)
-          document.querySelector(".status-pill").textContent =
-            status.toUpperCase();
-        if (email) document.querySelector(".student-email").textContent = email;
-        if (contact)
-          document.querySelector(".student-contact").textContent = contact;
-      })();
     </script>
   </body>
 </html>

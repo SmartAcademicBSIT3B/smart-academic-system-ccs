@@ -5,34 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OJT Students</title>
     <link rel="stylesheet" href="../css/ojt_students.css" />
+    <style>
+      .loading-state,
+      .empty-state {
+        color: var(--secondary-text);
+        font-size: 15px;
+        padding: 40px;
+      }
+    </style>
   </head>
 
   <body>
     <h2 class="page-title">OJT STUDENTS</h2>
 
-    <div class="ojt-container">
-      <div class="student-card" data-section="BSIT-4B">
-        <div class="course">BSIT-4B</div>
-        <div class="divider"></div>
-        <div class="students-count"><strong>36</strong> students</div>
-      </div>
-
-      <div class="student-card" data-section="BSIT-4D">
-        <div class="course">BSIT-4D</div>
-        <div class="divider"></div>
-        <div class="students-count"><strong>36</strong> students</div>
-      </div>
+    <div id="sectionCards" class="ojt-container">
+      <div class="loading-state">Loading your sections…</div>
     </div>
 
     <script>
-      document.querySelectorAll(".student-card").forEach(function (card) {
-        card.addEventListener("click", function () {
-          let section = this.dataset.section;
+      async function loadSections() {
+        const container = document.getElementById("sectionCards");
 
-          window.location.href =
-            "ojt_students_list.html?section=" + encodeURIComponent(section);
-        });
-      });
+        try {
+          const result = await window.electronAPI.getCoordinatorSections();
+          if (!result?.success)
+            throw new Error(result?.message || "Failed to load sections.");
+
+          const sections = result.sections || [];
+          if (!sections.length) {
+            container.innerHTML =
+              '<div class="empty-state">No sections assigned to you yet.</div>';
+            return;
+          }
+
+          container.innerHTML = sections
+            .map(
+              (s) => `
+            <div class="student-card" data-section="${escapeAttr(s.section_name)}">
+              <div class="course">${escapeHtml(s.section_name)}</div>
+              <div class="divider"></div>
+              <div class="students-count">
+                <strong>${Number(s.student_count) || 0}</strong> student${s.student_count !== 1 ? "s" : ""}
+              </div>
+            </div>`,
+            )
+            .join("");
+
+          container.querySelectorAll(".student-card").forEach(function (card) {
+            card.addEventListener("click", function () {
+              const section = this.dataset.section;
+              window.location.href =
+                "ojt_students_list.html?section=" + encodeURIComponent(section);
+            });
+          });
+        } catch (err) {
+          container.innerHTML =
+            '<div class="empty-state">Error: ' +
+            escapeHtml(err.message) +
+            "</div>";
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function escapeAttr(str) {
+        return String(str || "").replace(/"/g, "&quot;");
+      }
+
+      loadSections();
     </script>
   </body>
 </html>

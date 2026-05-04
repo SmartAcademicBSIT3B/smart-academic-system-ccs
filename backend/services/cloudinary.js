@@ -94,4 +94,46 @@ async function deleteByUrl(assetUrl) {
   }
 }
 
-module.exports = { uploadProfileImage, uploadPartnerLogo, deleteByUrl };
+// ── OJT file upload ───────────────────────────────────────────────────────────
+// folderType must be one of the approved subfolder names.
+const OJT_ALLOWED_FOLDERS = new Set([
+  "Daily Reports",
+  "Post Requirements",
+  "Pre Requirements",
+  "Profile",
+  "Weekly Reports",
+]);
+
+async function uploadOjtFile(fileBuffer, fileName, studentId, folderType) {
+  if (!OJT_ALLOWED_FOLDERS.has(folderType)) {
+    throw new Error(`Invalid OJT folder type: ${folderType}`);
+  }
+  const safeStudentId = sanitizePublicId(String(studentId || "unknown"));
+  const baseName = sanitizePublicId(
+    String(fileName || "file").replace(/\.[^.]+$/, ""),
+  );
+  const folderSlug = folderType.replace(/\s+/g, "_");
+  const folder = `HTA Files/OJT Requirements/${safeStudentId}/${folderType}`;
+  const publicId = `${safeStudentId}_${folderSlug}_${Date.now()}_${baseName}`;
+
+  const result = await uploadStream(fileBuffer, {
+    folder,
+    public_id: publicId,
+    resource_type: "auto",
+    overwrite: false,
+    use_filename: false,
+    unique_filename: false,
+  });
+
+  const url = result?.secure_url || result?.url || "";
+  if (!url)
+    throw new Error("Cloudinary upload succeeded but no URL was returned.");
+  return { url, public_id: result.public_id, folder };
+}
+
+module.exports = {
+  uploadProfileImage,
+  uploadPartnerLogo,
+  deleteByUrl,
+  uploadOjtFile,
+};

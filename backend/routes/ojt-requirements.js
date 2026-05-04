@@ -1,0 +1,633 @@
+const express = require("express");
+const { pool, query } = require("../db/connect");
+const { requireAuth } = require("../middleware/auth");
+
+const router = express.Router();
+
+const DEPT_HEADER = "x-department";
+function getDept(req) {
+  return (
+    String(
+      req.headers[DEPT_HEADER] || req.user?.department_code || "CCS",
+    ).trim() || "CCS"
+  );
+}
+
+// ── Default pre/post requirement sets ────────────────────────────────────────
+const DEFAULT_PRE_REQUIREMENTS = [
+  "Curriculum Vitae",
+  "Recommendation Letter",
+  "Training Agreement",
+  "OJT Seminar Certificate",
+  "Certificate of Enrollment",
+];
+
+const DEFAULT_POST_REQUIREMENTS = [
+  "Narrative Report",
+  "Evaluation Sheet",
+  "Certificate of Completion",
+];
+
+// ── Table bootstrap ────────────────────────────────────────────────────────────
+let tablesPrepared = false;
+
+async function ensureTables() {
+  if (tablesPrepared) return;
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS ojt_requirement_templates (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      type ENUM('pre', 'post') NOT NULL DEFAULT 'pre',
+      scope ENUM('department', 'section', 'student') NOT NULL DEFAULT 'department',
+      scope_value VARCHAR(255) NULL COMMENT 'department code, section name, or student_id depending on scope',
+      deadline DATE NULL,
+      is_required TINYINT(1) NOT NULL DEFAULT 1,
+      display_order INT NOT NULL DEFAULT 0,
+      department VARCHAR(120) NOT NULL DEFAULT 'CCS',
+      created_by_user_id INT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_ort_dept_type (department, type),
+      INDEX idx_ort_scope (scope, scope_value)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS ojt_requirement_submissions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      ojt_student_id INT NOT NULL,
+      template_id INT NOT NULL,
+      student_id_ref VARCHAR(120) NOT NULL COMMENT 'denormalized for easy lookup',
+      file_url VARCHAR(512) NULL,
+      cloudinary_public_id VARCHAR(512) NULL,
+      folder_path VARCHAR(512) NULL,
+      file_name VARCHAR(255) NULL,
+      file_type VARCHAR(50) NULL,
+      status ENUM('pending', 'submitted', 'verified', 'rejected') NOT NULL DEFAULT 'pending',
+      deadline_override DATE NULL COMMENT 'overrides template deadline for this student',
+      verified_by_user_id INT NULL,
+      verified_at DATETIME NULL,
+      notes TEXT NULL,
+      department VARCHAR(120) NOT NULL DEFAULT 'CCS',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_student_template (ojt_student_id, template_id),
+      INDEX idx_ors_student (ojt_student_id),
+      INDEX idx_ors_template (template_id),
+      INDEX idx_ors_status (status, department)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  tablesPrepared = true;
+}
+
+// ── Seed defaults ─────────────────────────────────────────────────────────────
+async function seedDefaultTemplates(department) {
+  const existing = await query(
+    "SELECT COUNT(*) AS cnt FROM ojt_requirement_templates WHERE department = ? AND scope = 'department'",
+    [department],
+  );
+  if (existing[0]?.cnt > 0) return;
+
+  const toInsert = [
+    ...DEFAULT_PRE_REQUIREMENTS.map((name, i) => [
+      name,
+      "pre",
+      "department",
+      department,
+      i,
+    ]),
+    ...DEFAULT_POST_REQUIREMENTS.map((name, i) => [
+      name,
+      "post",
+      "department",
+      department,
+      i,
+    ]),
+  ];
+  for (const [name, type, scope, dept, order] of toInsert) {
+    await query(
+      "INSERT IGNORE INTO ojt_requirement_templates (name, type, scope, scope_value, department, display_order) VALUES (?, ?, ?, ?, ?, ?)",
+      [name, type, scope, dept, dept, order],
+    );
+  }
+}
+
+// ── Deadline badge helper (returned for UI) ───────────────────────────────────
+function deadlineBadge(deadline) {
+  if (!deadline) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dl = new Date(deadline);
+  dl.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((dl - today) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return { status: "overdue", days: Math.abs(diffDays) };
+  if (diffDays <= 3) return { status: "soon", days: diffDays };
+  return { status: "ok", days: diffDays };
+}
+
+// ── GET /api/ojt-requirements/templates ───────────────────────────────────────
+// Returns templates applicable to a student: department-wide + section + student-specific.
+// Query params: ?student_id=&section=&type=pre|post
+router.get("/templates", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+    await seedDefaultTemplates(dept);
+
+    const type = req.query.type === "post" ? "post" : "pre";
+    const studentId = String(req.query.student_id || "").trim();
+    const section = String(req.query.section || "").trim();
+
+    let rows;
+    if (studentId && section) {
+      rows = await query(
+        `SELECT * FROM ojt_requirement_templates
+         WHERE department = ? AND type = ?
+           AND (
+             (scope = 'department' AND scope_value = ?) OR
+             (scope = 'section' AND scope_value = ?) OR
+             (scope = 'student' AND scope_value = ?)
+           )
+         ORDER BY display_order ASC, id ASC`,
+        [dept, type, dept, section, studentId],
+      );
+    } else {
+      rows = await query(
+        `SELECT * FROM ojt_requirement_templates
+         WHERE department = ? AND type = ? AND scope = 'department'
+         ORDER BY display_order ASC, id ASC`,
+        [dept, type],
+      );
+    }
+
+    const templates = rows.map((r) => ({
+      ...r,
+      deadline_badge: deadlineBadge(r.deadline),
+    }));
+
+    return res.json({ success: true, templates });
+  } catch (error) {
+    console.error("getRequirementTemplates error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Failed to fetch templates.",
+      });
+  }
+});
+
+// ── POST /api/ojt-requirements/templates ─────────────────────────────────────
+// Create a new requirement template.
+router.post("/templates", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+
+    const name = String(req.body.name || "").trim();
+    const type = req.body.type === "post" ? "post" : "pre";
+    const scope = ["department", "section", "student"].includes(req.body.scope)
+      ? req.body.scope
+      : "department";
+    const scopeValue =
+      String(req.body.scope_value || "").trim() ||
+      (scope === "department" ? dept : null);
+    const deadline = req.body.deadline || null;
+
+    if (!name)
+      return res
+        .status(400)
+        .json({ success: false, message: "Requirement name is required." });
+
+    const result = await query(
+      `INSERT INTO ojt_requirement_templates
+       (name, type, scope, scope_value, deadline, department, created_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [name, type, scope, scopeValue, deadline, dept, req.user?.id || null],
+    );
+
+    const rows = await query(
+      "SELECT * FROM ojt_requirement_templates WHERE id = ? LIMIT 1",
+      [result.insertId],
+    );
+    return res.status(201).json({
+      success: true,
+      template: { ...rows[0], deadline_badge: deadlineBadge(rows[0].deadline) },
+    });
+  } catch (error) {
+    console.error("createRequirementTemplate error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Failed to create template.",
+      });
+  }
+});
+
+// ── PATCH /api/ojt-requirements/templates/:id ────────────────────────────────
+router.patch("/templates/:id", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    const id = parseInt(req.params.id, 10);
+    await ensureTables();
+
+    const existing = await query(
+      "SELECT id FROM ojt_requirement_templates WHERE id = ? AND department = ? LIMIT 1",
+      [id, dept],
+    );
+    if (!existing.length)
+      return res
+        .status(404)
+        .json({ success: false, message: "Template not found." });
+
+    const fields = [];
+    const vals = [];
+    if (req.body.name !== undefined) {
+      fields.push("name = ?");
+      vals.push(String(req.body.name).trim());
+    }
+    if (req.body.deadline !== undefined) {
+      fields.push("deadline = ?");
+      vals.push(req.body.deadline || null);
+    }
+    if (req.body.is_required !== undefined) {
+      fields.push("is_required = ?");
+      vals.push(req.body.is_required ? 1 : 0);
+    }
+    if (!fields.length)
+      return res
+        .status(400)
+        .json({ success: false, message: "No fields to update." });
+
+    vals.push(id, dept);
+    await query(
+      `UPDATE ojt_requirement_templates SET ${fields.join(", ")} WHERE id = ? AND department = ?`,
+      vals,
+    );
+
+    const rows = await query(
+      "SELECT * FROM ojt_requirement_templates WHERE id = ? LIMIT 1",
+      [id],
+    );
+    return res.json({
+      success: true,
+      template: { ...rows[0], deadline_badge: deadlineBadge(rows[0].deadline) },
+    });
+  } catch (error) {
+    console.error("updateRequirementTemplate error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Failed to update template.",
+      });
+  }
+});
+
+// ── DELETE /api/ojt-requirements/templates/:id ──────────────────────────────
+router.delete("/templates/:id", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    const id = parseInt(req.params.id, 10);
+    await ensureTables();
+    await query(
+      "DELETE FROM ojt_requirement_templates WHERE id = ? AND department = ?",
+      [id, dept],
+    );
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("deleteRequirementTemplate error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Failed to delete template.",
+      });
+  }
+});
+
+// ── GET /api/ojt-requirements/submissions/:studentId ────────────────────────
+// Returns all requirement submissions for a student (includes template metadata).
+router.get("/submissions/:studentId", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    const studentId = String(req.params.studentId || "").trim();
+    await ensureTables();
+
+    const student = await query(
+      "SELECT id, section FROM ojt_students WHERE student_id = ? AND department = ? LIMIT 1",
+      [studentId, dept],
+    );
+    if (!student.length)
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
+    const dbId = student[0].id;
+    const section = student[0].section;
+
+    const type = req.query.type === "post" ? "post" : "pre";
+
+    // Fetch all applicable templates for this student
+    const templates = await query(
+      `SELECT * FROM ojt_requirement_templates
+       WHERE department = ? AND type = ?
+         AND (
+           (scope = 'department' AND scope_value = ?) OR
+           (scope = 'section' AND scope_value = ?) OR
+           (scope = 'student' AND scope_value = ?)
+         )
+       ORDER BY display_order ASC, id ASC`,
+      [dept, type, dept, section, studentId],
+    );
+
+    // Fetch existing submissions
+    const submissions = await query(
+      "SELECT * FROM ojt_requirement_submissions WHERE ojt_student_id = ? AND department = ?",
+      [dbId, dept],
+    );
+    const subMap = {};
+    submissions.forEach((s) => {
+      subMap[s.template_id] = s;
+    });
+
+    const result = templates.map((t) => {
+      const sub = subMap[t.id] || null;
+      const effectiveDeadline = sub?.deadline_override || t.deadline;
+      return {
+        template: { ...t, deadline_badge: deadlineBadge(effectiveDeadline) },
+        submission: sub,
+      };
+    });
+
+    return res.json({ success: true, requirements: result });
+  } catch (error) {
+    console.error("getRequirementSubmissions error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Failed to fetch submissions.",
+      });
+  }
+});
+
+// ── PATCH /api/ojt-requirements/submissions/:submissionId ────────────────────
+// Update submission: set file, verify, reject, add notes, set deadline override.
+router.patch("/submissions/:submissionId", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    const id = parseInt(req.params.submissionId, 10);
+    await ensureTables();
+
+    const existing = await query(
+      "SELECT id, template_id, ojt_student_id FROM ojt_requirement_submissions WHERE id = ? AND department = ? LIMIT 1",
+      [id, dept],
+    );
+    if (!existing.length)
+      return res
+        .status(404)
+        .json({ success: false, message: "Submission not found." });
+
+    const fields = [];
+    const vals = [];
+
+    if (
+      req.body.status !== undefined &&
+      ["pending", "submitted", "verified", "rejected"].includes(req.body.status)
+    ) {
+      fields.push("status = ?");
+      vals.push(req.body.status);
+      if (req.body.status === "verified") {
+        fields.push("verified_by_user_id = ?", "verified_at = NOW()");
+        vals.push(req.user?.id || null);
+      }
+    }
+    if (req.body.notes !== undefined) {
+      fields.push("notes = ?");
+      vals.push(String(req.body.notes).trim() || null);
+    }
+    if (req.body.deadline_override !== undefined) {
+      fields.push("deadline_override = ?");
+      vals.push(req.body.deadline_override || null);
+    }
+    if (req.body.file_url !== undefined) {
+      fields.push(
+        "file_url = ?",
+        "cloudinary_public_id = ?",
+        "folder_path = ?",
+        "file_name = ?",
+        "file_type = ?",
+        "status = ?",
+      );
+      vals.push(
+        req.body.file_url || null,
+        req.body.cloudinary_public_id || null,
+        req.body.folder_path || null,
+        req.body.file_name || null,
+        req.body.file_type || null,
+        "submitted",
+      );
+    }
+
+    if (!fields.length)
+      return res
+        .status(400)
+        .json({ success: false, message: "No fields to update." });
+
+    vals.push(id, dept);
+    await query(
+      `UPDATE ojt_requirement_submissions SET ${fields.join(", ")} WHERE id = ? AND department = ?`,
+      vals,
+    );
+
+    // Check auto-transition: if all required pre submissions for this student are verified
+    const sub = existing[0];
+    await checkAutoStatusTransition(sub.ojt_student_id, dept, req.user?.id);
+
+    const rows = await query(
+      "SELECT * FROM ojt_requirement_submissions WHERE id = ? LIMIT 1",
+      [id],
+    );
+    return res.json({ success: true, submission: rows[0] });
+  } catch (error) {
+    console.error("updateRequirementSubmission error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Failed to update submission.",
+      });
+  }
+});
+
+// ── POST /api/ojt-requirements/submissions ────────────────────────────────────
+// Create (upsert) a submission entry for a student+template.
+router.post("/submissions", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+
+    const studentIdRef = String(req.body.student_id || "").trim();
+    const templateId = parseInt(req.body.template_id, 10);
+
+    if (!studentIdRef || !templateId) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "student_id and template_id are required.",
+        });
+    }
+
+    const student = await query(
+      "SELECT id FROM ojt_students WHERE student_id = ? AND department = ? LIMIT 1",
+      [studentIdRef, dept],
+    );
+    if (!student.length)
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
+    const dbId = student[0].id;
+
+    const existing = await query(
+      "SELECT id FROM ojt_requirement_submissions WHERE ojt_student_id = ? AND template_id = ? LIMIT 1",
+      [dbId, templateId],
+    );
+
+    if (existing.length) {
+      // Delegate to PATCH-like logic inline
+      const subId = existing[0].id;
+      const fields = ["status = ?"];
+      const vals = ["submitted"];
+
+      if (req.body.file_url) {
+        fields.push(
+          "file_url = ?",
+          "cloudinary_public_id = ?",
+          "folder_path = ?",
+          "file_name = ?",
+          "file_type = ?",
+        );
+        vals.push(
+          req.body.file_url,
+          req.body.cloudinary_public_id || null,
+          req.body.folder_path || null,
+          req.body.file_name || null,
+          req.body.file_type || null,
+        );
+      }
+      vals.push(subId, dept);
+      await query(
+        `UPDATE ojt_requirement_submissions SET ${fields.join(", ")} WHERE id = ? AND department = ?`,
+        vals,
+      );
+      const rows = await query(
+        "SELECT * FROM ojt_requirement_submissions WHERE id = ? LIMIT 1",
+        [subId],
+      );
+      return res.json({ success: true, submission: rows[0] });
+    }
+
+    const result = await query(
+      `INSERT INTO ojt_requirement_submissions
+       (ojt_student_id, template_id, student_id_ref, file_url, cloudinary_public_id, folder_path, file_name, file_type, status, deadline_override, department)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        dbId,
+        templateId,
+        studentIdRef,
+        req.body.file_url || null,
+        req.body.cloudinary_public_id || null,
+        req.body.folder_path || null,
+        req.body.file_name || null,
+        req.body.file_type || null,
+        req.body.file_url ? "submitted" : "pending",
+        req.body.deadline_override || null,
+        dept,
+      ],
+    );
+
+    await checkAutoStatusTransition(dbId, dept, req.user?.id);
+    const rows = await query(
+      "SELECT * FROM ojt_requirement_submissions WHERE id = ? LIMIT 1",
+      [result.insertId],
+    );
+    return res.status(201).json({ success: true, submission: rows[0] });
+  } catch (error) {
+    console.error("createRequirementSubmission error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Failed to create submission.",
+      });
+  }
+});
+
+// ── Auto-status transition ────────────────────────────────────────────────────
+// If all required PRE templates for this student are verified → set Pre-Deployment
+async function checkAutoStatusTransition(dbStudentId, dept, changedByUserId) {
+  try {
+    const student = await query(
+      "SELECT student_id, section, status FROM ojt_students WHERE id = ? LIMIT 1",
+      [dbStudentId],
+    );
+    if (!student.length) return;
+    const {
+      student_id: studentIdRef,
+      section,
+      status: currentStatus,
+    } = student[0];
+
+    // Already past pre-deployment — don't revert
+    if (currentStatus === "Deployed") return;
+
+    const requiredTemplates = await query(
+      `SELECT id FROM ojt_requirement_templates
+       WHERE type = 'pre' AND is_required = 1 AND department = ?
+         AND (
+           (scope = 'department' AND scope_value = ?) OR
+           (scope = 'section' AND scope_value = ?) OR
+           (scope = 'student' AND scope_value = ?)
+         )`,
+      [dept, dept, section, studentIdRef],
+    );
+    if (!requiredTemplates.length) return;
+
+    const templateIds = requiredTemplates.map((t) => t.id);
+    const placeholders = templateIds.map(() => "?").join(",");
+    const verifiedSubs = await query(
+      `SELECT template_id FROM ojt_requirement_submissions
+       WHERE ojt_student_id = ? AND template_id IN (${placeholders}) AND status = 'verified'`,
+      [dbStudentId, ...templateIds],
+    );
+
+    if (verifiedSubs.length >= templateIds.length) {
+      await query(
+        "UPDATE ojt_students SET status = 'Pre-Deployment', updated_at = NOW() WHERE id = ?",
+        [dbStudentId],
+      );
+      const { ensureStatusHistoryTable } = require("./ojt-coordinator");
+      await ensureStatusHistoryTable();
+      await query(
+        "INSERT INTO ojt_status_history (ojt_student_id, old_status, new_status, changed_by_user_id, notes) VALUES (?, ?, ?, ?, ?)",
+        [
+          dbStudentId,
+          currentStatus,
+          "Pre-Deployment",
+          changedByUserId || null,
+          "Auto-transitioned: all pre requirements verified",
+        ],
+      );
+    }
+  } catch (_err) {
+    // Non-fatal: auto-transition failure should not break the upload response
+    console.error("checkAutoStatusTransition error:", _err);
+  }
+}
+
+module.exports = router;
+module.exports.ensureTables = ensureTables;

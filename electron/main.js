@@ -1698,6 +1698,349 @@ ipcMain.handle("resetPassword", async (event, email, newPassword) => {
   }
 });
 
+// ── OJT Coordinator IPC handlers ──────────────────────────────────────────────
+
+ipcMain.handle("getCoordinatorSections", async () => {
+  try {
+    return await api.get("/ojt-coordinator/my-sections");
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch coordinator sections.",
+    };
+  }
+});
+
+ipcMain.handle("getCoordinatorSectionStudents", async (event, section) => {
+  try {
+    return await api.get(
+      `/ojt-coordinator/students/${encodeURIComponent(section)}`,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch section students.",
+    };
+  }
+});
+
+ipcMain.handle("getCoordinatorStudentProfile", async (event, studentId) => {
+  try {
+    return await api.get(
+      `/ojt-coordinator/student/${encodeURIComponent(studentId)}`,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch student profile.",
+    };
+  }
+});
+
+ipcMain.handle("updateStudentPartner", async (event, payload) => {
+  try {
+    const studentId = payload?.student_id || payload?.studentId || "";
+    return await api.patch(
+      `/ojt-coordinator/student/${encodeURIComponent(studentId)}/partner`,
+      payload,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to update partner assignment.",
+    };
+  }
+});
+
+ipcMain.handle("updateStudentOjtStatus", async (event, payload) => {
+  try {
+    const studentId = payload?.student_id || payload?.studentId || "";
+    return await api.patch(
+      `/ojt-coordinator/student/${encodeURIComponent(studentId)}/status`,
+      payload,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to update student status.",
+    };
+  }
+});
+
+ipcMain.handle("getStudentStatusHistory", async (event, studentId) => {
+  try {
+    return await api.get(
+      `/ojt-coordinator/student/${encodeURIComponent(studentId)}/status-history`,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch status history.",
+    };
+  }
+});
+
+// ── OJT Requirements IPC handlers ─────────────────────────────────────────────
+
+ipcMain.handle("getOjtRequirementTemplates", async (event, params) => {
+  try {
+    const qs = new URLSearchParams(params || {}).toString();
+    return await api.get(`/ojt-requirements/templates${qs ? `?${qs}` : ""}`);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch requirement templates.",
+    };
+  }
+});
+
+ipcMain.handle("createOjtRequirementTemplate", async (event, payload) => {
+  try {
+    return await api.post("/ojt-requirements/templates", payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to create requirement template.",
+    };
+  }
+});
+
+ipcMain.handle("updateOjtRequirementTemplate", async (event, payload) => {
+  try {
+    const id = payload?.id;
+    return await api.patch(`/ojt-requirements/templates/${id}`, payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to update requirement template.",
+    };
+  }
+});
+
+ipcMain.handle("deleteOjtRequirementTemplate", async (event, id) => {
+  try {
+    return await api.del(`/ojt-requirements/templates/${id}`);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to delete requirement template.",
+    };
+  }
+});
+
+ipcMain.handle("getStudentRequirements", async (event, params) => {
+  try {
+    const { studentId, type } = params || {};
+    const qs = new URLSearchParams({ type: type || "pre" }).toString();
+    return await api.get(
+      `/ojt-requirements/submissions/${encodeURIComponent(studentId)}?${qs}`,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch student requirements.",
+    };
+  }
+});
+
+ipcMain.handle("createOjtRequirementSubmission", async (event, payload) => {
+  try {
+    return await api.post("/ojt-requirements/submissions", payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to create requirement submission.",
+    };
+  }
+});
+
+ipcMain.handle("updateOjtRequirementSubmission", async (event, payload) => {
+  try {
+    const id = payload?.id;
+    return await api.patch(`/ojt-requirements/submissions/${id}`, payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to update requirement submission.",
+    };
+  }
+});
+
+ipcMain.handle("uploadOjtFile", async (event, payload) => {
+  try {
+    const { filePath, studentId, folderType } = payload || {};
+    if (!filePath || !studentId || !folderType) {
+      return {
+        success: false,
+        message: "filePath, studentId, and folderType are required.",
+      };
+    }
+    const fileBuffer = await fs.readFile(filePath);
+    const fileName = path.basename(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeType =
+      ext === ".pdf"
+        ? "application/pdf"
+        : ext === ".png"
+          ? "image/png"
+          : ext === ".gif"
+            ? "image/gif"
+            : ext === ".webp"
+              ? "image/webp"
+              : "image/jpeg";
+    return await api.postFile(
+      "/upload/ojt-file",
+      fileBuffer,
+      fileName,
+      mimeType,
+      {
+        studentId,
+        folderType,
+        fileName,
+      },
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to upload OJT file.",
+    };
+  }
+});
+
+ipcMain.handle("uploadOjtFileFromUrl", async (event, payload) => {
+  try {
+    return await api.post("/upload/ojt-file-url", payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch and upload OJT file.",
+    };
+  }
+});
+
+ipcMain.handle("selectOjtFile", async () => {
+  try {
+    const { dialog } = require("electron");
+    const result = await dialog.showOpenDialog({
+      properties: ["openFile"],
+      filters: [
+        {
+          name: "Documents & Images",
+          extensions: ["pdf", "jpg", "jpeg", "png", "gif", "webp"],
+        },
+      ],
+    });
+    if (result.canceled || !result.filePaths.length)
+      return { success: false, canceled: true };
+    return { success: true, filePath: result.filePaths[0] };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to open file dialog.",
+    };
+  }
+});
+
+// ── OJT Attendance IPC handlers ───────────────────────────────────────────────
+
+ipcMain.handle("getOjtAttendance", async (event, params) => {
+  try {
+    const { studentId, month } = params || {};
+    const qs = month ? `?month=${encodeURIComponent(month)}` : "";
+    return await api.get(
+      `/ojt-attendance/${encodeURIComponent(studentId)}${qs}`,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch attendance.",
+    };
+  }
+});
+
+ipcMain.handle("createOjtAttendance", async (event, payload) => {
+  try {
+    return await api.post("/ojt-attendance", payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to create attendance record.",
+    };
+  }
+});
+
+ipcMain.handle("updateOjtAttendance", async (event, payload) => {
+  try {
+    const id = payload?.id;
+    return await api.patch(`/ojt-attendance/${id}`, payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to update attendance record.",
+    };
+  }
+});
+
+ipcMain.handle("deleteOjtAttendance", async (event, id) => {
+  try {
+    return await api.del(`/ojt-attendance/${id}`);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to delete attendance record.",
+    };
+  }
+});
+
+// ── OJT Weekly Reports IPC handlers ──────────────────────────────────────────
+
+ipcMain.handle("getOjtWeeklyReports", async (event, studentId) => {
+  try {
+    return await api.get(
+      `/ojt-weekly-reports/${encodeURIComponent(studentId)}`,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch weekly reports.",
+    };
+  }
+});
+
+ipcMain.handle("createOjtWeeklyReport", async (event, payload) => {
+  try {
+    return await api.post("/ojt-weekly-reports", payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to save weekly report.",
+    };
+  }
+});
+
+ipcMain.handle("updateOjtWeeklyReport", async (event, payload) => {
+  try {
+    const id = payload?.id;
+    return await api.patch(`/ojt-weekly-reports/${id}`, payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to update weekly report.",
+    };
+  }
+});
+
+ipcMain.handle("deleteOjtWeeklyReport", async (event, id) => {
+  try {
+    return await api.del(`/ojt-weekly-reports/${id}`);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to delete weekly report.",
+    };
+  }
+});
+
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
