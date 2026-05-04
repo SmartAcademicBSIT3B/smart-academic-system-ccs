@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, net } = require("electron");
 const path = require("node:path");
 const fsSync = require("node:fs");
 const fs = require("node:fs/promises");
@@ -1562,6 +1562,85 @@ ipcMain.handle("openExternalUrl", async (event, url) => {
   }
 });
 
+ipcMain.handle("fetchViewerFile", async (event, url) => {
+  try {
+    const normalizedUrl = String(url || "").trim();
+    if (!normalizedUrl) {
+      return { success: false, message: "URL is required." };
+    }
+
+    console.log("[fetchViewerFile] Fetching via proxy:", normalizedUrl);
+
+    // Route the request through the backend proxy so the server fetches
+    // Cloudinary server-to-server, bypassing any browser CORS restrictions.
+    const proxyPath = `/proxy/file?url=${encodeURIComponent(normalizedUrl)}`;
+    const response = await api.get(proxyPath);
+
+    console.log(
+      "[fetchViewerFile] api.get response type:",
+      typeof response,
+      "hasArrayBuffer:",
+      typeof response?.arrayBuffer === "function",
+      "ok:",
+      response?.ok,
+      "status:",
+      response?.status,
+    );
+
+    // api.get() returns the raw Response for non-JSON content types.
+    if (!response || typeof response.arrayBuffer !== "function") {
+      const msg = typeof response === "object" ? response?.message : null;
+      console.error(
+        "[fetchViewerFile] Proxy did not return a file response. Got:",
+        response,
+      );
+      return {
+        success: false,
+        message: msg || "Proxy request did not return a file.",
+      };
+    }
+
+    if (!response.ok) {
+      let errBody = "";
+      try {
+        errBody = await response.text();
+      } catch (_) {}
+      console.error(
+        `[fetchViewerFile] Proxy HTTP ${response.status}:`,
+        errBody,
+      );
+      return {
+        success: false,
+        message: `Proxy error: HTTP ${response.status}. ${errBody}`.trim(),
+      };
+    }
+
+    const contentType =
+      response.headers.get("content-type") || "application/octet-stream";
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    console.log(
+      "[fetchViewerFile] Success. contentType:",
+      contentType,
+      "bytes:",
+      buffer.length,
+    );
+
+    return {
+      success: true,
+      mimeType: contentType,
+      dataBase64: buffer.toString("base64"),
+    };
+  } catch (error) {
+    console.error("[fetchViewerFile] Caught exception:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to load viewer file.",
+    };
+  }
+});
+
 ipcMain.handle("downloadArchivesToDownloads", async (event, files = []) => {
   try {
     const requestedFiles = Array.isArray(files) ? files : [];
@@ -1817,6 +1896,17 @@ ipcMain.handle("updateOjtRequirementTemplate", async (event, payload) => {
   }
 });
 
+ipcMain.handle("deleteOjtRequirementSubmission", async (event, id) => {
+  try {
+    return await api.del(`/ojt-requirements/submissions/${id}`);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to delete requirement submission.",
+    };
+  }
+});
+
 ipcMain.handle("deleteOjtRequirementTemplate", async (event, id) => {
   try {
     return await api.del(`/ojt-requirements/templates/${id}`);
@@ -1862,6 +1952,17 @@ ipcMain.handle("updateOjtRequirementSubmission", async (event, payload) => {
     return {
       success: false,
       message: error.message || "Failed to update requirement submission.",
+    };
+  }
+});
+
+ipcMain.handle("deleteCloudinaryFile", async (event, publicId) => {
+  try {
+    return await api.del("/upload/file", { publicId });
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to delete file.",
     };
   }
 });

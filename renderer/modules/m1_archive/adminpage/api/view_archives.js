@@ -18,7 +18,52 @@
       type: [],
       status: [],
     },
+    linkedStudent: {
+      active: false,
+      studentId: "",
+      studentName: "",
+      section: "",
+    },
   };
+
+  function parseStudentLinkContext() {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const ojtStudentId = String(params.get("ojt_student_id") || "").trim();
+      const studentId = String(params.get("student_id") || "").trim();
+      const studentName = String(params.get("student_name") || "").trim();
+      const section = String(params.get("section") || "").trim();
+      return {
+        active: Boolean(ojtStudentId || studentId),
+        studentId: ojtStudentId || studentId,
+        publicStudentId: studentId,
+        studentName,
+        section,
+      };
+    } catch (_error) {
+      return {
+        active: false,
+        studentId: "",
+        publicStudentId: "",
+        studentName: "",
+        section: "",
+      };
+    }
+  }
+
+  function getLinkedStudentIds(archive) {
+    const raw = String(archive?.linked_student_ids || "").trim();
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+  }
+
+  function archiveMatchesLinkedStudent(archive) {
+    if (!state.linkedStudent.active) return true;
+    return getLinkedStudentIds(archive).includes(state.linkedStudent.studentId);
+  }
 
   function getElectronApiBridge() {
     if (window.electronAPI) return window.electronAPI;
@@ -329,8 +374,10 @@
   }
 
   function hasActiveFilters() {
-    return Object.values(state.filters).some(
-      (arr) => Array.isArray(arr) && arr.length,
+    return (
+      Object.values(state.filters).some(
+        (arr) => Array.isArray(arr) && arr.length,
+      ) || state.linkedStudent.active
     );
   }
 
@@ -588,6 +635,16 @@
       return arr.map((val) => ({ key, val }));
     });
 
+    if (state.linkedStudent.active) {
+      tags.unshift({
+        key: "linkedStudent",
+        val:
+          state.linkedStudent.studentName ||
+          state.linkedStudent.studentId ||
+          "Connected Student",
+      });
+    }
+
     if (!tags.length) {
       bar.innerHTML = "";
       updateClearFiltersVisibility();
@@ -598,8 +655,8 @@
       .map(
         (tag) =>
           `<span class="filter-tag" data-key="${tag.key}">` +
-          `${esc(filterKeyLabel[tag.key])}: ${esc(tag.key === "dateMonth" ? formatYearMonth(tag.val) : tag.val)}` +
-          `<button class="filter-tag-remove" type="button" aria-label="Remove ${esc(filterKeyLabel[tag.key])} filter" data-key="${tag.key}" data-value="${esc(tag.val)}">x</button>` +
+          `${esc(tag.key === "linkedStudent" ? "Linked Student" : filterKeyLabel[tag.key])}: ${esc(tag.key === "dateMonth" ? formatYearMonth(tag.val) : tag.val)}` +
+          `<button class="filter-tag-remove" type="button" aria-label="Remove ${esc(tag.key === "linkedStudent" ? "Linked Student" : filterKeyLabel[tag.key])} filter" data-key="${tag.key}" data-value="${esc(tag.val)}">x</button>` +
           `</span>`,
       )
       .join("");
@@ -645,9 +702,11 @@
         const isActive =
           state.activeArchiveId === id ||
           (!state.activeArchiveId && index === 0);
+        const isLinkedMatch =
+          state.linkedStudent.active && archiveMatchesLinkedStudent(archive);
 
         return `
-          <div class="archive-card${isActive ? " active" : ""}" data-archive-id="${escapeHtml(id)}">
+          <div class="archive-card${isActive ? " active" : ""}${isLinkedMatch ? " linked-match" : ""}" data-archive-id="${escapeHtml(id)}">
             <h3>${escapeHtml(archive.title || "Untitled")}</h3>
             <p>${escapeHtml(archive.authors || "No author")}</p>
             <span>${escapeHtml(formatMonthYear(archive.date_published))}</span>
@@ -793,6 +852,10 @@
         return false;
       }
 
+      if (!archiveMatchesLinkedStudent(archive)) {
+        return false;
+      }
+
       return passesQuery;
     });
 
@@ -895,6 +958,7 @@
 
       state.archives = scopedArchives;
       state.filtered = scopedArchives.slice();
+      state.linkedStudent = parseStudentLinkContext();
       state.activeArchiveId = state.filtered[0]
         ? getArchiveId(state.filtered[0])
         : null;
@@ -1007,6 +1071,17 @@
 
       const key = String(btn.dataset.key || "");
       const value = String(btn.dataset.value || "").trim();
+      if (key === "linkedStudent") {
+        state.linkedStudent = {
+          active: false,
+          studentId: "",
+          studentName: "",
+          section: "",
+        };
+        state.currentPage = 1;
+        applyFilters();
+        return;
+      }
       if (!(key in state.filters)) return;
 
       state.filters[key] = state.filters[key].filter((v) => v !== value);
@@ -1026,6 +1101,12 @@
           dateMonth: [],
           type: [],
           status: [],
+        };
+        state.linkedStudent = {
+          active: false,
+          studentId: "",
+          studentName: "",
+          section: "",
         };
         state.query = "";
         state.currentPage = 1;

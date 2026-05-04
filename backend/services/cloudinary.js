@@ -131,9 +131,19 @@ async function uploadOjtFile(fileBuffer, fileName, studentId, folderType) {
   return { url, public_id: result.public_id, folder };
 }
 
+async function deleteByPublicId(publicId) {
+  if (!publicId) return;
+  try {
+    await cloudinary.uploader.destroy(publicId, { invalidate: true });
+  } catch (_error) {
+    // Best-effort cleanup; don't throw.
+  }
+}
+
 module.exports = {
   uploadProfileImage,
   uploadPartnerLogo,
   deleteByUrl,
+  deleteByPublicId,
   uploadOjtFile,
 };

@@ -175,12 +175,10 @@ router.post(
       );
 
       if (!studentId || !folderType) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "studentId and folderType are required.",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "studentId and folderType are required.",
+        });
       }
 
       const result = await cloudinaryService.uploadOjtFile(
@@ -216,30 +214,24 @@ router.post("/ojt-file-url", requireAuth, async (req, res) => {
       !rawUrl ||
       (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://"))
     ) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "A valid http/https URL is required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "A valid http/https URL is required.",
+      });
     }
     if (!studentId || !folderType) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "studentId and folderType are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "studentId and folderType are required.",
+      });
     }
 
     const response = await fetch(rawUrl);
     if (!response.ok) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: `Failed to fetch file: HTTP ${response.status}`,
-        });
+      return res.status(400).json({
+        success: false,
+        message: `Failed to fetch file: HTTP ${response.status}`,
+      });
     }
 
     const contentType =
@@ -256,12 +248,10 @@ router.post("/ojt-file-url", requireAuth, async (req, res) => {
         (t) => contentType.startsWith(t.split("/")[0]) || contentType === t,
       )
     ) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "URL does not point to an allowed file type (PDF or image).",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "URL does not point to an allowed file type (PDF or image).",
+      });
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -286,12 +276,31 @@ router.post("/ojt-file-url", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("OJT fetch-and-upload error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch and upload file.",
+    });
+  }
+});
+
+// ── DELETE /api/upload/file ──────────────────────────────────────────────────
+// Delete a file from Cloudinary by public_id.
+router.delete("/file", requireAuth, async (req, res) => {
+  const publicId = String(req.body.publicId || "").trim();
+  if (!publicId) {
     return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to fetch and upload file.",
-      });
+      .status(400)
+      .json({ success: false, message: "publicId is required." });
+  }
+  try {
+    await cloudinaryService.deleteByPublicId(publicId);
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("File delete error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete file.",
+    });
   }
 });
 

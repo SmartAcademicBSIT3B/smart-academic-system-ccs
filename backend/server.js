@@ -16,6 +16,7 @@ const sectionsRoutes = require("./routes/sections");
 const metaRoutes = require("./routes/meta");
 const gdriveRoutes = require("./routes/gdrive");
 const uploadRoutes = require("./routes/upload");
+const proxyRoutes = require("./routes/proxy");
 const { syncAllArchiveOjtLinks } = require("./helpers/archive-ojt-link");
 
 const app = express();
@@ -63,6 +64,7 @@ app.use("/api/sections", sectionsRoutes);
 app.use("/api/meta", metaRoutes);
 app.use("/api/gdrive", gdriveRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/proxy", proxyRoutes);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) => {

@@ -578,6 +578,39 @@ router.post("/submissions", requireAuth, async (req, res) => {
   }
 });
 
+// ── DELETE /api/ojt-requirements/submissions/:submissionId ──────────────────
+router.delete("/submissions/:submissionId", requireAuth, async (req, res) => {
+  const submissionId = parseInt(req.params.submissionId, 10);
+  const dept = String(req.headers["x-department"] || "").trim();
+  if (!submissionId) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid submission ID." });
+  }
+  try {
+    const rows = await query(
+      "SELECT id FROM ojt_requirement_submissions WHERE id = ? AND department = ? LIMIT 1",
+      [submissionId, dept],
+    );
+    if (!rows.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Submission not found." });
+    }
+    await query(
+      "DELETE FROM ojt_requirement_submissions WHERE id = ? AND department = ?",
+      [submissionId, dept],
+    );
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("deleteRequirementSubmission error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete submission.",
+    });
+  }
+});
+
 // ── Auto-status transition ────────────────────────────────────────────────────
 // If all required PRE templates for this student are verified → set Pre-Deployment
 async function checkAutoStatusTransition(dbStudentId, dept, changedByUserId) {

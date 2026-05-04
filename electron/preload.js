@@ -64,6 +64,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveGoogleDriveToken: (authCode) =>
     ipcRenderer.invoke("saveGoogleDriveToken", authCode),
   openExternalUrl: (url) => ipcRenderer.invoke("openExternalUrl", url),
+  fetchViewerFile: (url) => ipcRenderer.invoke("fetchViewerFile", url),
   downloadArchivesToDownloads: (files) =>
     ipcRenderer.invoke("downloadArchivesToDownloads", files),
   authorizeGoogleDriveInteractive: () =>
@@ -113,6 +114,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("createOjtRequirementSubmission", payload),
   updateOjtRequirementSubmission: (payload) =>
     ipcRenderer.invoke("updateOjtRequirementSubmission", payload),
+  deleteOjtRequirementSubmission: (id) =>
+    ipcRenderer.invoke("deleteOjtRequirementSubmission", id),
+  deleteCloudinaryFile: (publicId) =>
+    ipcRenderer.invoke("deleteCloudinaryFile", publicId),
   selectOjtFile: () => ipcRenderer.invoke("selectOjtFile"),
   uploadOjtFile: (payload) => ipcRenderer.invoke("uploadOjtFile", payload),
   uploadOjtFileFromUrl: (payload) =>

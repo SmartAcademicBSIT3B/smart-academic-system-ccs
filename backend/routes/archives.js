@@ -66,11 +66,17 @@ router.get("/", requireAuth, async (req, res) => {
     await ensureArchiveOjtLinksTable();
     const department = getDept(req);
     const rows = await query(
-      `SELECT id, title, authors, section, advisor, date_published, keywords,
-              type, department, file_path, local_file_path, status, created_at
-       FROM archives
-       WHERE department = ?
-       ORDER BY created_at DESC`,
+      `SELECT a.id, a.title, a.authors, a.section, a.advisor, a.date_published,
+              a.keywords, a.type, a.department, a.file_path, a.local_file_path,
+              a.status, a.created_at,
+              GROUP_CONCAT(DISTINCT l.ojt_student_id ORDER BY l.ojt_student_id SEPARATOR ',') AS linked_student_ids
+       FROM archives a
+       LEFT JOIN archive_ojt_links l ON l.archive_id = a.id
+       WHERE a.department = ?
+       GROUP BY a.id, a.title, a.authors, a.section, a.advisor, a.date_published,
+                a.keywords, a.type, a.department, a.file_path, a.local_file_path,
+                a.status, a.created_at
+       ORDER BY a.created_at DESC`,
       [department],
     );
     return res.json({ success: true, archives: rows });

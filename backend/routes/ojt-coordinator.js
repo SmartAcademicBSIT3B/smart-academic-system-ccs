@@ -90,12 +90,10 @@ router.get("/my-sections", requireAuth, async (req, res) => {
     return res.json({ success: true, sections });
   } catch (error) {
     console.error("getMyCoordinatorSections error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to fetch coordinator sections.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch coordinator sections.",
+    });
   }
 });
 
@@ -140,12 +138,10 @@ router.get("/students/:section", requireAuth, async (req, res) => {
     return res.json({ success: true, students });
   } catch (error) {
     console.error("getCoordinatorSectionStudents error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to fetch students.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch students.",
+    });
   }
 });
 
@@ -188,16 +184,53 @@ router.get("/student/:studentId", requireAuth, async (req, res) => {
         .json({ success: false, message: "Student not found." });
     }
 
-    const student = { ...rows[0], display_name: toSurnameFirst(rows[0].name) };
+    const archiveLinks = await query(
+      `SELECT a.id, a.title, a.type, a.status, a.created_at
+       FROM archive_ojt_links l
+       INNER JOIN archives a ON a.id = l.archive_id
+       WHERE l.ojt_student_id = ?
+         AND LOWER(TRIM(l.department)) = LOWER(TRIM(?))
+       ORDER BY a.created_at DESC`,
+      [rows[0].id, dept],
+    );
+
+    const latestStatusByType = {};
+    for (const row of archiveLinks) {
+      const typeKey = String(row.type || "")
+        .trim()
+        .toLowerCase();
+      if (!typeKey || latestStatusByType[typeKey]) continue;
+      latestStatusByType[typeKey] = normalizeArchiveStatus(row.status);
+    }
+
+    const statusParts = [];
+    if (latestStatusByType.thesis) {
+      statusParts.push(`Thesis: ${latestStatusByType.thesis}`);
+    }
+    if (latestStatusByType.capstone) {
+      statusParts.push(`Capstone: ${latestStatusByType.capstone}`);
+    }
+    if (!statusParts.length && archiveLinks.length) {
+      statusParts.push(
+        `Latest: ${normalizeArchiveStatus(archiveLinks[0].status)}`,
+      );
+    }
+
+    const student = {
+      ...rows[0],
+      display_name: toSurnameFirst(rows[0].name),
+      connected_archive_count: archiveLinks.length,
+      connected_archive_status:
+        statusParts.join(" | ") || "No linked thesis/capstone",
+      connected_archive_types: Object.keys(latestStatusByType),
+    };
     return res.json({ success: true, student });
   } catch (error) {
     console.error("getCoordinatorStudentProfile error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to fetch student profile.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch student profile.",
+    });
   }
 });
 
@@ -233,12 +266,10 @@ router.patch("/student/:studentId/partner", requireAuth, async (req, res) => {
     return res.json({ success: true, message: "Partner assignment updated." });
   } catch (error) {
     console.error("updateStudentPartner error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to update partner.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update partner.",
+    });
   }
 });
 
@@ -252,12 +283,10 @@ router.patch("/student/:studentId/status", requireAuth, async (req, res) => {
     const notes = String(req.body.notes || "").trim() || null;
 
     if (!studentId || !newStatus) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Student ID and status are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Student ID and status are required.",
+      });
     }
 
     const existing = await query(
@@ -293,12 +322,10 @@ router.patch("/student/:studentId/status", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("updateStudentStatus error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to update status.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update status.",
+    });
   }
 });
 
@@ -332,12 +359,10 @@ router.get(
       return res.json({ success: true, history });
     } catch (error) {
       console.error("getStatusHistory error:", error);
-      return res
-        .status(500)
-        .json({
-          success: false,
-          message: error.message || "Failed to fetch status history.",
-        });
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Failed to fetch status history.",
+      });
     }
   },
 );
@@ -373,6 +398,17 @@ function toSurnameFirst(fullName) {
   const last = parts[parts.length - 1];
   const rest = parts.slice(0, -1).join(" ");
   return `${last}, ${rest}`;
+}
+
+function normalizeArchiveStatus(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "approved") return "Approved";
+  if (normalized === "rejected") return "Rejected";
+  if (normalized === "pending") return "Pending";
+  if (!normalized) return "Pending";
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 module.exports = router;

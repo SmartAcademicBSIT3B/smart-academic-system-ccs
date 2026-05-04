@@ -504,6 +504,24 @@ select {
   border-left: 4px solid var(--accent-blue);
 }
 
+.archive-card.linked-match {
+  border-color: rgba(157, 198, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(157, 198, 255, 0.12);
+  background: linear-gradient(
+    180deg,
+    rgba(157, 198, 255, 0.08),
+    rgba(24, 28, 34, 0.96)
+  );
+}
+
+.archive-card.linked-match:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(157, 198, 255, 0.12),
+    rgba(18, 21, 26, 0.98)
+  );
+}
+
 .archive-card-status {
   margin-top: 8px;
 }
