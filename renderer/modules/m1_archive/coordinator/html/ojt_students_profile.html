@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -10,7 +10,7 @@
       rel="stylesheet"
     />
     <style>
-      /* ── Tab panel visibility ── */
+      /* â”€â”€ Tab panel visibility â”€â”€ */
       .tab-panel {
         display: none;
       }
@@ -18,7 +18,7 @@
         display: block;
       }
 
-      /* ── Status pill colour variants ── */
+      /* â”€â”€ Status pill colour variants â”€â”€ */
       .status-pill::before {
         content: "";
         width: 9px;
@@ -50,7 +50,7 @@
         background: #ff5252;
       }
 
-      /* ── Deadline badges ── */
+      /* â”€â”€ Deadline badges â”€â”€ */
       .deadline-badge {
         display: inline-block;
         font-size: 10px;
@@ -73,7 +73,7 @@
         color: #00c853;
       }
 
-      /* ── Requirements list ── */
+      /* â”€â”€ Requirements list â”€â”€ */
       .req-meta {
         display: flex;
         gap: 6px;
@@ -127,7 +127,7 @@
         background: rgba(157, 198, 255, 0.2);
       }
 
-      /* ── Add-requirement button ── */
+      /* â”€â”€ Add-requirement button â”€â”€ */
       .add-req-btn {
         height: 36px;
         padding: 0 16px;
@@ -144,7 +144,7 @@
         color: var(--accent-blue);
       }
 
-      /* ── Partner autocomplete ── */
+      /* â”€â”€ Partner autocomplete â”€â”€ */
       .partner-edit-row {
         display: flex;
         align-items: center;
@@ -172,37 +172,110 @@
       }
       .partner-suggestions {
         position: absolute;
-        top: calc(100% + 4px);
+        top: calc(100% + 6px);
         left: 0;
         right: 0;
-        background: #1e2328;
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        max-height: 200px;
+        background: #1a1f25;
+        border: 1px solid rgba(157, 198, 255, 0.18);
+        border-radius: 12px;
+        max-height: 240px;
         overflow-y: auto;
-        z-index: 100;
+        z-index: 200;
         display: none;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        box-shadow:
+          0 12px 32px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(255, 255, 255, 0.04);
+        padding: 6px 0;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(157, 198, 255, 0.2) transparent;
       }
       .partner-suggestions.open {
         display: block;
+        animation: suggFadeIn 0.12s ease;
+      }
+      @keyframes suggFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .partner-sugg-header {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--secondary-text);
+        padding: 4px 14px 6px;
+        text-transform: uppercase;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        margin-bottom: 4px;
       }
       .partner-option {
-        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
         cursor: pointer;
+        transition: background 0.12s;
       }
-      .partner-option:hover {
-        background: rgba(157, 198, 255, 0.08);
+      .partner-option:hover,
+      .partner-option.active {
+        background: rgba(157, 198, 255, 0.09);
+      }
+      .partner-option-avatar {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(157, 198, 255, 0.12);
+        border: 1px solid rgba(157, 198, 255, 0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent-blue);
+        overflow: hidden;
+        text-transform: uppercase;
+      }
+      .partner-option-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .partner-option-body {
+        flex: 1;
+        min-width: 0;
       }
       .partner-option-name {
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 600;
         color: var(--primary-text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .partner-option-name mark {
+        background: transparent;
+        color: var(--accent-blue);
+        font-weight: 700;
       }
       .partner-option-meta {
         font-size: 11px;
         color: var(--secondary-text);
         margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .partner-sugg-empty {
+        padding: 14px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--secondary-text);
       }
       .partner-save-btn,
       .partner-cancel-btn {
@@ -236,8 +309,22 @@
       .edit-partner-btn:hover {
         color: var(--accent-blue);
       }
+      .partner-toggle-btn {
+        background: none;
+        border: none;
+        color: var(--secondary-text);
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 2px 6px;
+        text-decoration: underline;
+        margin-left: 2px;
+      }
+      .partner-toggle-btn:hover {
+        color: var(--accent-blue);
+      }
 
-      /* ── Attendance table ── */
+      /* â”€â”€ Attendance table â”€â”€ */
       .attendance-table-wrap {
         overflow-x: auto;
       }
@@ -329,7 +416,7 @@
         text-decoration: underline;
       }
 
-      /* ── Weekly report cards ── */
+      /* â”€â”€ Weekly report cards â”€â”€ */
       .weekly-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -425,7 +512,7 @@
         color: var(--accent-blue);
       }
 
-      /* ── Panel header row (title + action) ── */
+      /* â”€â”€ Panel header row (title + action) â”€â”€ */
       .panel-header {
         display: flex;
         justify-content: space-between;
@@ -436,7 +523,7 @@
         margin-bottom: 0;
       }
 
-      /* ── Modal overlay ── */
+      /* â”€â”€ Modal overlay â”€â”€ */
       .modal-overlay {
         position: fixed;
         inset: 0;
@@ -548,7 +635,7 @@
         margin-top: 5px;
       }
 
-      /* ── Deploy / Complete buttons ── */
+      /* â”€â”€ Deploy / Complete buttons â”€â”€ */
       .deploy-btn[data-enabled="true"] {
         background: #00c853;
         border-color: #00c853;
@@ -562,7 +649,7 @@
         cursor: pointer;
       }
 
-      /* ── Toast notification ── */
+      /* â”€â”€ Toast notification â”€â”€ */
       #toast {
         position: fixed;
         bottom: 24px;
@@ -592,6 +679,102 @@
         border-color: rgba(255, 82, 82, 0.4);
         color: #ff5252;
       }
+
+      /* ── Partner profile card ── */
+      .partner-card {
+        margin-top: 0;
+        background: rgba(157, 198, 255, 0.04);
+        border: 1px solid rgba(157, 198, 255, 0);
+        border-radius: 14px;
+        padding: 0 18px;
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-6px);
+        overflow: hidden;
+        pointer-events: none;
+        transition:
+          max-height 0.34s ease,
+          opacity 0.24s ease,
+          transform 0.24s ease,
+          padding 0.24s ease,
+          margin-top 0.24s ease,
+          border-color 0.24s ease;
+      }
+      .partner-card.visible {
+        margin-top: 14px;
+        padding: 16px 18px;
+        max-height: 420px;
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+        border-color: rgba(157, 198, 255, 0.14);
+      }
+      .partner-card-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .partner-card-logo {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        background: rgba(157, 198, 255, 0.1);
+        border: 1px solid rgba(157, 198, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--accent-blue);
+        overflow: hidden;
+        text-transform: uppercase;
+      }
+      .partner-card-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .partner-card-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--primary-text);
+      }
+      .partner-card-job {
+        font-size: 12px;
+        color: var(--accent-blue);
+        margin-top: 2px;
+      }
+      .partner-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 10px 20px;
+      }
+      .partner-card-field {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .partner-card-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--secondary-text);
+      }
+      .partner-card-value {
+        font-size: 12px;
+        color: var(--primary-text);
+        word-break: break-word;
+      }
+      .partner-card-value a {
+        color: var(--accent-blue);
+        text-decoration: none;
+      }
+      .partner-card-value a:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
 
@@ -603,7 +786,7 @@
         </a>
 
         <section class="profile-card">
-          <!-- ── PROFILE HEADER ────────────────────────────────────────── -->
+          <!-- â”€â”€ PROFILE HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <header class="profile-top">
             <div class="avatar" id="avatarWrap">
               <img
@@ -650,6 +833,14 @@
                   <div id="partnerDisplay">
                     <span class="detail-value" id="partnerText">—</span>
                     <button
+                      class="partner-toggle-btn"
+                      id="partnerToggleBtn"
+                      style="display: none"
+                      onclick="togglePartnerCard()"
+                    >
+                      View Profile
+                    </button>
+                    <button
                       class="edit-partner-btn"
                       id="editPartnerBtn"
                       onclick="openPartnerEdit()"
@@ -670,7 +861,8 @@
                           type="text"
                           class="partner-inline-input"
                           id="partnerInput"
-                          placeholder="Partner name…"
+                          placeholder="Search company name&hellip;"
+                          spellcheck="false"
                           autocomplete="off"
                         />
                         <div
@@ -686,7 +878,7 @@
                           type="text"
                           class="partner-inline-input"
                           id="natureInput"
-                          placeholder="Nature / Specialization…"
+                          placeholder="Job title / specialization…"
                         />
                       </div>
                       <button class="partner-save-btn" onclick="savePartner()">
@@ -700,6 +892,9 @@
                       </button>
                     </div>
                   </div>
+
+                  <!-- Partner profile card (shown below the partner row) -->
+                  <div class="partner-card" id="partnerCard"></div>
                 </div>
               </div>
 
@@ -709,7 +904,7 @@
             </div>
           </header>
 
-          <!-- ── TABS ─────────────────────────────────────────────────── -->
+          <!-- â”€â”€ TABS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <nav class="tabs">
             <button class="tab active" data-target="prePanel">
               PRE REQUIREMENTS
@@ -725,7 +920,7 @@
             </button>
           </nav>
 
-          <!-- ── PRE REQUIREMENTS ──────────────────────────────────────── -->
+          <!-- â”€â”€ PRE REQUIREMENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <section class="panel tab-panel active" id="prePanel">
             <div class="panel-header">
               <h2 class="panel-title">PRE REQUIREMENTS</h2>
@@ -750,7 +945,7 @@
             </div>
           </section>
 
-          <!-- ── ATTENDANCE ─────────────────────────────────────────────── -->
+          <!-- â”€â”€ ATTENDANCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <section class="panel tab-panel" id="attendancePanel">
             <div class="panel-header">
               <h2 class="panel-title">ATTENDANCE RECORD</h2>
@@ -787,7 +982,7 @@
             </div>
           </section>
 
-          <!-- ── WEEKLY REPORTS ─────────────────────────────────────────── -->
+          <!-- â”€â”€ WEEKLY REPORTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <section class="panel tab-panel" id="weeklyPanel">
             <div class="panel-header">
               <h2 class="panel-title">WEEKLY REPORTS</h2>
@@ -802,7 +997,7 @@
             </div>
           </section>
 
-          <!-- ── POST REQUIREMENTS ─────────────────────────────────────── -->
+          <!-- â”€â”€ POST REQUIREMENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <section class="panel tab-panel" id="postPanel">
             <div class="panel-header">
               <h2 class="panel-title">POST REQUIREMENTS</h2>
@@ -830,7 +1025,7 @@
       </div>
     </div>
 
-    <!-- ── ADD REQUIREMENT MODAL ──────────────────────────────────────────── -->
+    <!-- â”€â”€ ADD REQUIREMENT MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="modal-overlay" id="addReqModal">
       <div class="modal-box">
         <div class="modal-title" id="addReqModalTitle">Add Requirement</div>
@@ -870,7 +1065,7 @@
       </div>
     </div>
 
-    <!-- ── ADD ATTENDANCE MODAL ───────────────────────────────────────────── -->
+    <!-- â”€â”€ ADD ATTENDANCE MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="modal-overlay" id="addAttModal">
       <div class="modal-box">
         <div class="modal-title" id="addAttModalTitle">
@@ -937,7 +1132,7 @@
       </div>
     </div>
 
-    <!-- ── ADD WEEK MODAL ─────────────────────────────────────────────────── -->
+    <!-- â”€â”€ ADD WEEK MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="modal-overlay" id="addWeekModal">
       <div class="modal-box">
         <div class="modal-title">Add Weekly Report</div>
@@ -981,7 +1176,7 @@
       </div>
     </div>
 
-    <!-- ── CONFIRM MODAL ──────────────────────────────────────────────────── -->
+    <!-- â”€â”€ CONFIRM MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="modal-overlay" id="confirmModal">
       <div class="modal-box" style="max-width: 360px">
         <div class="modal-title" id="confirmTitle">Confirm</div>
@@ -1003,17 +1198,37 @@
       </div>
     </div>
 
-    <!-- ── TOAST ──────────────────────────────────────────────────────────── -->
+    <!-- â”€â”€ TOAST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div id="toast"></div>
 
     <script>
-      // ── State ─────────────────────────────────────────────────────────────────
+      // Iframe API bridge: coordinator pages run inside the main menu iframe.
+      if (!window.electronAPI) {
+        try {
+          if (
+            window.parent &&
+            window.parent !== window &&
+            window.parent.electronAPI
+          ) {
+            window.electronAPI = window.parent.electronAPI;
+          }
+        } catch (_) {}
+      }
+      if (!window.electronAPI) {
+        try {
+          if (window.top && window.top !== window && window.top.electronAPI) {
+            window.electronAPI = window.top.electronAPI;
+          }
+        } catch (_) {}
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       const STUDENT_ID = urlParams.get("student_id") || "";
       const SECTION = urlParams.get("section") || "";
 
       let student = null;
       let allPartners = [];
+      let partnerCardExpanded = false;
       let currentReqType = "pre";
       let attProofFilePath = null;
       let weeklyFilePath = null;
@@ -1026,13 +1241,13 @@
         post: false,
       };
 
-      // ── Back button ───────────────────────────────────────────────────────────
+      // â”€â”€ Back button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (SECTION) {
         document.getElementById("backBtn").href =
           "ojt_students_list.html?section=" + encodeURIComponent(SECTION);
       }
 
-      // ── Utilities ─────────────────────────────────────────────────────────────
+      // â”€â”€ Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       function esc(str) {
         return String(str ?? "")
           .replace(/&/g, "&amp;")
@@ -1103,7 +1318,7 @@
         return `<span class="deadline-badge ${esc(badge.status)}">${labels[badge.status] || ""}</span>`;
       }
 
-      // ── Load student profile ───────────────────────────────────────────────────
+      // â”€â”€ Load student profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       async function loadProfile() {
         if (!STUDENT_ID) {
           showToast("No student ID in URL.", "error");
@@ -1119,6 +1334,8 @@
           renderHeader(student);
           loadPreRequirements();
           tabLoaded.pre = true;
+          await loadPartners();
+          renderPartnerCard(student.external_partner_assigned);
         } catch (err) {
           showToast(err.message, "error");
         }
@@ -1155,11 +1372,83 @@
 
       function refreshPartnerDisplay(partner, nature) {
         const parts = [fmt(partner), fmt(nature)].filter((v) => v !== "—");
+        const hasPartner = Boolean(String(partner || "").trim());
         document.getElementById("partnerText").textContent =
           parts.join(" · ") || "—";
+        partnerCardExpanded = false;
+        updatePartnerToggle(hasPartner);
+        renderPartnerCard(partner);
       }
 
-      // ── Partner autocomplete ──────────────────────────────────────────────────
+      function updatePartnerToggle(hasPartner) {
+        const btn = document.getElementById("partnerToggleBtn");
+        btn.style.display = hasPartner ? "inline-block" : "none";
+        btn.textContent = partnerCardExpanded ? "Hide Profile" : "View Profile";
+      }
+
+      function togglePartnerCard() {
+        const hasPartner = Boolean(
+          String(student?.external_partner_assigned || "").trim(),
+        );
+        if (!hasPartner) return;
+        partnerCardExpanded = !partnerCardExpanded;
+        updatePartnerToggle(hasPartner);
+        const card = document.getElementById("partnerCard");
+        card.classList.toggle("visible", partnerCardExpanded);
+      }
+
+      function renderPartnerCard(partnerName) {
+        const card = document.getElementById("partnerCard");
+        if (!partnerName || !allPartners.length) {
+          card.classList.remove("visible");
+          return;
+        }
+        const p = allPartners.find(
+          (x) =>
+            String(x.company_name || "").toLowerCase() ===
+            String(partnerName).toLowerCase(),
+        );
+        if (!p) {
+          card.classList.remove("visible");
+          return;
+        }
+        const initial = (p.company_name || "?").charAt(0).toUpperCase();
+        const logoHtml = p.logo
+          ? `<img src="${esc(p.logo)}" alt="" />`
+          : initial;
+
+        function field(label, value, isLink) {
+          if (!value) return "";
+          const val = isLink
+            ? `<a href="${esc(value)}" target="_blank">${esc(value)}</a>`
+            : esc(value);
+          return `<div class="partner-card-field">
+            <span class="partner-card-label">${label}</span>
+            <span class="partner-card-value">${val}</span>
+          </div>`;
+        }
+
+        card.innerHTML = `
+          <div class="partner-card-header">
+            <div class="partner-card-logo">${logoHtml}</div>
+            <div class="partner-card-title">
+              <div class="partner-card-name">${esc(p.company_name || "")}</div>
+              ${p.job_description ? `<div class="partner-card-job">${esc(p.job_description)}</div>` : ""}
+            </div>
+          </div>
+          <div class="partner-card-grid">
+            ${field("Address", p.address)}
+            ${field("Company Email", p.company_email)}
+            ${field("Company Contact", p.company_contact)}
+            ${field("Representative", p.representative)}
+            ${field("Rep. Email", p.representative_email)}
+            ${field("Rep. Contact", p.representative_contact)}
+          </div>
+        `;
+        card.classList.toggle("visible", partnerCardExpanded);
+      }
+
+      // â”€â”€ Partner autocomplete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       async function loadPartners() {
         if (allPartners.length) return;
         try {
@@ -1196,25 +1485,47 @@
           }
           const matches = allPartners
             .filter((p) =>
-              String(p.partner_name || p.name || "")
+              String(p.company_name || "")
                 .toLowerCase()
                 .includes(q),
             )
             .slice(0, 8);
           if (!matches.length) {
-            box.classList.remove("open");
+            box.innerHTML = `<div class="partner-sugg-empty">No matching partners found</div>`;
+            box.classList.add("open");
             return;
           }
-          box.innerHTML = matches
-            .map(
-              (p) => `
-        <div class="partner-option" data-name="${esc(p.partner_name || p.name || "")}"
-          data-nature="${esc(p.nature_of_business || p.industry || "")}">
-          <div class="partner-option-name">${esc(p.partner_name || p.name || "")}</div>
-          <div class="partner-option-meta">${esc(p.nature_of_business || p.industry || "")}</div>
-        </div>`,
-            )
-            .join("");
+          function highlight(text, query) {
+            if (!query) return esc(text);
+            const idx = text.toLowerCase().indexOf(query.toLowerCase());
+            if (idx === -1) return esc(text);
+            return (
+              esc(text.slice(0, idx)) +
+              "<mark>" +
+              esc(text.slice(idx, idx + query.length)) +
+              "</mark>" +
+              esc(text.slice(idx + query.length))
+            );
+          }
+          box.innerHTML =
+            `<div class="partner-sugg-header">External Partners</div>` +
+            matches
+              .map((p) => {
+                const name = p.company_name || "";
+                const nature = p.job_description || "";
+                const initial = name.charAt(0).toUpperCase();
+                const avatarInner = p.logo
+                  ? `<img src="${esc(p.logo)}" alt="" />`
+                  : initial;
+                return `<div class="partner-option" data-name="${esc(name)}" data-nature="${esc(nature)}">
+                <div class="partner-option-avatar">${avatarInner}</div>
+                <div class="partner-option-body">
+                  <div class="partner-option-name">${highlight(name, q)}</div>
+                  ${nature ? `<div class="partner-option-meta">${esc(nature)}</div>` : ""}
+                </div>
+              </div>`;
+              })
+              .join("");
           box.querySelectorAll(".partner-option").forEach((opt) => {
             opt.addEventListener("click", function () {
               document.getElementById("partnerInput").value = this.dataset.name;
@@ -1256,7 +1567,7 @@
         }
       }
 
-      // ── PRE / POST requirements ───────────────────────────────────────────────
+      // â”€â”€ PRE / POST requirements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       async function loadPreRequirements() {
         await loadRequirements("pre");
       }
@@ -1407,7 +1718,7 @@
         }
       }
 
-      // ── Add Requirement Modal ─────────────────────────────────────────────────
+      // â”€â”€ Add Requirement Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       function openAddReqModal(type) {
         currentReqType = type;
         document.getElementById("addReqModalTitle").textContent =
@@ -1459,7 +1770,7 @@
         }
       }
 
-      // ── Attendance ────────────────────────────────────────────────────────────
+      // â”€â”€ Attendance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       async function loadAttendance() {
         try {
           const r = await window.electronAPI.getOjtAttendance({
@@ -1659,7 +1970,7 @@
         );
       }
 
-      // ── Weekly Reports ────────────────────────────────────────────────────────
+      // â”€â”€ Weekly Reports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       async function loadWeeklyReports() {
         try {
           const r = await window.electronAPI.getOjtWeeklyReports(STUDENT_ID);
@@ -1801,7 +2112,7 @@
         }
       }
 
-      // ── Deploy / Archive ──────────────────────────────────────────────────────
+      // â”€â”€ Deploy / Archive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       function confirmDeploy() {
         openConfirm(
           "Deploy Student",
@@ -1852,7 +2163,7 @@
         );
       }
 
-      // ── Confirm modal ─────────────────────────────────────────────────────────
+      // â”€â”€ Confirm modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       let _confirmCallback = null;
       function openConfirm(title, msg, callback) {
         document.getElementById("confirmTitle").textContent = title;
@@ -1871,7 +2182,7 @@
           if (_confirmCallback) await _confirmCallback();
         });
 
-      // ── Tab switching ─────────────────────────────────────────────────────────
+      // â”€â”€ Tab switching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       document.addEventListener("DOMContentLoaded", function () {
         const tabs = document.querySelectorAll(".tab");
         const panels = document.querySelectorAll(".tab-panel");

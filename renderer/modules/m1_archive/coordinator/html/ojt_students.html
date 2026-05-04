@@ -27,7 +27,7 @@
         const container = document.getElementById("sectionCards");
 
         try {
-          const result = await window.electronAPI.getCoordinatorSections();
+          const result = await getApi().getCoordinatorSections();
           if (!result?.success)
             throw new Error(result?.message || "Failed to load sections.");
 
@@ -75,6 +75,23 @@
       }
       function escapeAttr(str) {
         return String(str || "").replace(/"/g, "&quot;");
+      }
+
+      function getApi() {
+        if (window.electronAPI) return window.electronAPI;
+        try {
+          if (
+            window.parent &&
+            window.parent !== window &&
+            window.parent.electronAPI
+          )
+            return window.parent.electronAPI;
+        } catch (_) {}
+        try {
+          if (window.top && window.top !== window && window.top.electronAPI)
+            return window.top.electronAPI;
+        } catch (_) {}
+        return {};
       }
 
       loadSections();

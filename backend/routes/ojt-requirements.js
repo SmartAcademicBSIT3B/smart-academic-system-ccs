@@ -84,32 +84,56 @@ async function ensureTables() {
 
 // ── Seed defaults ─────────────────────────────────────────────────────────────
 async function seedDefaultTemplates(department) {
-  const existing = await query(
-    "SELECT COUNT(*) AS cnt FROM ojt_requirement_templates WHERE department = ? AND scope = 'department'",
-    [department],
+  const existingDefaults = await query(
+    `SELECT name, type
+     FROM ojt_requirement_templates
+     WHERE department = ?
+       AND scope = 'department'
+       AND scope_value = ?
+       AND type IN ('pre', 'post')`,
+    [department, department],
   );
-  if (existing[0]?.cnt > 0) return;
+
+  const existingSet = new Set(
+    existingDefaults.map(
+      (row) =>
+        `${String(row.type).toLowerCase()}::${String(row.name).toLowerCase()}`,
+    ),
+  );
 
   const toInsert = [
-    ...DEFAULT_PRE_REQUIREMENTS.map((name, i) => [
+    ...DEFAULT_PRE_REQUIREMENTS.map((name, i) => ({
       name,
-      "pre",
-      "department",
-      department,
-      i,
-    ]),
-    ...DEFAULT_POST_REQUIREMENTS.map((name, i) => [
+      type: "pre",
+      scope: "department",
+      scopeValue: department,
+      displayOrder: i,
+    })),
+    ...DEFAULT_POST_REQUIREMENTS.map((name, i) => ({
       name,
-      "post",
-      "department",
-      department,
-      i,
-    ]),
+      type: "post",
+      scope: "department",
+      scopeValue: department,
+      displayOrder: i,
+    })),
   ];
-  for (const [name, type, scope, dept, order] of toInsert) {
+
+  for (const item of toInsert) {
+    const key = `${item.type}::${String(item.name).toLowerCase()}`;
+    if (existingSet.has(key)) continue;
+
     await query(
-      "INSERT IGNORE INTO ojt_requirement_templates (name, type, scope, scope_value, department, display_order) VALUES (?, ?, ?, ?, ?, ?)",
-      [name, type, scope, dept, dept, order],
+      `INSERT INTO ojt_requirement_templates
+       (name, type, scope, scope_value, department, display_order)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        item.name,
+        item.type,
+        item.scope,
+        item.scopeValue,
+        department,
+        item.displayOrder,
+      ],
     );
   }
 }
@@ -170,12 +194,10 @@ router.get("/templates", requireAuth, async (req, res) => {
     return res.json({ success: true, templates });
   } catch (error) {
     console.error("getRequirementTemplates error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to fetch templates.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch templates.",
+    });
   }
 });
 
@@ -218,12 +240,10 @@ router.post("/templates", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("createRequirementTemplate error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to create template.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create template.",
+    });
   }
 });
 
@@ -278,12 +298,10 @@ router.patch("/templates/:id", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("updateRequirementTemplate error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to update template.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update template.",
+    });
   }
 });
 
@@ -300,12 +318,10 @@ router.delete("/templates/:id", requireAuth, async (req, res) => {
     return res.json({ success: true });
   } catch (error) {
     console.error("deleteRequirementTemplate error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to delete template.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete template.",
+    });
   }
 });
 
@@ -316,6 +332,7 @@ router.get("/submissions/:studentId", requireAuth, async (req, res) => {
     const dept = getDept(req);
     const studentId = String(req.params.studentId || "").trim();
     await ensureTables();
+    await seedDefaultTemplates(dept);
 
     const student = await query(
       "SELECT id, section FROM ojt_students WHERE student_id = ? AND department = ? LIMIT 1",
@@ -365,12 +382,10 @@ router.get("/submissions/:studentId", requireAuth, async (req, res) => {
     return res.json({ success: true, requirements: result });
   } catch (error) {
     console.error("getRequirementSubmissions error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to fetch submissions.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch submissions.",
+    });
   }
 });
 
@@ -381,6 +396,7 @@ router.patch("/submissions/:submissionId", requireAuth, async (req, res) => {
     const dept = getDept(req);
     const id = parseInt(req.params.submissionId, 10);
     await ensureTables();
+    await seedDefaultTemplates(dept);
 
     const existing = await query(
       "SELECT id, template_id, ojt_student_id FROM ojt_requirement_submissions WHERE id = ? AND department = ? LIMIT 1",
@@ -454,12 +470,10 @@ router.patch("/submissions/:submissionId", requireAuth, async (req, res) => {
     return res.json({ success: true, submission: rows[0] });
   } catch (error) {
     console.error("updateRequirementSubmission error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to update submission.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update submission.",
+    });
   }
 });
 
@@ -469,17 +483,16 @@ router.post("/submissions", requireAuth, async (req, res) => {
   try {
     const dept = getDept(req);
     await ensureTables();
+    await seedDefaultTemplates(dept);
 
     const studentIdRef = String(req.body.student_id || "").trim();
     const templateId = parseInt(req.body.template_id, 10);
 
     if (!studentIdRef || !templateId) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "student_id and template_id are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "student_id and template_id are required.",
+      });
     }
 
     const student = await query(
@@ -558,12 +571,10 @@ router.post("/submissions", requireAuth, async (req, res) => {
     return res.status(201).json({ success: true, submission: rows[0] });
   } catch (error) {
     console.error("createRequirementSubmission error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to create submission.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create submission.",
+    });
   }
 });
 

@@ -61,9 +61,8 @@
 
       <div class="panel">
         <div class="panel-body">
-          <a href="ojt_students.html" class="back-btn">&#8249;</a>
-
           <div class="search-bar">
+            <a href="ojt_students.html" class="back-btn">&#8249;</a>
             <input
               type="text"
               class="search-input"
@@ -165,8 +164,7 @@
         }
 
         try {
-          const result =
-            await window.electronAPI.getCoordinatorSectionStudents(section);
+          const result = await getApi().getCoordinatorSectionStudents(section);
           if (!result?.success)
             throw new Error(result?.message || "Failed to load students.");
 
@@ -195,6 +193,23 @@
           });
           renderCards(filtered);
         });
+
+      function getApi() {
+        if (window.electronAPI) return window.electronAPI;
+        try {
+          if (
+            window.parent &&
+            window.parent !== window &&
+            window.parent.electronAPI
+          )
+            return window.parent.electronAPI;
+        } catch (_) {}
+        try {
+          if (window.top && window.top !== window && window.top.electronAPI)
+            return window.top.electronAPI;
+        } catch (_) {}
+        return {};
+      }
 
       loadStudents();
     </script>
