@@ -1977,7 +1977,29 @@
       let certificateFilePath = null;
       let certificatesCache = [];
 
-      function notifyParentOfCoordinatorActivity(activityType, details = {}) {
+      function buildCoordinatorNotification(
+        activityType,
+        message,
+        details = {},
+      ) {
+        return {
+          id: `coord-${activityType}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          activity_type: activityType,
+          student_id: STUDENT_ID,
+          student_name: String(
+            student?.display_name || student?.name || STUDENT_ID,
+          ),
+          message,
+          file_name: details.file_name || details.fileName || "",
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      function notifyParentOfCoordinatorActivity(
+        activityType,
+        message,
+        details = {},
+      ) {
         if (window.parent === window) return;
         window.parent.postMessage(
           {
@@ -1985,6 +2007,11 @@
             activityType,
             studentId: STUDENT_ID,
             details,
+            notification: buildCoordinatorNotification(
+              activityType,
+              message,
+              details,
+            ),
           },
           "*",
         );
@@ -2433,6 +2460,13 @@
           refreshPartnerDisplay(partner, nature);
           closePartnerEdit();
           showToast("Partner updated.", "success");
+          notifyParentOfCoordinatorActivity(
+            "partner",
+            partner
+              ? `assigned external partner ${partner}`
+              : "updated external partner details",
+            { file_name: "Partner assignment" },
+          );
         } catch (err) {
           showToast(err.message, "error");
         }
@@ -2671,13 +2705,22 @@
           if (!subResult?.success)
             throw new Error(subResult?.message || "Failed to save submission.");
 
+          const uploadedFileName =
+            fileName || uploadResult?.original_filename || "";
           showToast("File uploaded.", "success");
           await loadRequirements(type);
-          notifyParentOfCoordinatorActivity("requirement", {
-            requirementType: type,
-            templateId,
-            submissionId: existingSubId || subResult?.id || null,
-          });
+          notifyParentOfCoordinatorActivity(
+            "requirement",
+            existingSubId
+              ? `replaced a ${type} requirement file`
+              : `uploaded a ${type} requirement file`,
+            {
+              requirementType: type,
+              templateId,
+              submissionId: existingSubId || subResult?.id || null,
+              file_name: uploadedFileName,
+            },
+          );
         } catch (err) {
           showToast(err.message, "error");
         }
@@ -2940,6 +2983,11 @@
           closeAddReqModal();
           showToast("Requirement added.", "success");
           await loadRequirements(currentReqType);
+          notifyParentOfCoordinatorActivity(
+            "requirement",
+            `added a ${currentReqType} requirement to the table`,
+            { file_name: name },
+          );
         } catch (err) {
           showToast(err.message, "error");
         } finally {
@@ -3142,11 +3190,16 @@
           closeAddAttModal();
           showToast("Attendance saved.", "success");
           await loadAttendance();
-          notifyParentOfCoordinatorActivity("attendance", {
-            attendanceDate: date,
-            status,
-            recordId: editId || r?.id || null,
-          });
+          notifyParentOfCoordinatorActivity(
+            "attendance",
+            `${editId ? "updated" : "added"} an attendance record (${status})`,
+            {
+              attendanceDate: date,
+              status,
+              recordId: editId || r?.id || null,
+              file_name: date,
+            },
+          );
         } catch (err) {
           showToast(err.message, "error");
         } finally {
@@ -3390,10 +3443,15 @@
             "success",
           );
           await loadWeeklyReports();
-          notifyParentOfCoordinatorActivity("weekly_report", {
-            weekNumber: weekNum,
-            reportId: editId || r?.id || null,
-          });
+          notifyParentOfCoordinatorActivity(
+            "weekly_report",
+            `${editId ? "updated" : "added"} week ${weekNum} report`,
+            {
+              weekNumber: weekNum,
+              reportId: editId || r?.id || null,
+              file_name: fileName || `Week ${weekNum}`,
+            },
+          );
         } catch (err) {
           showToast(err.message, "error");
         } finally {
@@ -3586,6 +3644,14 @@
           );
           closeCertificateModal();
           await loadOjtCertificates();
+          notifyParentOfCoordinatorActivity(
+            "certificate",
+            "issued an OJT certificate",
+            {
+              file_name:
+                certificateFilePath?.split(/[/\\]/).pop() || "Certificate",
+            },
+          );
         } catch (err) {
           showToast(err.message, "error");
         } finally {
@@ -3618,6 +3684,11 @@
 
               showToast("Certificate deleted.", "success");
               await loadOjtCertificates();
+              notifyParentOfCoordinatorActivity(
+                "certificate",
+                "deleted an OJT certificate",
+                { file_name: cert?.file_name || "Certificate deleted" },
+              );
             } catch (err) {
               showToast(err.message, "error");
             }
@@ -3656,6 +3727,11 @@
               student.status = "Deployed";
               syncStatusUi("Deployed");
               showToast("Student deployed.", "success");
+              notifyParentOfCoordinatorActivity(
+                "status",
+                "marked the student as Deployed",
+                { file_name: "Status: Deployed" },
+              );
             } catch (err) {
               showToast(err.message, "error");
             }
@@ -3679,6 +3755,11 @@
               student.status = "OJT Complete";
               syncStatusUi("OJT Complete");
               showToast("OJT marked complete.", "success");
+              notifyParentOfCoordinatorActivity(
+                "status",
+                "marked the student as OJT Complete",
+                { file_name: "Status: OJT Complete" },
+              );
             } catch (err) {
               showToast(err.message, "error");
             }
@@ -3704,6 +3785,11 @@
               syncStatusUi("Pending Requirements");
               await loadRequirements("pre");
               showToast("Status changed to Pending Requirements.", "success");
+              notifyParentOfCoordinatorActivity(
+                "status",
+                "changed the student status to Pending Requirements",
+                { file_name: "Status: Pending Requirements" },
+              );
             } catch (err) {
               showToast(err.message, "error");
             }
@@ -3826,6 +3912,11 @@
           showToast("Requirement approved.", "success");
           closeApproveReqModal();
           await loadRequirements(pendingApprovalType);
+          notifyParentOfCoordinatorActivity(
+            "requirement",
+            `approved a ${pendingApprovalType} requirement`,
+            { file_name: `Approved ${pendingApprovalType} requirement` },
+          );
         } catch (err) {
           showToast(err.message, "error");
         }
@@ -3850,6 +3941,11 @@
           showToast("Requirement rejected.", "success");
           closeRejectReqModal();
           await loadRequirements(pendingRejectionType);
+          notifyParentOfCoordinatorActivity(
+            "requirement",
+            `rejected a ${pendingRejectionType} requirement`,
+            { file_name: `Rejected ${pendingRejectionType} requirement` },
+          );
         } catch (err) {
           showToast(err.message, "error");
         }
@@ -4009,6 +4105,11 @@
           showToast("File replaced successfully.", "success");
           closeEditMode();
           await loadRequirements(type);
+          notifyParentOfCoordinatorActivity(
+            "requirement",
+            `replaced a ${type} requirement file`,
+            { file_name: fileName },
+          );
         } catch (err) {
           showToast(err.message, "error");
         }
@@ -4115,6 +4216,11 @@
           showToast("Requirement deleted.", "success");
           closeDeleteMode();
           await loadRequirements(type);
+          notifyParentOfCoordinatorActivity(
+            "requirement",
+            `deleted a ${type} requirement submission`,
+            { file_name: "Requirement submission deleted" },
+          );
         } catch (err) {
           showToast(err.message, "error");
         }

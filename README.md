@@ -185,6 +185,12 @@ npm run dist:current
 npm run dist:alpha1
 ```
 
+1. Build installer as fixed Beta 1 version (`1.0.0-beta.1`):
+
+```bash
+npm run dist:beta1
+```
+
 Generated installer files are placed in the `release/` folder.
 
 If Windows SmartScreen shows a warning, click **More info** then **Run anyway** for internal testing builds.

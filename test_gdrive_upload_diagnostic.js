@@ -1,23 +1,13 @@
-const { google } = require("googleapis");
-const path = require("path");
+require("dotenv").config();
+
 const { Readable } = require("stream");
+const { getDriveClient } = require("./services/gdrive_service");
 
-const KEYFILE_PATH =
-  process.env.GOOGLE_SERVICE_ACCOUNT_KEYFILE_PATH ||
-  path.join(__dirname, "services", "service-account.json");
-
-const SCOPES = ["https://www.googleapis.com/auth/drive"];
 const DEFAULT_FOLDER_ID = "1pUA3iE69luJxk-6XVCme_07gz4ltcJT0";
 
 async function run() {
   const folderId = process.argv[2] || DEFAULT_FOLDER_ID;
-
-  const auth = new google.auth.GoogleAuth({
-    keyFile: KEYFILE_PATH,
-    scopes: SCOPES,
-  });
-
-  const drive = google.drive({ version: "v3", auth });
+  const drive = getDriveClient();
 
   const fileName = `diag_${Date.now()}.txt`;
   const body = Readable.from(["diagnostic upload test\n"]);

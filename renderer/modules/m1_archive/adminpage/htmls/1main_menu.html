@@ -496,9 +496,70 @@
         .getElementById("content-frame")
         ?.addEventListener("load", () => emitSidebarHoverState());
 
+      function getNotificationSignature(notification) {
+        return [
+          notification?.activity_type || "",
+          notification?.student_id || "",
+          notification?.message || "",
+          notification?.file_name || "",
+        ]
+          .join("|")
+          .toLowerCase();
+      }
+
+      function mergeCoordinatorNotifications(remoteNotifications = []) {
+        const now = Date.now();
+        localCoordinatorNotifications = localCoordinatorNotifications.filter(
+          (notification) => {
+            const timestamp = new Date(notification.timestamp).getTime();
+            return (
+              Number.isFinite(timestamp) && now - timestamp < 5 * 60 * 1000
+            );
+          },
+        );
+
+        const merged = [];
+        const seen = new Set();
+
+        [...remoteNotifications, ...localCoordinatorNotifications].forEach(
+          (notification) => {
+            const signature = getNotificationSignature(notification);
+            if (!signature || seen.has(signature)) return;
+            seen.add(signature);
+            merged.push(notification);
+          },
+        );
+
+        merged.sort(
+          (left, right) =>
+            new Date(right.timestamp).getTime() -
+            new Date(left.timestamp).getTime(),
+        );
+
+        return merged.slice(0, 20);
+      }
+
+      function prependCoordinatorNotification(notification) {
+        if (!notification) return;
+
+        const signature = getNotificationSignature(notification);
+        localCoordinatorNotifications = localCoordinatorNotifications.filter(
+          (item) => getNotificationSignature(item) !== signature,
+        );
+        localCoordinatorNotifications.unshift(notification);
+        coordinatorNotifications = mergeCoordinatorNotifications(
+          coordinatorNotifications,
+        );
+        renderNotifications();
+      }
+
       window.addEventListener("message", (event) => {
         if (event?.data?.type !== "coordinator-activity-updated") return;
         if (getCurrentRole() !== "coordinator") return;
+
+        if (event.data.notification) {
+          prependCoordinatorNotification(event.data.notification);
+        }
 
         fetchCoordinatorNotifications();
       });
@@ -619,6 +680,7 @@
       // ════════════════════════════════════════════════════════════════
 
       let coordinatorNotifications = [];
+      let localCoordinatorNotifications = [];
       let notificationPollInterval = null;
 
       async function fetchCoordinatorNotifications() {
@@ -648,7 +710,9 @@
           }
 
           if (data.success && Array.isArray(data.notifications)) {
-            coordinatorNotifications = data.notifications;
+            coordinatorNotifications = mergeCoordinatorNotifications(
+              data.notifications,
+            );
             renderNotifications();
           }
         } catch (error) {
@@ -698,6 +762,9 @@
           requirement: "📋",
           attendance: "✓",
           weekly_report: "📝",
+          partner: "🏢",
+          certificate: "🎓",
+          status: "🔔",
         };
         return icons[activityType] || "●";
       }
