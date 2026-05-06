@@ -462,5 +462,208 @@ router.get("/capstone-approval/:studentId", requireAuth, async (req, res) => {
   }
 });
 
+// ── GET /api/ojt-coordinator/notifications ────────────────────────────────────
+// Returns recent activities (requirements, attendance, weekly reports) for all
+// students in the coordinator's assigned sections.
+router.get("/notifications", requireAuth, async (req, res) => {
+  try {
+    const { email, dept } = await resolveCoordinatorEmail(req);
+    const minutesBack = Math.max(
+      1,
+      parseInt(req.query.minutes_back || "30", 10),
+    );
+    const limit = Math.max(
+      5,
+      Math.min(100, parseInt(req.query.limit || "20", 10)),
+    );
+
+    // Find sections assigned to this coordinator
+    let assignments = [];
+    if (email) {
+      assignments = await query(
+        `SELECT section_name
+         FROM section_assignments
+         WHERE department = ? AND LOWER(TRIM(professor_email)) = ?`,
+        [dept, email],
+      );
+    }
+    if (!assignments.length) {
+      const name = String(req.user?.name || "").trim();
+      if (name) {
+        assignments = await query(
+          `SELECT section_name
+           FROM section_assignments
+           WHERE department = ? AND professor_name = ?`,
+          [dept, name],
+        );
+      }
+    }
+
+    // If no sections assigned, return empty
+    if (!assignments.length) {
+      return res.json({ success: true, notifications: [] });
+    }
+
+    const sectionNames = assignments.map((r) => r.section_name);
+
+    // Get all students in coordinator's sections
+    const placeholders = sectionNames.map(() => "?").join(",");
+    const students = await query(
+      `SELECT id, student_id, name FROM ojt_students
+       WHERE department = ? AND section IN (${placeholders})`,
+      [dept, ...sectionNames],
+    );
+
+    if (!students.length) {
+      return res.json({ success: true, notifications: [] });
+    }
+
+    const studentIds = students.map((s) => s.id);
+    const studentMap = {};
+    students.forEach((s) => {
+      studentMap[s.id] = { student_id: s.student_id, name: s.name };
+    });
+
+    // Time window for "recent" activities
+    const cutoffTime = new Date(Date.now() - minutesBack * 60 * 1000);
+
+    // Fetch requirement submissions
+    const reqPlaceholders = studentIds.map(() => "?").join(",");
+    const requirements = await query(
+      `SELECT 
+         'requirement' AS activity_type,
+         ors.ojt_student_id,
+         ors.status,
+         ors.created_at,
+         ors.updated_at,
+         ors.file_name
+       FROM ojt_requirement_submissions ors
+       WHERE ors.ojt_student_id IN (${reqPlaceholders})
+         AND ors.updated_at >= ?
+       ORDER BY ors.updated_at DESC`,
+      [...studentIds, cutoffTime],
+    );
+
+    // Fetch attendance records
+    const attendance = await query(
+      `SELECT
+         'attendance' AS activity_type,
+         oa.ojt_student_id,
+         oa.status,
+         oa.attendance_date,
+         oa.created_at,
+         oa.updated_at
+       FROM ojt_attendance oa
+       WHERE oa.ojt_student_id IN (${reqPlaceholders})
+         AND oa.updated_at >= ?
+       ORDER BY oa.updated_at DESC`,
+      [...studentIds, cutoffTime],
+    );
+
+    // Fetch weekly reports
+    const weeklyReports = await query(
+      `SELECT
+         'weekly_report' AS activity_type,
+         owr.ojt_student_id,
+         owr.status,
+         owr.week_number,
+         owr.created_at,
+         owr.updated_at,
+         owr.feedback
+       FROM ojt_weekly_reports owr
+       WHERE owr.ojt_student_id IN (${reqPlaceholders})
+         AND owr.updated_at >= ?
+       ORDER BY owr.updated_at DESC`,
+      [...studentIds, cutoffTime],
+    );
+
+    // Aggregate and format notifications
+    const notifications = [];
+
+    // Add requirement notifications
+    requirements.forEach((req) => {
+      const student = studentMap[req.ojt_student_id];
+      let message = "";
+      if (req.status === "submitted" || req.status === "pending") {
+        message = `submitted a requirement file`;
+      } else if (req.status === "verified") {
+        message = `requirement was verified`;
+      } else if (req.status === "rejected") {
+        message = `requirement was rejected`;
+      } else {
+        message = `updated a requirement`;
+      }
+
+      notifications.push({
+        id: `req-${req.ojt_student_id}-${req.created_at}`,
+        activity_type: "requirement",
+        status: req.status,
+        student_id: student.student_id,
+        student_name: student.name,
+        message: message,
+        file_name: req.file_name || "(File)",
+        timestamp: req.updated_at,
+      });
+    });
+
+    // Add attendance notifications
+    attendance.forEach((att) => {
+      const student = studentMap[att.ojt_student_id];
+      const dateStr = att.attendance_date
+        ? new Date(att.attendance_date).toLocaleDateString()
+        : "Unknown date";
+      const message = `recorded attendance (${att.status}) on ${dateStr}`;
+
+      notifications.push({
+        id: `att-${att.ojt_student_id}-${att.attendance_date}`,
+        activity_type: "attendance",
+        status: att.status,
+        student_id: student.student_id,
+        student_name: student.name,
+        message: message,
+        timestamp: att.updated_at,
+      });
+    });
+
+    // Add weekly report notifications
+    weeklyReports.forEach((report) => {
+      const student = studentMap[report.ojt_student_id];
+      let message = "";
+      if (report.status === "submitted" || report.status === "pending") {
+        message = `submitted week ${report.week_number} report`;
+      } else if (report.status === "reviewed") {
+        message = `week ${report.week_number} report was reviewed`;
+      } else if (report.status === "returned") {
+        message = `week ${report.week_number} report was returned for revision`;
+      } else {
+        message = `updated week ${report.week_number} report`;
+      }
+
+      notifications.push({
+        id: `report-${report.ojt_student_id}-${report.week_number}`,
+        activity_type: "weekly_report",
+        status: report.status,
+        student_id: student.student_id,
+        student_name: student.name,
+        message: message,
+        has_feedback: !!report.feedback,
+        timestamp: report.updated_at,
+      });
+    });
+
+    // Sort by timestamp (most recent first) and limit
+    notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const result = notifications.slice(0, limit);
+
+    return res.json({ success: true, notifications: result });
+  } catch (error) {
+    console.error("getNotifications error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch notifications.",
+    });
+  }
+});
+
 module.exports = router;
 module.exports.ensureStatusHistoryTable = ensureStatusHistoryTable;

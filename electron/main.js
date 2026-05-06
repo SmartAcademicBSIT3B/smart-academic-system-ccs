@@ -1816,6 +1816,26 @@ ipcMain.handle("getCoordinatorStudentProfile", async (event, studentId) => {
   }
 });
 
+ipcMain.handle("getCoordinatorNotifications", async (event, params = {}) => {
+  try {
+    const minutesBack = Math.max(
+      1,
+      parseInt(params?.minutesBack || params?.minutes_back || "30", 10),
+    );
+    const limit = Math.max(
+      5,
+      Math.min(100, parseInt(params?.limit || "20", 10)),
+    );
+    const qs = `?minutes_back=${encodeURIComponent(minutesBack)}&limit=${encodeURIComponent(limit)}`;
+    return await api.get(`/ojt-coordinator/notifications${qs}`);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch coordinator notifications.",
+    };
+  }
+});
+
 ipcMain.handle("updateStudentPartner", async (event, payload) => {
   try {
     const studentId = payload?.student_id || payload?.studentId || "";

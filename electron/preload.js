@@ -92,6 +92,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("getCoordinatorSectionStudents", section),
   getCoordinatorStudentProfile: (studentId) =>
     ipcRenderer.invoke("getCoordinatorStudentProfile", studentId),
+  getCoordinatorNotifications: async (params) => {
+    try {
+      return await ipcRenderer.invoke("getCoordinatorNotifications", params);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          notifications: [],
+          message:
+            "Coordinator notifications are unavailable in this app session.",
+        };
+      }
+      throw error;
+    }
+  },
   updateStudentPartner: (payload) =>
     ipcRenderer.invoke("updateStudentPartner", payload),
   updateStudentOjtStatus: (payload) =>

@@ -15,38 +15,41 @@
     <div class="dashboard-wrapper">
       <!-- PAGE TITLE -->
       <h2 class="page-title">DASHBOARD</h2>
+      <p id="dashboardMessage" class="dashboard-message">
+        Loading dashboard data...
+      </p>
 
       <!-- STATS CARDS - WORK-RELATED DATA -->
       <div class="cards">
         <!-- SPLIT CARD (Combined into one box) -->
         <div class="card split-card">
           <div class="split-item">
-            <h3>48</h3>
+            <h3 id="card-total-students">--</h3>
             <p>Total Students</p>
             <span>HANDLED</span>
           </div>
           <div class="split-divider"></div>
           <div class="split-item">
-            <h3>12</h3>
+            <h3 id="card-undeployed-students">--</h3>
             <p>Undeployed</p>
             <span>STUDENTS</span>
           </div>
         </div>
 
         <div class="card highlight">
-          <h3>36</h3>
+          <h3 id="card-currently-deployed">--</h3>
           <p>Currently</p>
           <span>DEPLOYED</span>
         </div>
 
         <div class="card">
-          <h3>8</h3>
+          <h3 id="card-active-partners">--</h3>
           <p>Active</p>
           <span>PARTNERS</span>
         </div>
 
         <div class="card">
-          <h3>15</h3>
+          <h3 id="card-pending-requirements">--</h3>
           <p>Pending</p>
           <span>REQUIREMENTS</span>
         </div>
@@ -59,17 +62,22 @@
           <div class="chart-box large">
             <h4>Statistics of Deployed Students per Section</h4>
             <canvas id="barChart"></canvas>
+            <p id="status-barChart" class="chart-status">Loading chart...</p>
           </div>
 
           <div class="bottom-charts">
             <div class="chart-box">
               <h4>Deployment by Company Type</h4>
               <canvas id="smallBarChart"></canvas>
+              <p id="status-smallBarChart" class="chart-status">
+                Loading chart...
+              </p>
             </div>
 
             <div class="chart-box">
               <h4>Thesis/Capstone Completion Percentage</h4>
               <canvas id="pieChart1"></canvas>
+              <p id="status-pieChart1" class="chart-status">Loading chart...</p>
             </div>
           </div>
         </div>
@@ -79,16 +87,18 @@
           <div class="chart-box">
             <h4>Population Per Section (Assigned)</h4>
             <canvas id="pieChart2"></canvas>
+            <p id="status-pieChart2" class="chart-status">Loading chart...</p>
           </div>
 
           <div class="chart-box">
             <h4>Deployment Status (My Students)</h4>
             <canvas id="pieChart3"></canvas>
+            <p id="status-pieChart3" class="chart-status">Loading chart...</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- JavaScript for charts will be in a separate file -->
+    <script src="../js/dashboard.js" defer></script>
   </body>
 </html>

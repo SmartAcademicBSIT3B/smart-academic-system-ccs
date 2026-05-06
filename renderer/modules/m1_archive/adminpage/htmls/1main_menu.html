@@ -249,30 +249,40 @@
       </div>
     </div>
 
-    <!-- ✅ FIXED NOTIFICATION MODAL (NOW OUTSIDE) -->
+    <!-- ✅ NOTIFICATION MODAL -->
     <div class="notif-modal" id="notifModal">
-      <div class="notif-header">
+      <div
+        class="notif-header"
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
         <span>Notifications</span>
+        <button
+          class="notif-close-btn"
+          onclick="closeNotifModal()"
+          style="
+            background: none;
+            border: none;
+            color: var(--primary-text);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: -8px -8px -8px 0;
+          "
+        >
+          &times;
+        </button>
       </div>
 
-      <div class="notif-list">
-        <div class="notif-item">
-          <div class="notif-text">
-            New thesis submitted by <b>Juan Dela Cruz</b>
-          </div>
-          <span class="notif-time">2m ago</span>
-        </div>
-
-        <div class="notif-item">
-          <div class="notif-text">New partner request received</div>
-          <span class="notif-time">10m ago</span>
-        </div>
-
-        <div class="notif-item">
-          <div class="notif-text">Report generated successfully</div>
-          <span class="notif-time">1h ago</span>
-        </div>
-      </div>
+      <div class="notif-list"></div>
     </div>
 
     <style>
@@ -465,11 +475,12 @@
         if (dashboardMenu) {
           loadPageByKey("dashboard", dashboardMenu);
         }
-      }
 
-      applyRoleAccess();
-      applyDepartmentLogoFromLocalSettings();
-      refreshDepartmentLogoFromPersistedSettings();
+        // Start notification polling if coordinator
+        if (role === "coordinator") {
+          startNotificationPolling();
+        }
+      }
 
       const sidebarElement = document.querySelector(".sidebar");
       if (sidebarElement) {
@@ -485,31 +496,76 @@
         .getElementById("content-frame")
         ?.addEventListener("load", () => emitSidebarHoverState());
 
+      window.addEventListener("message", (event) => {
+        if (event?.data?.type !== "coordinator-activity-updated") return;
+        if (getCurrentRole() !== "coordinator") return;
+
+        fetchCoordinatorNotifications();
+      });
+
       function toggleProfileMenu(event) {
         event.stopPropagation();
         document.querySelector(".profile-menu").classList.toggle("show");
       }
 
-      /* 🔥 FIXED NOTIFICATION FUNCTION */
+      /* 🔥 NOTIFICATION PANEL FUNCTIONS */
       function toggleNotifModal(event) {
         event.stopPropagation();
         const notif = document.getElementById("notifModal");
         notif.classList.toggle("show");
       }
 
-      /* CLOSE MENUS */
+      function closeNotifModal() {
+        const notif = document.getElementById("notifModal");
+        notif.classList.remove("show");
+      }
+
+      function updateNotificationBadge() {
+        const profileIcon = document.querySelector(".profile-icon");
+        if (coordinatorNotifications.length > 0) {
+          profileIcon.style.setProperty("--show-badge", "block");
+        } else {
+          profileIcon.style.setProperty("--show-badge", "none");
+        }
+      }
+
+      /* CLOSE MENUS AND PANELS */
       document.addEventListener("click", function (e) {
         const menu = document.querySelector(".profile-menu");
         const notif = document.getElementById("notifModal");
+        const profileIcon = document.querySelector(".profile-icon");
+        const profileDropdown = document.querySelector(".profile-dropdown");
 
-        if (menu && !menu.contains(e.target)) {
+        // Close profile menu if clicking outside
+        if (
+          menu &&
+          !menu.contains(e.target) &&
+          !profileDropdown.contains(e.target)
+        ) {
           menu.classList.remove("show");
         }
 
-        if (notif && !notif.contains(e.target)) {
+        // Close notification modal if clicking outside (but not on profile icon or notification panel)
+        if (
+          notif &&
+          !notif.contains(e.target) &&
+          e.target !== profileIcon &&
+          !profileIcon.contains(e.target)
+        ) {
           notif.classList.remove("show");
         }
       });
+
+      // Allow clicking profile icon again to close notification panel
+      document
+        .querySelector(".profile-icon")
+        .addEventListener("click", function (e) {
+          const notif = document.getElementById("notifModal");
+          if (notif.classList.contains("show")) {
+            notif.classList.remove("show");
+            e.stopPropagation();
+          }
+        });
 
       /* PROFILE MODAL */
       function openProfileModal() {
@@ -558,6 +614,138 @@
         editBtn.style.display = "inline-flex";
       }
 
+      // ════════════════════════════════════════════════════════════════
+      // NOTIFICATIONS SYSTEM (Coordinators Only)
+      // ════════════════════════════════════════════════════════════════
+
+      let coordinatorNotifications = [];
+      let notificationPollInterval = null;
+
+      async function fetchCoordinatorNotifications() {
+        const role = getCurrentRole();
+        if (role !== "coordinator") return;
+
+        if (
+          !window.electronAPI ||
+          typeof window.electronAPI.getCoordinatorNotifications !== "function"
+        ) {
+          console.error("Coordinator notifications API is unavailable.");
+          return;
+        }
+
+        try {
+          const data = await window.electronAPI.getCoordinatorNotifications({
+            minutesBack: 30,
+            limit: 20,
+          });
+
+          if (!data?.success) {
+            console.error(
+              "Failed to fetch notifications:",
+              data?.message || "Unknown error",
+            );
+            return;
+          }
+
+          if (data.success && Array.isArray(data.notifications)) {
+            coordinatorNotifications = data.notifications;
+            renderNotifications();
+          }
+        } catch (error) {
+          console.error("Error fetching notifications:", error);
+        }
+      }
+
+      function renderNotifications() {
+        const notifList = document.querySelector(".notif-list");
+        if (!notifList) return;
+
+        notifList.innerHTML = "";
+
+        if (coordinatorNotifications.length === 0) {
+          notifList.innerHTML =
+            '<div style="padding: 16px; text-align: center; color: #666; font-size: 13px;">No new notifications</div>';
+          updateNotificationBadge();
+          return;
+        }
+
+        coordinatorNotifications.forEach((notif) => {
+          const timestamp = formatTimeAgo(new Date(notif.timestamp));
+          const activityIcon = getActivityIcon(notif.activity_type);
+
+          const notifItem = document.createElement("div");
+          notifItem.className = "notif-item";
+          notifItem.innerHTML = `
+            <div style="display: flex; gap: 8px; align-items: flex-start;">
+              <div style="flex-shrink: 0; margin-top: 2px;">${activityIcon}</div>
+              <div style="flex: 1; min-width: 0;">
+                <div class="notif-text">
+                  <b>${escapeHtml(notif.student_name)}</b> ${escapeHtml(notif.message)}
+                </div>
+                ${notif.file_name ? `<div style="font-size: 11px; color: #999; margin-top: 2px;">${escapeHtml(notif.file_name)}</div>` : ""}
+              </div>
+            </div>
+            <span class="notif-time">${timestamp}</span>
+          `;
+          notifList.appendChild(notifItem);
+        });
+
+        updateNotificationBadge();
+      }
+
+      function getActivityIcon(activityType) {
+        const icons = {
+          requirement: "📋",
+          attendance: "✓",
+          weekly_report: "📝",
+        };
+        return icons[activityType] || "●";
+      }
+
+      function formatTimeAgo(date) {
+        const now = new Date();
+        const seconds = Math.floor((now - date) / 1000);
+
+        if (seconds < 60) return "just now";
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      function startNotificationPolling() {
+        // Fetch immediately
+        fetchCoordinatorNotifications();
+
+        // Set up polling every 30 seconds
+        if (notificationPollInterval) {
+          clearInterval(notificationPollInterval);
+        }
+        notificationPollInterval = setInterval(() => {
+          fetchCoordinatorNotifications();
+        }, 30000);
+      }
+
+      function stopNotificationPolling() {
+        if (notificationPollInterval) {
+          clearInterval(notificationPollInterval);
+          notificationPollInterval = null;
+        }
+        updateNotificationBadge();
+      }
+
+      applyRoleAccess();
+      applyDepartmentLogoFromLocalSettings();
+      refreshDepartmentLogoFromPersistedSettings();
+
       async function saveProfileEdit() {
         const nameInput = document.getElementById("profileName");
         const editBtn = document.querySelector(".edit-link");
@@ -601,6 +789,16 @@
         isEditing = false;
         actions.classList.remove("show");
         editBtn.style.display = "inline-flex";
+      }
+      // Override logoutUser to stop notification polling
+      const originalLogoutUser = window.logoutUser || logoutUser;
+      window.logoutUser = async function () {
+        stopNotificationPolling();
+        await originalLogoutUser();
+      };
+      // Update the global reference
+      if (typeof logoutUser !== "undefined") {
+        logoutUser = window.logoutUser;
       }
     </script>
   </body>

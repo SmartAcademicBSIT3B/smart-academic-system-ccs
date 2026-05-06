@@ -50,6 +50,26 @@
         background: #ff5252;
       }
 
+      .status-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 82, 82, 0.35);
+        background: rgba(255, 82, 82, 0.08);
+        color: #ff8a80;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .status-action-btn:hover {
+        background: rgba(255, 82, 82, 0.16);
+        border-color: rgba(255, 82, 82, 0.55);
+      }
+
       /* â”€â”€ Deadline badges â”€â”€ */
       .deadline-badge {
         display: inline-block;
@@ -977,6 +997,11 @@
       .req-container-rejected {
         border-color: rgba(255, 82, 82, 0.4);
         background: rgba(255, 82, 82, 0.08);
+        color: #ff5252;
+      }
+      .req-container-rejected:hover {
+        border-color: rgba(255, 82, 82, 0.6);
+        background: rgba(255, 82, 82, 0.14);
       }
       .req-container:hover {
         border-color: var(--accent-blue);
@@ -1011,6 +1036,9 @@
         font-size: 12px;
         font-weight: 600;
         color: var(--primary-text);
+      }
+      .req-container-rejected .req-container-text {
+        color: #ff7b7b;
       }
       .req-action-buttons {
         display: flex;
@@ -1430,6 +1458,15 @@
 
               <div class="status-row">
                 <div class="status-pill" id="statusPill">—</div>
+                <button
+                  type="button"
+                  class="status-action-btn"
+                  id="markPendingBtn"
+                  style="display: none"
+                  onclick="confirmMarkPendingRequirements()"
+                >
+                  Mark Pending Requirements
+                </button>
               </div>
             </div>
           </header>
@@ -1940,6 +1977,19 @@
       let certificateFilePath = null;
       let certificatesCache = [];
 
+      function notifyParentOfCoordinatorActivity(activityType, details = {}) {
+        if (window.parent === window) return;
+        window.parent.postMessage(
+          {
+            type: "coordinator-activity-updated",
+            activityType,
+            studentId: STUDENT_ID,
+            details,
+          },
+          "*",
+        );
+      }
+
       // tabs loaded flags
       const tabLoaded = {
         pre: false,
@@ -2074,6 +2124,30 @@
         return "pending-requirements";
       }
 
+      function isStatusRevertible(status) {
+        const normalized = String(status || "")
+          .trim()
+          .toLowerCase();
+        return normalized === "deployed" || normalized === "ojt complete";
+      }
+
+      function syncStatusUi(status) {
+        const resolvedStatus =
+          String(status || "").trim() || "Pending Requirements";
+        const pill = document.getElementById("statusPill");
+        if (pill) {
+          pill.textContent = resolvedStatus;
+          pill.className = "status-pill " + statusCssClass(resolvedStatus);
+        }
+
+        const markPendingBtn = document.getElementById("markPendingBtn");
+        if (markPendingBtn) {
+          markPendingBtn.style.display = isStatusRevertible(resolvedStatus)
+            ? "inline-flex"
+            : "none";
+        }
+      }
+
       function deadlineBadgeHtml(badge) {
         if (!badge) return "";
         const labels = {
@@ -2139,9 +2213,7 @@
         );
         renderConnectedArchiveStatus(s);
 
-        const pill = document.getElementById("statusPill");
-        pill.textContent = s.status || "Pending Requirements";
-        pill.className = "status-pill " + statusCssClass(s.status);
+        syncStatusUi(s.status);
       }
 
       function renderConnectedArchiveStatus(s) {
@@ -2406,6 +2478,11 @@
           .map((item) => {
             const { template: t, submission: sub } = item;
             const badge = deadlineBadgeHtml(t.deadline_badge);
+            const isRequired =
+              Number(t?.is_required) === 1 || t?.is_required === true;
+            const submissionStatus = String(sub?.status || "")
+              .trim()
+              .toLowerCase();
             const isVerified = sub?.status === "verified";
             const isRejected = sub?.status === "rejected";
             const isSubmitted =
@@ -2454,9 +2531,9 @@
             }
 
             return `
-            <div class="req" data-template-id="${esc(t.id)}" data-submission-id="${esc(sub?.id || "")}" data-cloudinary-public-id="${esc(sub?.cloudinary_public_id || "")}" data-file-url="${esc(sub?.file_url || "")}">
+            <div class="req" data-template-id="${esc(t.id)}" data-submission-id="${esc(sub?.id || "")}" data-cloudinary-public-id="${esc(sub?.cloudinary_public_id || "")}" data-file-url="${esc(sub?.file_url || "")}" data-is-required="${isRequired ? "true" : "false"}" data-submission-status="${esc(submissionStatus)}">
               <div class="req-meta">
-                <span class="req-label">${esc(t.name.toUpperCase())}</span>
+                <span class="req-label">${esc(t.name.toUpperCase())}${isRequired ? " • REQUIRED" : ""}</span>
                 ${badge}
               </div>
               <div class="req-actions">${containerHtml}</div>
@@ -2490,19 +2567,22 @@
       async function checkDeploymentRequirements(type) {
         if (type === "pre") {
           const requirements = document.querySelectorAll("#preGrid .req");
-          const allVerified = Array.from(requirements).every((req) => {
-            const isRequired = req
-              .querySelector(".req-label")
-              .textContent.includes("REQUIRED");
-            const isApproved = req.querySelector(".req-container-approved");
-            return !isRequired || isApproved;
-          });
+          const hasBlockingRequirement = Array.from(requirements).some(
+            (req) => {
+              const isRequired = req.dataset.isRequired === "true";
+              const status = String(req.dataset.submissionStatus || "")
+                .trim()
+                .toLowerCase();
+              if (!isRequired) return false;
+              return status !== "verified";
+            },
+          );
 
           const capstoneApproved = isCapstoneApprovedFromStudentProfile();
 
           const deployBtn = document.getElementById("deployBtn");
-          deployBtn.disabled = !(allVerified && capstoneApproved);
-          if (allVerified && capstoneApproved) {
+          deployBtn.disabled = hasBlockingRequirement || !capstoneApproved;
+          if (!hasBlockingRequirement && capstoneApproved) {
             deployBtn.dataset.enabled = "true";
           } else {
             delete deployBtn.dataset.enabled;
@@ -2593,6 +2673,11 @@
 
           showToast("File uploaded.", "success");
           await loadRequirements(type);
+          notifyParentOfCoordinatorActivity("requirement", {
+            requirementType: type,
+            templateId,
+            submissionId: existingSubId || subResult?.id || null,
+          });
         } catch (err) {
           showToast(err.message, "error");
         }
@@ -3057,6 +3142,11 @@
           closeAddAttModal();
           showToast("Attendance saved.", "success");
           await loadAttendance();
+          notifyParentOfCoordinatorActivity("attendance", {
+            attendanceDate: date,
+            status,
+            recordId: editId || r?.id || null,
+          });
         } catch (err) {
           showToast(err.message, "error");
         } finally {
@@ -3300,6 +3390,10 @@
             "success",
           );
           await loadWeeklyReports();
+          notifyParentOfCoordinatorActivity("weekly_report", {
+            weekNumber: weekNum,
+            reportId: editId || r?.id || null,
+          });
         } catch (err) {
           showToast(err.message, "error");
         } finally {
@@ -3437,11 +3531,7 @@
           throw new Error(r?.message || "Failed to mark OJT complete.");
 
         if (student) student.status = "OJT Complete";
-        const pill = document.getElementById("statusPill");
-        if (pill) {
-          pill.textContent = "OJT Complete";
-          pill.className = "status-pill deployed";
-        }
+        syncStatusUi("OJT Complete");
       }
 
       async function submitCertificateAndComplete() {
@@ -3564,9 +3654,7 @@
               if (!r?.success)
                 throw new Error(r?.message || "Status update failed.");
               student.status = "Deployed";
-              const pill = document.getElementById("statusPill");
-              pill.textContent = "Deployed";
-              pill.className = "status-pill deployed";
+              syncStatusUi("Deployed");
               showToast("Student deployed.", "success");
             } catch (err) {
               showToast(err.message, "error");
@@ -3589,10 +3677,33 @@
               if (!r?.success)
                 throw new Error(r?.message || "Status update failed.");
               student.status = "OJT Complete";
-              const pill = document.getElementById("statusPill");
-              pill.textContent = "OJT Complete";
-              pill.className = "status-pill deployed";
+              syncStatusUi("OJT Complete");
               showToast("OJT marked complete.", "success");
+            } catch (err) {
+              showToast(err.message, "error");
+            }
+          },
+        );
+      }
+
+      function confirmMarkPendingRequirements() {
+        openConfirm(
+          "Mark Pending Requirements",
+          `Mark ${esc(student?.display_name || student?.name || STUDENT_ID)} as Pending Requirements? This can be used when a deployed student needs follow-up requirements again.`,
+          async () => {
+            try {
+              const r = await window.electronAPI.updateStudentOjtStatus({
+                student_id: STUDENT_ID,
+                status: "Pending Requirements",
+                notes:
+                  "Status manually reverted to Pending Requirements by coordinator",
+              });
+              if (!r?.success)
+                throw new Error(r?.message || "Status update failed.");
+              student.status = "Pending Requirements";
+              syncStatusUi("Pending Requirements");
+              await loadRequirements("pre");
+              showToast("Status changed to Pending Requirements.", "success");
             } catch (err) {
               showToast(err.message, "error");
             }
