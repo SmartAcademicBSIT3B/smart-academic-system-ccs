@@ -399,7 +399,7 @@ router.patch("/submissions/:submissionId", requireAuth, async (req, res) => {
     await seedDefaultTemplates(dept);
 
     const existing = await query(
-      "SELECT id, template_id, ojt_student_id FROM ojt_requirement_submissions WHERE id = ? AND department = ? LIMIT 1",
+      "SELECT id, template_id, ojt_student_id, status FROM ojt_requirement_submissions WHERE id = ? AND department = ? LIMIT 1",
       [id, dept],
     );
     if (!existing.length)
@@ -409,11 +409,17 @@ router.patch("/submissions/:submissionId", requireAuth, async (req, res) => {
 
     const fields = [];
     const vals = [];
+    const previousStatus = existing[0].status;
+    let isRejectingVerified = false;
 
     if (
       req.body.status !== undefined &&
       ["pending", "submitted", "verified", "rejected"].includes(req.body.status)
     ) {
+      // Check if we're rejecting a previously-verified requirement
+      if (req.body.status === "rejected" && previousStatus === "verified") {
+        isRejectingVerified = true;
+      }
       fields.push("status = ?");
       vals.push(req.body.status);
       if (req.body.status === "verified") {
@@ -461,7 +467,13 @@ router.patch("/submissions/:submissionId", requireAuth, async (req, res) => {
 
     // Check auto-transition: if all required pre submissions for this student are verified
     const sub = existing[0];
-    await checkAutoStatusTransition(sub.ojt_student_id, dept, req.user?.id);
+    if (isRejectingVerified) {
+      // Auto-demote student status back to "Pending Requirements"
+      await demoteStudentStatus(sub.ojt_student_id, dept, req.user?.id);
+    } else {
+      // Normal auto-promotion check if newly verified
+      await checkAutoStatusTransition(sub.ojt_student_id, dept, req.user?.id);
+    }
 
     const rows = await query(
       "SELECT * FROM ojt_requirement_submissions WHERE id = ? LIMIT 1",
@@ -672,6 +684,80 @@ async function checkAutoStatusTransition(dbStudentId, dept, changedByUserId) {
     console.error("checkAutoStatusTransition error:", _err);
   }
 }
+
+// ── Demote student status back to Pending Requirements ──────────────────────
+// Called when a verified requirement is rejected
+async function demoteStudentStatus(dbStudentId, dept, changedByUserId) {
+  try {
+    const student = await query(
+      "SELECT student_id, status FROM ojt_students WHERE id = ? LIMIT 1",
+      [dbStudentId],
+    );
+    if (!student.length) return;
+
+    const currentStatus = student[0].status;
+
+    // Only demote if currently in Pre-Deployment state
+    // (don't demote if already Deployed or OJT Complete)
+    if (currentStatus === "Pre-Deployment") {
+      await query(
+        "UPDATE ojt_students SET status = 'Pending Requirements', updated_at = NOW() WHERE id = ?",
+        [dbStudentId],
+      );
+      const { ensureStatusHistoryTable } = require("./ojt-coordinator");
+      await ensureStatusHistoryTable();
+      await query(
+        "INSERT INTO ojt_status_history (ojt_student_id, old_status, new_status, changed_by_user_id, notes) VALUES (?, ?, ?, ?, ?)",
+        [
+          dbStudentId,
+          currentStatus,
+          "Pending Requirements",
+          changedByUserId || null,
+          "Reverted: verified requirement rejected",
+        ],
+      );
+    }
+  } catch (_err) {
+    console.error("demoteStudentStatus error:", _err);
+  }
+}
+
+// ── GET /api/ojt-requirements/submissions/:submissionId ────────────────────
+// Get submission details including notes (for student to view rejection reason)
+router.get("/submissions/:submissionId", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    const id = parseInt(req.params.submissionId, 10);
+    await ensureTables();
+
+    const rows = await query(
+      `SELECT 
+        s.id, s.ojt_student_id, s.template_id, s.student_id_ref,
+        s.file_url, s.cloudinary_public_id, s.folder_path, s.file_name, s.file_type,
+        s.status, s.notes, s.deadline_override, s.verified_by_user_id, s.verified_at,
+        s.created_at, s.updated_at,
+        t.name as template_name, t.type as requirement_type
+       FROM ojt_requirement_submissions s
+       LEFT JOIN ojt_requirement_templates t ON s.template_id = t.id
+       WHERE s.id = ? AND s.department = ?
+       LIMIT 1`,
+      [id, dept],
+    );
+
+    if (!rows.length)
+      return res
+        .status(404)
+        .json({ success: false, message: "Submission not found." });
+
+    return res.json({ success: true, submission: rows[0] });
+  } catch (error) {
+    console.error("getSubmission error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch submission.",
+    });
+  }
+});
 
 module.exports = router;
 module.exports.ensureTables = ensureTables;

@@ -596,9 +596,12 @@
         z-index: 999;
         -webkit-backdrop-filter: blur(4px);
         backdrop-filter: blur(4px);
+        opacity: 0;
+        transition: opacity 0.3s ease;
       }
       .modal-overlay.open {
         display: flex;
+        opacity: 1;
       }
       .modal-box {
         background: #1a1e26;
@@ -610,6 +613,13 @@
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
         max-height: 85vh;
         overflow-y: auto;
+        transform: scale(0.95) translateY(-20px);
+        opacity: 0;
+        transition: all 0.3s ease;
+      }
+      .modal-overlay.open .modal-box {
+        transform: scale(1) translateY(0);
+        opacity: 1;
       }
       .modal-title {
         font-size: 15px;
@@ -675,6 +685,11 @@
         font-weight: 700;
         font-size: 13px;
         cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .modal-cancel-btn:hover {
+        border-color: var(--secondary-text);
+        background: rgba(255, 255, 255, 0.05);
       }
       .modal-save-btn {
         height: 38px;
@@ -686,6 +701,11 @@
         font-weight: 800;
         font-size: 13px;
         cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .modal-save-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(157, 198, 255, 0.3);
       }
       .modal-save-btn:disabled {
         opacity: 0.5;
@@ -698,6 +718,13 @@
         display: flex;
         flex-direction: column;
         padding: 18px;
+        transform: scale(0.95) translateY(-20px);
+        opacity: 0;
+        transition: all 0.3s ease;
+      }
+      .modal-overlay.open .viewer-modal-box {
+        transform: scale(1) translateY(0);
+        opacity: 1;
       }
       .viewer-modal-head {
         display: flex;
@@ -925,6 +952,344 @@
       }
       .partner-card-value a:hover {
         text-decoration: underline;
+      }
+
+      /* ── New requirement container styles ── */
+      .req-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--secondary-bg);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .req-container-pending {
+        border-color: rgba(200, 200, 200, 0.3);
+        background: rgba(200, 200, 200, 0.05);
+      }
+      .req-container-approved {
+        border-color: rgba(0, 200, 83, 0.4);
+        background: rgba(0, 200, 83, 0.08);
+      }
+      .req-container-rejected {
+        border-color: rgba(255, 82, 82, 0.4);
+        background: rgba(255, 82, 82, 0.08);
+      }
+      .req-container:hover {
+        border-color: var(--accent-blue);
+      }
+      .req-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 12px;
+      }
+      .req-icon svg {
+        width: 16px;
+        height: 16px;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        fill: none;
+      }
+      .req-icon-eye {
+        color: #9dc6ff;
+      }
+      .req-icon-check {
+        color: #00c853;
+      }
+      .req-icon-cross {
+        color: #ff5252;
+      }
+      .req-container-text {
+        flex: 1;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--primary-text);
+      }
+      .req-action-buttons {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .req-approve-btn,
+      .req-reject-btn {
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+      }
+      .req-approve-btn {
+        background: rgba(0, 200, 83, 0.15);
+        color: #00c853;
+      }
+      .req-approve-btn:hover {
+        background: rgba(0, 200, 83, 0.3);
+      }
+      .req-reject-btn {
+        background: rgba(255, 82, 82, 0.15);
+        color: #ff5252;
+      }
+      .req-reject-btn:hover {
+        background: rgba(255, 82, 82, 0.3);
+      }
+      .req-approve-btn svg,
+      .req-reject-btn svg {
+        width: 14px;
+        height: 14px;
+        stroke: currentColor;
+        stroke-width: 2;
+        fill: none;
+      }
+      /* ── Menu Toggle Button ── */
+      .req-menu-toggle-btn {
+        height: 28px;
+        width: 28px;
+        padding: 0;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--secondary-text);
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .req-menu-toggle-btn:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+      }
+
+      /* ── Edit/Delete Buttons Container ── */
+      .req-edit-delete-buttons {
+        display: flex;
+        gap: 6px;
+        max-height: 50px;
+        overflow: hidden;
+        transition:
+          max-height 0.3s ease,
+          opacity 0.3s ease,
+          margin 0.3s ease;
+        opacity: 1;
+      }
+      .req-edit-delete-buttons.collapsed {
+        max-height: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .req-edit-btn,
+      .req-delete-btn {
+        flex: 1;
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--secondary-text);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+      .req-edit-btn:hover,
+      .req-delete-btn:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+      }
+      .req-edit-btn.active,
+      .req-delete-btn.active {
+        border-color: var(--accent-blue);
+        background: rgba(157, 198, 255, 0.15);
+        color: var(--accent-blue);
+      }
+      .req-delete-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 82, 82, 0.1);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+      }
+      .req-delete-overlay-btn {
+        width: 36px;
+        height: 36px;
+        border: 2px solid #ff5252;
+        border-radius: 6px;
+        background: transparent;
+        color: #ff5252;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .req-delete-overlay-btn:hover {
+        background: rgba(255, 82, 82, 0.2);
+      }
+
+      /* ── Rejection reason display ── */
+      .rejection-reason-box {
+        margin-top: 8px;
+        padding: 8px 10px;
+        background: rgba(255, 82, 82, 0.08);
+        border-left: 3px solid #ff5252;
+        border-radius: 4px;
+        font-size: 12px;
+        color: var(--primary-text);
+      }
+      .rejection-reason-label {
+        font-weight: 600;
+        color: #ff5252;
+        display: block;
+        margin-bottom: 4px;
+      }
+      .rejection-reason-text {
+        color: var(--secondary-text);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      /* ── Edit mode overlay ── */
+      .req-edit-mode-overlay {
+        margin-top: 8px;
+        padding: 10px;
+        background: rgba(157, 198, 255, 0.1);
+        border: 1px solid rgba(157, 198, 255, 0.3);
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 150px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        opacity: 1;
+      }
+      .req-edit-mode-overlay.collapsed {
+        max-height: 0;
+        opacity: 0;
+        padding: 0 10px;
+        margin-top: 0;
+      }
+      .req-edit-mode-overlay input {
+        width: 100%;
+        height: 32px;
+        padding: 0 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--secondary-bg);
+        color: var(--primary-text);
+        font-size: 12px;
+        box-sizing: border-box;
+      }
+      .req-edit-mode-overlay input::placeholder {
+        color: var(--secondary-text);
+      }
+      .req-edit-mode-overlay input:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+      }
+      .req-edit-buttons-row {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+      }
+      .req-edit-save-btn,
+      .req-edit-cancel-btn {
+        flex: 1;
+        height: 32px;
+        padding: 0 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: transparent;
+        color: var(--secondary-text);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .req-edit-save-btn {
+        border-color: #00c853;
+        color: #00c853;
+        background: rgba(0, 200, 83, 0.15);
+      }
+      .req-edit-save-btn:hover {
+        background: rgba(0, 200, 83, 0.3);
+      }
+      .req-edit-cancel-btn:hover {
+        border-color: var(--secondary-text);
+        color: var(--secondary-text);
+      }
+
+      /* ── Delete mode overlay ── */
+      .req-delete-confirm-overlay {
+        margin-top: 8px;
+        padding: 10px;
+        background: rgba(255, 82, 82, 0.1);
+        border: 1px solid rgba(255, 82, 82, 0.3);
+        border-radius: 6px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+        max-height: 100px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        opacity: 1;
+      }
+      .req-delete-confirm-overlay.collapsed {
+        max-height: 0;
+        opacity: 0;
+        padding: 0 10px;
+        margin-top: 0;
+      }
+      .req-delete-confirm-text {
+        flex: 1;
+        font-size: 12px;
+        color: var(--primary-text);
+        font-weight: 600;
+      }
+      .req-delete-confirm-btn,
+      .req-delete-cancel-btn {
+        height: 32px;
+        padding: 0 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: transparent;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+      .req-delete-confirm-btn {
+        border-color: #ff5252;
+        color: #ff5252;
+        background: rgba(255, 82, 82, 0.15);
+      }
+      .req-delete-confirm-btn:hover {
+        background: rgba(255, 82, 82, 0.3);
+      }
+      .req-delete-cancel-btn {
+        color: var(--secondary-text);
+      }
+      .req-delete-cancel-btn:hover {
+        border-color: var(--secondary-text);
+        color: var(--secondary-text);
       }
     </style>
   </head>
@@ -1387,18 +1752,104 @@
               class="viewer-close-btn"
               onclick="closeFileViewer()"
             >
-              Close
+              ×
             </button>
           </div>
         </div>
         <div class="viewer-stage" id="fileViewerStage">
           <div class="viewer-empty">No document selected.</div>
         </div>
+        <div
+          class="viewer-modal-footer"
+          id="fileViewerFooter"
+          style="display: none; margin-top: 16px"
+        >
+          <button
+            class="modal-cancel-btn"
+            onclick="closeFileViewer()"
+            style="margin-left: auto"
+          >
+            Cancel
+          </button>
+          <button
+            class="modal-save-btn"
+            onclick="approveFromViewer()"
+            style="background: #00c853; margin-left: 8px"
+          >
+            Approve
+          </button>
+          <button
+            class="modal-save-btn"
+            onclick="rejectFromViewer()"
+            style="background: #ff5252; margin-left: 8px"
+          >
+            Reject
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- â”€â”€ TOAST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div id="toast"></div>
+
+    <!-- APPROVE REQUIREMENT MODAL -->
+    <div class="modal-overlay" id="approveReqModal">
+      <div class="modal-box" style="max-width: 360px">
+        <div class="modal-title">Approve Requirement?</div>
+        <p
+          style="
+            font-size: 13px;
+            color: var(--primary-text);
+            margin-bottom: 20px;
+            line-height: 1.6;
+          "
+          id="approveReqMsg"
+        ></p>
+        <div class="modal-actions">
+          <button class="modal-cancel-btn" onclick="closeApproveReqModal()">
+            Cancel
+          </button>
+          <button class="modal-save-btn" onclick="confirmApproveRequirement()">
+            Approve
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REJECT REQUIREMENT MODAL -->
+    <div class="modal-overlay" id="rejectReqModal">
+      <div class="modal-box" style="max-width: 400px">
+        <div class="modal-title">Reject Requirement</div>
+        <p
+          style="
+            font-size: 12px;
+            color: var(--secondary-text);
+            margin-bottom: 12px;
+          "
+        >
+          Please provide a reason for rejection (visible to student)
+        </p>
+        <textarea
+          class="form-textarea"
+          id="rejectReasonInput"
+          placeholder="e.g. Missing signature, Poor quality, Incomplete document..."
+          rows="4"
+          style="margin-bottom: 16px"
+        ></textarea>
+        <div class="modal-actions">
+          <button class="modal-cancel-btn" onclick="closeRejectReqModal()">
+            Cancel
+          </button>
+          <button
+            class="modal-save-btn"
+            onclick="confirmRejectRequirement()"
+            style="background: #ff5252"
+          >
+            Reject
+          </button>
+        </div>
+      </div>
+    </div>
 
     <script>
       // Iframe API bridge: coordinator pages run inside the main menu iframe.
@@ -1835,63 +2286,135 @@
             const { template: t, submission: sub } = item;
             const badge = deadlineBadgeHtml(t.deadline_badge);
             const isVerified = sub?.status === "verified";
+            const isRejected = sub?.status === "rejected";
             const isSubmitted =
-              sub?.status === "submitted" || sub?.status === "verified";
+              sub?.status === "submitted" ||
+              sub?.status === "verified" ||
+              sub?.status === "rejected";
 
-            let actionHtml = "";
+            let containerClass = "req-container-pending";
+            let iconSvg =
+              '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke-width="1.5"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>';
+            let containerText = "Pending";
+
             if (isVerified) {
-              actionHtml = `
-            <div class="verified-tag">&#10003; Verified</div>
-            <button class="view-btn" onclick="openFile('${esc(sub.file_url)}')">View File</button>
-            <button class="icon-btn danger" title="Delete submission" onclick="deleteReqSubmission('${esc(sub.id)}','${type}')">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3,4 13,4"/><path d="M6 4V2h4v2"/><rect x="4" y="4" width="8" height="9" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11"/><line x1="10" y1="7" x2="10" y2="11"/></svg>
-            </button>`;
-            } else if (isSubmitted) {
-              actionHtml = `
-            <button class="upload-btn uploaded" onclick="uploadReqFile('${esc(t.id)}','${type}','${esc(sub?.id)}','${esc(sub?.cloudinary_public_id)}')">&#128196; Uploaded</button>
-            <button class="view-btn" onclick="openFile('${esc(sub?.file_url)}')">View</button>
-            <button class="verify-btn" onclick="verifyRequirement('${esc(sub?.id)}','${type}')">&#10003; Verify</button>
-            <button class="icon-btn danger" title="Delete submission" onclick="deleteReqSubmission('${esc(sub?.id)}','${type}')">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3,4 13,4"/><path d="M6 4V2h4v2"/><rect x="4" y="4" width="8" height="9" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11"/><line x1="10" y1="7" x2="10" y2="11"/></svg>
-            </button>`;
+              containerClass = "req-container-approved";
+              iconSvg =
+                '<svg viewBox="0 0 16 16"><polyline points="2,8 6,12 14,4" stroke-width="1.5"/></svg>';
+              containerText = "Approved";
+            } else if (isRejected) {
+              containerClass = "req-container-rejected";
+              iconSvg =
+                '<svg viewBox="0 0 16 16"><line x1="3" y1="3" x2="13" y2="13" stroke-width="1.5"/><line x1="13" y1="3" x2="3" y2="13" stroke-width="1.5"/></svg>';
+              containerText = "Rejected";
+            }
+
+            let containerHtml = "";
+            if (isSubmitted) {
+              containerHtml = `
+              <div class="req-container ${containerClass}" onclick="openFileFromRequirement('${esc(sub.file_url)}','${esc(sub.id)}','${type}')">
+                <div class="req-icon req-icon-${isVerified ? "check" : isRejected ? "cross" : "eye"}">
+                  ${iconSvg}
+                </div>
+                <div class="req-container-text">${containerText}</div>
+                <div class="req-action-buttons">
+                  <button class="req-approve-btn" title="Approve" onclick="event.stopPropagation(); openApproveReqModal('${esc(sub.id)}','${type}')">
+                    <svg viewBox="0 0 16 16"><polyline points="2,8 6,12 14,4"/></svg>
+                  </button>
+                  <button class="req-reject-btn" title="Reject" onclick="event.stopPropagation(); openRejectReqModal('${esc(sub.id)}','${type}')">
+                    <svg viewBox="0 0 16 16"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+                  </button>
+                  <button class="req-menu-toggle-btn" title="More" onclick="event.stopPropagation(); toggleMenuButtons('${esc(sub.id)}')">⋮</button>
+                </div>
+              </div>
+            `;
             } else {
-              actionHtml = `
-            <button class="upload-btn" onclick="uploadReqFile('${esc(t.id)}','${type}','','')">Upload File</button>`;
+              containerHtml = `<button class="upload-btn" onclick="uploadReqFile('${esc(t.id)}','${type}','','')">Upload File</button>`;
             }
 
             return `
-          <div class="req" data-template-id="${esc(t.id)}">
-            <div class="req-meta">
-              <span class="req-label">${esc(t.name.toUpperCase())}</span>
-              ${badge}
-            </div>
-            <div class="req-actions">${actionHtml}</div>
-          </div>`;
+            <div class="req" data-template-id="${esc(t.id)}" data-submission-id="${esc(sub?.id || "")}" data-cloudinary-public-id="${esc(sub?.cloudinary_public_id || "")}">
+              <div class="req-meta">
+                <span class="req-label">${esc(t.name.toUpperCase())}</span>
+                ${badge}
+              </div>
+              <div class="req-actions">${containerHtml}</div>
+              ${
+                isSubmitted
+                  ? `
+              <div class="req-edit-delete-buttons collapsed" id="menu-buttons-${esc(sub.id)}" data-collapsed="true">
+                <button class="req-edit-btn" onclick="toggleEditMode('${esc(sub.id)}','${type}')">Edit</button>
+                <button class="req-delete-btn" onclick="toggleDeleteMode('${esc(sub.id)}','${type}')">Delete</button>
+              </div>
+              ${
+                isRejected && sub?.notes
+                  ? `
+              <div class="rejection-reason-box">
+                <span class="rejection-reason-label">Rejection Reason:</span>
+                <div class="rejection-reason-text">${esc(sub.notes)}</div>
+              </div>
+              `
+                  : ""
+              }
+            `
+                  : ""
+              }
+            </div>`;
           })
           .join("");
 
-        // Enable deploy if all required pre reqs verified
+        checkDeploymentRequirements(type);
+      }
+
+      async function checkDeploymentRequirements(type) {
         if (type === "pre") {
-          const allVerified = requirements.every(
-            (item) =>
-              !item.template.is_required ||
-              item.submission?.status === "verified",
-          );
+          const requirements = document.querySelectorAll("#preGrid .req");
+          const allVerified = Array.from(requirements).every((req) => {
+            const isRequired = req
+              .querySelector(".req-label")
+              .textContent.includes("REQUIRED");
+            const isApproved = req.querySelector(".req-container-approved");
+            return !isRequired || isApproved;
+          });
+
+          let capstoneApproved = true;
+          try {
+            const capResult = window.electronAPI.getCoordinatorCapstoneApproval
+              ? await window.electronAPI.getCoordinatorCapstoneApproval(
+                  STUDENT_ID,
+                )
+              : null;
+            capstoneApproved = capResult?.success && capResult?.isApproved;
+          } catch (_) {
+            capstoneApproved = false;
+          }
+
           const deployBtn = document.getElementById("deployBtn");
-          deployBtn.disabled = !allVerified;
-          if (allVerified) deployBtn.dataset.enabled = "true";
-          else delete deployBtn.dataset.enabled;
+          deployBtn.disabled = !(allVerified && capstoneApproved);
+          if (allVerified && capstoneApproved) {
+            deployBtn.dataset.enabled = "true";
+          } else {
+            delete deployBtn.dataset.enabled;
+          }
         }
+
         if (type === "post") {
-          const allVerified = requirements.every(
-            (item) =>
-              !item.template.is_required ||
-              item.submission?.status === "verified",
-          );
-          const archBtn = document.getElementById("archiveBtn");
-          archBtn.disabled = !allVerified;
-          if (allVerified) archBtn.dataset.enabled = "true";
-          else delete archBtn.dataset.enabled;
+          const requirements = document.querySelectorAll("#postGrid .req");
+          const allVerified = Array.from(requirements).every((req) => {
+            const isRequired = req
+              .querySelector(".req-label")
+              .textContent.includes("REQUIRED");
+            const isApproved = req.querySelector(".req-container-approved");
+            return !isRequired || isApproved;
+          });
+
+          const archiveBtn = document.getElementById("archiveBtn");
+          archiveBtn.disabled = !allVerified;
+          if (allVerified) {
+            archiveBtn.dataset.enabled = "true";
+          } else {
+            delete archiveBtn.dataset.enabled;
+          }
         }
       }
 
@@ -1992,6 +2515,32 @@
             }
           },
         );
+      }
+
+      // ────── Viewer Integration ──────
+      let currentViewerSubmissionId = null;
+      let currentViewerType = null;
+
+      function openFileFromRequirement(url, submissionId, type) {
+        currentViewerSubmissionId = submissionId;
+        currentViewerType = type;
+        const footer = document.getElementById("fileViewerFooter");
+        if (footer) footer.style.display = "flex";
+        openFile(url);
+      }
+
+      function approveFromViewer() {
+        if (currentViewerSubmissionId && currentViewerType) {
+          closeFileViewer();
+          openApproveReqModal(currentViewerSubmissionId, currentViewerType);
+        }
+      }
+
+      function rejectFromViewer() {
+        if (currentViewerSubmissionId && currentViewerType) {
+          closeFileViewer();
+          openRejectReqModal(currentViewerSubmissionId, currentViewerType);
+        }
       }
 
       async function openFile(url) {
@@ -2110,7 +2659,11 @@
         document.getElementById("fileViewerModal").classList.remove("open");
         document.getElementById("fileViewerStage").innerHTML =
           '<div class="viewer-empty">No document selected.</div>';
+        const footer = document.getElementById("fileViewerFooter");
+        if (footer) footer.style.display = "none";
         activeViewerUrl = "";
+        currentViewerSubmissionId = null;
+        currentViewerType = null;
         resetViewerObjectUrl();
       }
 
@@ -2199,6 +2752,7 @@
       }
 
       function renderAttendance(records, summary) {
+        attendanceRecordsCache = records;
         // Summary
         const totalHours = Math.floor((summary.total_minutes || 0) / 60);
         const totalMins = (summary.total_minutes || 0) % 60;
@@ -2326,6 +2880,19 @@
           let proofUrl = null,
             proofPublicId = null;
           if (attProofFilePath) {
+            // Delete old Cloudinary proof if replacing
+            if (editId) {
+              const oldRec = attendanceRecordsCache.find(
+                (r) => r.id === parseInt(editId, 10),
+              );
+              if (oldRec?.proof_public_id) {
+                try {
+                  await window.electronAPI.deleteCloudinaryFile(
+                    oldRec.proof_public_id,
+                  );
+                } catch (_) {}
+              }
+            }
             showToast("Uploading proof…");
             const up = await window.electronAPI.uploadOjtFile({
               filePath: attProofFilePath,
@@ -2376,8 +2943,20 @@
           "Are you sure you want to delete this attendance record?",
           async () => {
             try {
+              const oldRec = attendanceRecordsCache.find((r) => r.id === id);
+              const oldProofPublicId = oldRec?.proof_public_id || "";
+
               const r = await window.electronAPI.deleteOjtAttendance(id);
               if (!r?.success) throw new Error(r?.message || "Delete failed.");
+
+              if (oldProofPublicId) {
+                try {
+                  await window.electronAPI.deleteCloudinaryFile(
+                    oldProofPublicId,
+                  );
+                } catch (_) {}
+              }
+
               showToast("Record deleted.", "success");
               await loadAttendance();
             } catch (err) {
@@ -2400,6 +2979,7 @@
         }
       }
 
+      let attendanceRecordsCache = [];
       let weeklyReportsCache = [];
 
       function renderWeeklyReports(reports) {
@@ -2469,8 +3049,18 @@
           "Delete this weekly report? This cannot be undone.",
           async () => {
             try {
+              const oldRep = weeklyReportsCache.find((r) => r.id === id);
+              const oldPublicId = oldRep?.cloudinary_public_id || "";
+
               const r = await window.electronAPI.deleteOjtWeeklyReport(id);
               if (!r?.success) throw new Error(r?.message || "Delete failed.");
+
+              if (oldPublicId) {
+                try {
+                  await window.electronAPI.deleteCloudinaryFile(oldPublicId);
+                } catch (_) {}
+              }
+
               showToast("Weekly report deleted.", "success");
               await loadWeeklyReports();
             } catch (err) {
@@ -2612,7 +3202,26 @@
       }
 
       // â”€â”€ Deploy / Archive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      function confirmDeploy() {
+      async function confirmDeploy() {
+        // Check capstone approval
+        try {
+          const capResult = window.electronAPI.getCoordinatorCapstoneApproval
+            ? await window.electronAPI.getCoordinatorCapstoneApproval(
+                STUDENT_ID,
+              )
+            : null;
+          if (!capResult?.success || !capResult?.isApproved) {
+            showToast(
+              "Cannot deploy: Capstone must be approved first.",
+              "error",
+            );
+            return;
+          }
+        } catch (err) {
+          showToast("Could not verify capstone approval status.", "error");
+          return;
+        }
+
         openConfirm(
           "Deploy Student",
           `Mark ${esc(student?.display_name || student?.name || STUDENT_ID)} as Deployed? This will update their OJT status.`,
@@ -2677,8 +3286,9 @@
       document
         .getElementById("confirmOkBtn")
         .addEventListener("click", async function () {
+          const callback = _confirmCallback;
           closeConfirmModal();
-          if (_confirmCallback) await _confirmCallback();
+          if (callback) await callback();
         });
 
       // â”€â”€ Tab switching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2711,6 +3321,362 @@
         // Kick off profile load
         loadProfile();
       });
+
+      // ────── Menu Toggle Function ──────
+      function toggleMenuButtons(submissionId) {
+        const buttonContainer = document.getElementById(
+          `menu-buttons-${submissionId}`,
+        );
+        if (!buttonContainer) return;
+
+        const isCollapsed = buttonContainer.classList.contains("collapsed");
+        if (isCollapsed) {
+          buttonContainer.classList.remove("collapsed");
+          buttonContainer.removeAttribute("data-collapsed");
+        } else {
+          buttonContainer.classList.add("collapsed");
+          buttonContainer.setAttribute("data-collapsed", "true");
+          // Close any open edit/delete modes
+          if (editingSubmissionId === submissionId) closeEditMode();
+          if (deletingSubmissionId === submissionId) closeDeleteMode();
+        }
+      }
+
+      // ────── Approval/Rejection Modal Functions ──────
+      let pendingApprovalSubId = null;
+      let pendingApprovalType = null;
+      let pendingRejectionSubId = null;
+      let pendingRejectionType = null;
+
+      function openApproveReqModal(submissionId, type) {
+        pendingApprovalSubId = submissionId;
+        pendingApprovalType = type;
+        document.getElementById("approveReqMsg").textContent =
+          "Are you sure you want to approve this requirement?";
+        document.getElementById("approveReqModal").classList.add("open");
+      }
+
+      function closeApproveReqModal() {
+        document.getElementById("approveReqModal").classList.remove("open");
+        pendingApprovalSubId = null;
+        pendingApprovalType = null;
+      }
+
+      function openRejectReqModal(submissionId, type) {
+        pendingRejectionSubId = submissionId;
+        pendingRejectionType = type;
+        document.getElementById("rejectReasonInput").value = "";
+        document.getElementById("rejectReqModal").classList.add("open");
+      }
+
+      function closeRejectReqModal() {
+        document.getElementById("rejectReqModal").classList.remove("open");
+        pendingRejectionSubId = null;
+        pendingRejectionType = null;
+      }
+
+      async function confirmApproveRequirement() {
+        if (!pendingApprovalSubId) return;
+        try {
+          const r = await window.electronAPI.updateOjtRequirementSubmission({
+            id: pendingApprovalSubId,
+            status: "verified",
+          });
+          if (!r?.success) throw new Error(r?.message || "Approval failed.");
+          showToast("Requirement approved.", "success");
+          closeApproveReqModal();
+          await loadRequirements(pendingApprovalType);
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      async function confirmRejectRequirement() {
+        if (!pendingRejectionSubId) return;
+        const reason = document
+          .getElementById("rejectReasonInput")
+          .value.trim();
+        if (!reason) {
+          showToast("Please provide a rejection reason.", "error");
+          return;
+        }
+        try {
+          const r = await window.electronAPI.updateOjtRequirementSubmission({
+            id: pendingRejectionSubId,
+            status: "rejected",
+            notes: reason,
+          });
+          if (!r?.success) throw new Error(r?.message || "Rejection failed.");
+          showToast("Requirement rejected.", "success");
+          closeRejectReqModal();
+          await loadRequirements(pendingRejectionType);
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      // ────── Edit/Delete Mode Functions ──────
+      let editingSubmissionId = null;
+      let editingSubmissionType = null;
+      let deletingSubmissionId = null;
+      let deletingSubmissionType = null;
+
+      function toggleEditMode(submissionId, type) {
+        const reqDiv = document.querySelector(
+          `[data-submission-id="${submissionId}"]`,
+        );
+        if (!reqDiv) return;
+
+        // If already editing, cancel
+        if (editingSubmissionId === submissionId) {
+          closeEditMode();
+          return;
+        }
+
+        // Close any other edit/delete modes
+        closeEditMode();
+        closeDeleteMode();
+
+        editingSubmissionId = submissionId;
+        editingSubmissionType = type;
+
+        // Find the req-edit-delete-buttons to insert overlay after it
+        const buttonsDiv = reqDiv.querySelector(".req-edit-delete-buttons");
+        if (!buttonsDiv) return;
+
+        // Mark edit button as active
+        const editBtn = buttonsDiv.querySelector(".req-edit-btn");
+        editBtn.classList.add("active");
+
+        // Create and insert edit mode overlay
+        const overlay = document.createElement("div");
+        overlay.className = "req-edit-mode-overlay collapsed";
+        overlay.id = `edit-overlay-${submissionId}`;
+        overlay.innerHTML = `
+          <input type="text" placeholder="Click to select new file..." readonly id="edit-file-input-${submissionId}" style="cursor: pointer;">
+          <div class="req-edit-buttons-row">
+            <button class="req-edit-save-btn" onclick="saveEditedFile('${esc(submissionId)}','${type}')">Save</button>
+            <button class="req-edit-cancel-btn" onclick="closeEditMode()">Cancel</button>
+          </div>
+        `;
+
+        buttonsDiv.after(overlay);
+
+        // Trigger reflow to apply transition
+        setTimeout(() => {
+          const insertedOverlay = document.getElementById(
+            `edit-overlay-${submissionId}`,
+          );
+          if (insertedOverlay) insertedOverlay.classList.remove("collapsed");
+        }, 10);
+
+        // Attach file selection to input click
+        const fileInput = document.getElementById(
+          `edit-file-input-${submissionId}`,
+        );
+        fileInput.addEventListener("click", async () => {
+          const fileResult = await window.electronAPI.selectOjtFile();
+          if (!fileResult?.success || fileResult.canceled) return;
+          fileResult.selectedFilePath = fileResult.filePath;
+          fileInput.value =
+            fileResult.filePath.split(/[/\\]/).pop() || "File selected";
+          fileInput.dataset.filePath = fileResult.filePath;
+        });
+      }
+
+      function closeEditMode() {
+        if (!editingSubmissionId) return;
+        const overlay = document.getElementById(
+          `edit-overlay-${editingSubmissionId}`,
+        );
+        if (overlay) {
+          overlay.classList.add("collapsed");
+          setTimeout(() => {
+            if (overlay && overlay.parentNode) overlay.remove();
+          }, 300);
+        }
+
+        const reqDiv = document.querySelector(
+          `[data-submission-id="${editingSubmissionId}"]`,
+        );
+        if (reqDiv) {
+          const editBtn = reqDiv.querySelector(".req-edit-btn");
+          if (editBtn) editBtn.classList.remove("active");
+        }
+
+        editingSubmissionId = null;
+        editingSubmissionType = null;
+      }
+
+      async function saveEditedFile(submissionId, type) {
+        const fileInput = document.getElementById(
+          `edit-file-input-${submissionId}`,
+        );
+        const filePath = fileInput?.dataset.filePath;
+
+        if (!filePath) {
+          showToast("Please select a file first.", "error");
+          return;
+        }
+
+        try {
+          showToast("Uploading new file…");
+
+          // Get the old public ID to delete
+          const reqDiv = document.querySelector(
+            `[data-submission-id="${submissionId}"]`,
+          );
+          const oldPublicId = reqDiv?.dataset.cloudinaryPublicId || "";
+
+          // Upload new file
+          const folderType =
+            type === "pre" ? "Pre Requirements" : "Post Requirements";
+          const uploadResult = await window.electronAPI.uploadOjtFile({
+            filePath,
+            studentId: STUDENT_ID,
+            folderType,
+          });
+
+          if (!uploadResult?.success) {
+            throw new Error(uploadResult?.message || "Upload failed.");
+          }
+
+          // Delete old file if exists
+          if (oldPublicId) {
+            try {
+              await window.electronAPI.deleteCloudinaryFile(oldPublicId);
+            } catch (_) {
+              // Ignore delete errors
+            }
+          }
+
+          // Update submission with new file
+          const fileName = filePath.split(/[/\\]/).pop();
+          const updateResult =
+            await window.electronAPI.updateOjtRequirementSubmission({
+              id: submissionId,
+              file_url: uploadResult.url,
+              cloudinary_public_id: uploadResult.public_id,
+              folder_path: uploadResult.folder,
+              file_name: fileName,
+            });
+
+          if (!updateResult?.success) {
+            throw new Error(updateResult?.message || "Save failed.");
+          }
+
+          showToast("File replaced successfully.", "success");
+          closeEditMode();
+          await loadRequirements(type);
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      function toggleDeleteMode(submissionId, type) {
+        const reqDiv = document.querySelector(
+          `[data-submission-id="${submissionId}"]`,
+        );
+        if (!reqDiv) return;
+
+        // If already deleting, cancel
+        if (deletingSubmissionId === submissionId) {
+          closeDeleteMode();
+          return;
+        }
+
+        // Close any other edit/delete modes
+        closeEditMode();
+        closeDeleteMode();
+
+        deletingSubmissionId = submissionId;
+        deletingSubmissionType = type;
+
+        // Find the req-edit-delete-buttons to insert overlay after it
+        const buttonsDiv = reqDiv.querySelector(".req-edit-delete-buttons");
+        if (!buttonsDiv) return;
+
+        // Mark delete button as active
+        const deleteBtn = buttonsDiv.querySelector(".req-delete-btn");
+        deleteBtn.classList.add("active");
+
+        // Create and insert delete confirmation overlay
+        const overlay = document.createElement("div");
+        overlay.className = "req-delete-confirm-overlay collapsed";
+        overlay.id = `delete-overlay-${submissionId}`;
+        overlay.innerHTML = `
+          <span class="req-delete-confirm-text">Delete this submission?</span>
+          <button class="req-delete-confirm-btn" onclick="confirmDelete('${esc(submissionId)}','${type}')">Delete</button>
+          <button class="req-delete-cancel-btn" onclick="closeDeleteMode()">Cancel</button>
+        `;
+
+        buttonsDiv.after(overlay);
+
+        // Trigger reflow to apply transition
+        setTimeout(() => {
+          const insertedOverlay = document.getElementById(
+            `delete-overlay-${submissionId}`,
+          );
+          if (insertedOverlay) insertedOverlay.classList.remove("collapsed");
+        }, 10);
+      }
+
+      function closeDeleteMode() {
+        if (!deletingSubmissionId) return;
+        const overlay = document.getElementById(
+          `delete-overlay-${deletingSubmissionId}`,
+        );
+        if (overlay) {
+          overlay.classList.add("collapsed");
+          setTimeout(() => {
+            if (overlay && overlay.parentNode) overlay.remove();
+          }, 300);
+        }
+
+        const reqDiv = document.querySelector(
+          `[data-submission-id="${deletingSubmissionId}"]`,
+        );
+        if (reqDiv) {
+          const deleteBtn = reqDiv.querySelector(".req-delete-btn");
+          if (deleteBtn) deleteBtn.classList.remove("active");
+        }
+
+        deletingSubmissionId = null;
+        deletingSubmissionType = null;
+      }
+
+      async function confirmDelete(submissionId, type) {
+        try {
+          showToast("Deleting…");
+
+          // Get the Cloudinary public_id before deleting the record
+          const reqDiv = document.querySelector(
+            `[data-submission-id="${submissionId}"]`,
+          );
+          const oldPublicId = reqDiv?.dataset.cloudinaryPublicId || "";
+
+          const r =
+            await window.electronAPI.deleteOjtRequirementSubmission(
+              submissionId,
+            );
+          if (!r?.success) throw new Error(r?.message || "Delete failed.");
+
+          // Delete from Cloudinary after record is gone
+          if (oldPublicId) {
+            try {
+              await window.electronAPI.deleteCloudinaryFile(oldPublicId);
+            } catch (_) {
+              // Non-fatal: record is already gone
+            }
+          }
+
+          showToast("Requirement deleted.", "success");
+          closeDeleteMode();
+          await loadRequirements(type);
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
     </script>
   </body>
 </html>

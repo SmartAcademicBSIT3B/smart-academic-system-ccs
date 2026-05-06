@@ -98,6 +98,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("updateStudentOjtStatus", payload),
   getStudentStatusHistory: (studentId) =>
     ipcRenderer.invoke("getStudentStatusHistory", studentId),
+  getCoordinatorCapstoneApproval: async (studentId) => {
+    try {
+      return await ipcRenderer.invoke(
+        "getCoordinatorCapstoneApproval",
+        studentId,
+      );
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          isApproved: false,
+          message: "Capstone approval check is unavailable.",
+        };
+      }
+      throw error;
+    }
+  },
 
   // ── OJT Requirements ───────────────────────────────────────────────────────
   getOjtRequirementTemplates: (params) =>

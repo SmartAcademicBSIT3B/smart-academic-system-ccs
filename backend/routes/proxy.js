@@ -110,18 +110,29 @@ router.get("/file", requireAuth, async (req, res) => {
       .json({ success: false, message: "URL not permitted for proxying." });
   }
 
-  // For Cloudinary assets, use an authenticated download URL so restricted/raw
-  // resources are accessible regardless of delivery type.
+  // For Cloudinary assets, try an authenticated URL first, but fall back to
+  // the original delivery URL for regular public upload assets.
   const fetchUrl = buildAuthenticatedCloudinaryUrl(rawUrl);
 
-  try {
-    const upstream = await fetch(fetchUrl, {
+  async function fetchUpstream(url) {
+    return fetch(url, {
       method: "GET",
       redirect: "follow",
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; SmartAcademicSystem/1.0)",
       },
     });
+  }
+
+  try {
+    let upstream = await fetchUpstream(fetchUrl);
+
+    if (!upstream.ok && fetchUrl !== rawUrl) {
+      console.warn(
+        `[proxy/file] signed URL failed with ${upstream.status}, retrying original URL`,
+      );
+      upstream = await fetchUpstream(rawUrl);
+    }
 
     if (!upstream.ok) {
       let body = "";

@@ -1859,6 +1859,19 @@ ipcMain.handle("getStudentStatusHistory", async (event, studentId) => {
   }
 });
 
+ipcMain.handle("getCoordinatorCapstoneApproval", async (event, studentId) => {
+  try {
+    return await api.get(
+      `/ojt-coordinator/capstone-approval/${encodeURIComponent(studentId)}`,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to check capstone approval.",
+    };
+  }
+});
+
 // ── OJT Requirements IPC handlers ─────────────────────────────────────────────
 
 ipcMain.handle("getOjtRequirementTemplates", async (event, params) => {

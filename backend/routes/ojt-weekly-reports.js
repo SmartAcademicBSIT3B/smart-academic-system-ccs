@@ -73,12 +73,10 @@ router.get("/:studentId", requireAuth, async (req, res) => {
     return res.json({ success: true, reports });
   } catch (error) {
     console.error("getWeeklyReports error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to fetch weekly reports.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch weekly reports.",
+    });
   }
 });
 
@@ -93,12 +91,10 @@ router.post("/", requireAuth, async (req, res) => {
     const weekNumber = parseInt(req.body.week_number, 10);
 
     if (!studentId || isNaN(weekNumber) || weekNumber < 1) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "student_id and valid week_number are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "student_id and valid week_number are required.",
+      });
     }
 
     const student = await query(
@@ -176,12 +172,10 @@ router.post("/", requireAuth, async (req, res) => {
     return res.status(201).json({ success: true, report: rows[0] });
   } catch (error) {
     console.error("createWeeklyReport error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to save weekly report.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to save weekly report.",
+    });
   }
 });
 
@@ -204,6 +198,37 @@ router.patch("/:id", requireAuth, async (req, res) => {
 
     const fields = [];
     const vals = [];
+
+    if (req.body.week_number !== undefined) {
+      const weekNumber = parseInt(req.body.week_number, 10);
+      if (!weekNumber || weekNumber < 1) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Valid week_number is required." });
+      }
+      fields.push("week_number = ?");
+      vals.push(weekNumber);
+    }
+
+    if (req.body.week_start_date !== undefined) {
+      fields.push("week_start_date = ?");
+      vals.push(req.body.week_start_date || null);
+    }
+
+    if (req.body.file_url !== undefined) {
+      fields.push(
+        "file_url = ?",
+        "cloudinary_public_id = ?",
+        "folder_path = ?",
+        "file_name = ?",
+      );
+      vals.push(
+        req.body.file_url || null,
+        req.body.cloudinary_public_id || null,
+        req.body.folder_path || null,
+        req.body.file_name || null,
+      );
+    }
 
     if (
       req.body.status !== undefined &&
@@ -239,12 +264,10 @@ router.patch("/:id", requireAuth, async (req, res) => {
     return res.json({ success: true, report: rows[0] });
   } catch (error) {
     console.error("updateWeeklyReport error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to update weekly report.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update weekly report.",
+    });
   }
 });
 
@@ -261,12 +284,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
     return res.json({ success: true });
   } catch (error) {
     console.error("deleteWeeklyReport error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Failed to delete weekly report.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete weekly report.",
+    });
   }
 });
 

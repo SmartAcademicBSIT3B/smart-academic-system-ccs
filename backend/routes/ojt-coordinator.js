@@ -411,5 +411,56 @@ function normalizeArchiveStatus(value) {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
+// ── GET /api/ojt-coordinator/capstone-approval/:studentId ────────────────────
+// Check if student's linked capstone (archive) is approved
+router.get("/capstone-approval/:studentId", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    const studentIdRef = String(req.params.studentId || "").trim();
+
+    if (!studentIdRef)
+      return res
+        .status(400)
+        .json({ success: false, message: "studentId is required." });
+
+    // Get ojt_student record
+    const student = await query(
+      "SELECT id FROM ojt_students WHERE student_id = ? AND department = ? LIMIT 1",
+      [studentIdRef, dept],
+    );
+    if (!student.length)
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
+
+    const dbStudentId = student[0].id;
+
+    // Check for linked approved capstone/thesis
+    const capstoneLink = await query(
+      `SELECT a.id, a.status, a.type
+       FROM archives a
+       INNER JOIN archive_ojt_links aol ON a.id = aol.archive_id
+       WHERE aol.ojt_student_id = ? AND a.status = 'Approved'
+       LIMIT 1`,
+      [dbStudentId],
+    );
+
+    const hasApprovedCapstone = capstoneLink.length > 0;
+
+    return res.json({
+      success: true,
+      hasCapstone: capstoneLink.length > 0,
+      isApproved: hasApprovedCapstone,
+      capstone: capstoneLink.length > 0 ? capstoneLink[0] : null,
+    });
+  } catch (error) {
+    console.error("getCapstoneApproval error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to check capstone approval.",
+    });
+  }
+});
+
 module.exports = router;
 module.exports.ensureStatusHistoryTable = ensureStatusHistoryTable;

@@ -18,12 +18,8 @@ const FormDataImpl = globalThis.FormData;
 
 // ── Config ────────────────────────────────────────────────────────────────────
 let BASE_URL = (
-  process.env.BACKEND_URL ||
-  "https://smart-academic-system-ccs.onrender.com"
-).replace(
-  /\/$/,
-  "",
-);
+  process.env.BACKEND_URL || "https://smart-academic-system-ccs.onrender.com"
+).replace(/\/$/, "");
 let authToken = null;
 let departmentCode = "CCS";
 
@@ -100,8 +96,8 @@ function patch(path, body) {
   return request("PATCH", path, body);
 }
 
-function del(path) {
-  return request("DELETE", path);
+function del(path, body = null) {
+  return request("DELETE", path, body);
 }
 
 /**
