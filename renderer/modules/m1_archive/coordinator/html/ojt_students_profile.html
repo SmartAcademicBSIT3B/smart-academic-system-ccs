@@ -1545,10 +1545,24 @@
                 class="completeojt-btn"
                 id="archiveBtn"
                 disabled
-                onclick="confirmArchive()"
+                onclick="openCertificateModal()"
               >
-                Archive Student Files
+                OJT Certification
               </button>
+            </div>
+
+            <div style="margin-top: 18px">
+              <h3
+                class="panel-title"
+                style="font-size: 16px; margin-bottom: 10px"
+              >
+                CERTIFICATE HISTORY
+              </h3>
+              <div class="weekly-grid" id="certificateGrid">
+                <div style="color: var(--secondary-text); font-size: 13px">
+                  No certificates issued yet.
+                </div>
+              </div>
             </div>
           </section>
         </section>
@@ -1702,6 +1716,45 @@
             onclick="saveWeeklyReport()"
           >
             Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="certificateModal">
+      <div class="modal-box">
+        <div class="modal-title">Issue OJT Certificate</div>
+        <div class="form-field">
+          <label class="form-label">Certificate Type</label>
+          <input
+            type="text"
+            class="form-input"
+            id="certificateTypeInput"
+            value="OJT Certification"
+            readonly
+          />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Issue Date</label>
+          <input type="date" class="form-input" id="certificateIssueDate" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Certificate PDF</label>
+          <button class="week-upload-btn" onclick="pickCertificateFile()">
+            Choose PDF
+          </button>
+          <div class="file-chosen-label" id="certificateFileLabel"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-cancel-btn" onclick="closeCertificateModal()">
+            Cancel
+          </button>
+          <button
+            class="modal-save-btn"
+            id="certificateSubmitBtn"
+            onclick="submitCertificateAndComplete()"
+          >
+            Submit Certificate
           </button>
         </div>
       </div>
@@ -1884,6 +1937,8 @@
       let currentReqType = "pre";
       let attProofFilePath = null;
       let weeklyFilePath = null;
+      let certificateFilePath = null;
+      let certificatesCache = [];
 
       // tabs loaded flags
       const tabLoaded = {
@@ -1940,6 +1995,65 @@
         return h ? `${h}h ${m}m` : `${m}m`;
       }
 
+      function extractCloudinaryPublicId(fileUrl) {
+        const url = String(fileUrl || "").trim();
+        if (!url) return "";
+        const uploadToken = "/upload/";
+        const uploadIdx = url.indexOf(uploadToken);
+        if (uploadIdx < 0) return "";
+
+        let tail = url.slice(uploadIdx + uploadToken.length);
+        tail = tail.replace(/^\/+/, "");
+        tail = tail.split("?")[0].split("#")[0];
+
+        // Prefer the segment after Cloudinary version marker, if present.
+        const versionMatch = tail.match(/(?:^|\/)v\d+\//);
+        if (versionMatch) {
+          const start = tail.indexOf(versionMatch[0]);
+          tail = tail.slice(start + versionMatch[0].length);
+        } else {
+          // Some URLs include transformations before the public_id.
+          const parts = tail.split("/");
+          while (parts.length > 1) {
+            const seg = parts[0] || "";
+            const isTransformish =
+              seg.includes(",") || /^(?:[a-z]{1,4}_[^/]+|fl_[^/]+)$/i.test(seg);
+            if (!isTransformish) break;
+            parts.shift();
+          }
+          tail = parts.join("/");
+        }
+
+        tail = tail.replace(/\.[^.\/]+$/, "");
+        if (!tail) return "";
+        try {
+          return decodeURIComponent(tail);
+        } catch (_) {
+          return tail;
+        }
+      }
+
+      async function deleteCloudinaryByIdOrUrl(publicId, fileUrl) {
+        const directId = String(publicId || "").trim();
+        const derivedId = extractCloudinaryPublicId(fileUrl);
+        const candidates = [directId, derivedId].filter(
+          (v, i, arr) => v && arr.indexOf(v) === i,
+        );
+        if (!candidates.length) return;
+
+        let lastError = null;
+        for (const candidate of candidates) {
+          try {
+            await window.electronAPI.deleteCloudinaryFile(candidate);
+            return;
+          } catch (err) {
+            lastError = err;
+          }
+        }
+
+        if (lastError) throw lastError;
+      }
+
       let _toastTimer;
       function showToast(msg, type = "info") {
         const el = document.getElementById("toast");
@@ -1968,6 +2082,13 @@
           ok: `due in ${badge.days}d`,
         };
         return `<span class="deadline-badge ${esc(badge.status)}">${labels[badge.status] || ""}</span>`;
+      }
+
+      function isCapstoneApprovedFromStudentProfile() {
+        const statusText = String(student?.connected_archive_status || "")
+          .toLowerCase()
+          .trim();
+        return statusText.includes("capstone: approved");
       }
 
       // â”€â”€ Load student profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2250,7 +2371,7 @@
         await loadRequirements("pre");
       }
       async function loadPostRequirements() {
-        await loadRequirements("post");
+        await Promise.all([loadRequirements("post"), loadOjtCertificates()]);
       }
 
       async function loadRequirements(type) {
@@ -2333,7 +2454,7 @@
             }
 
             return `
-            <div class="req" data-template-id="${esc(t.id)}" data-submission-id="${esc(sub?.id || "")}" data-cloudinary-public-id="${esc(sub?.cloudinary_public_id || "")}">
+            <div class="req" data-template-id="${esc(t.id)}" data-submission-id="${esc(sub?.id || "")}" data-cloudinary-public-id="${esc(sub?.cloudinary_public_id || "")}" data-file-url="${esc(sub?.file_url || "")}">
               <div class="req-meta">
                 <span class="req-label">${esc(t.name.toUpperCase())}</span>
                 ${badge}
@@ -2377,17 +2498,7 @@
             return !isRequired || isApproved;
           });
 
-          let capstoneApproved = true;
-          try {
-            const capResult = window.electronAPI.getCoordinatorCapstoneApproval
-              ? await window.electronAPI.getCoordinatorCapstoneApproval(
-                  STUDENT_ID,
-                )
-              : null;
-            capstoneApproved = capResult?.success && capResult?.isApproved;
-          } catch (_) {
-            capstoneApproved = false;
-          }
+          const capstoneApproved = isCapstoneApprovedFromStudentProfile();
 
           const deployBtn = document.getElementById("deployBtn");
           deployBtn.disabled = !(allVerified && capstoneApproved);
@@ -2434,7 +2545,11 @@
           // If replacing an existing submission, delete the old file first
           if (oldPublicId) {
             showToast("Replacing file…");
-            await window.electronAPI.deleteCloudinaryFile(oldPublicId);
+            try {
+              await deleteCloudinaryByIdOrUrl(oldPublicId, "");
+            } catch (_) {
+              // Non-fatal: continue upload and submission update.
+            }
           }
 
           showToast("Uploading…");
@@ -2503,11 +2618,22 @@
           "Remove this file submission? The requirement will return to Pending.",
           async () => {
             try {
+              const reqDiv = document.querySelector(
+                `[data-submission-id="${submissionId}"]`,
+              );
+              const oldPublicId = reqDiv?.dataset.cloudinaryPublicId || "";
+              const oldFileUrl = reqDiv?.dataset.fileUrl || "";
+
               const r =
                 await window.electronAPI.deleteOjtRequirementSubmission(
                   submissionId,
                 );
               if (!r?.success) throw new Error(r?.message || "Delete failed.");
+
+              try {
+                await deleteCloudinaryByIdOrUrl(oldPublicId, oldFileUrl);
+              } catch (_) {}
+
               showToast("Submission removed.", "success");
               await loadRequirements(type);
             } catch (err) {
@@ -2885,10 +3011,11 @@
               const oldRec = attendanceRecordsCache.find(
                 (r) => r.id === parseInt(editId, 10),
               );
-              if (oldRec?.proof_public_id) {
+              if (oldRec?.proof_public_id || oldRec?.proof_url) {
                 try {
-                  await window.electronAPI.deleteCloudinaryFile(
+                  await deleteCloudinaryByIdOrUrl(
                     oldRec.proof_public_id,
+                    oldRec.proof_url,
                   );
                 } catch (_) {}
               }
@@ -2945,14 +3072,16 @@
             try {
               const oldRec = attendanceRecordsCache.find((r) => r.id === id);
               const oldProofPublicId = oldRec?.proof_public_id || "";
+              const oldProofUrl = oldRec?.proof_url || "";
 
               const r = await window.electronAPI.deleteOjtAttendance(id);
               if (!r?.success) throw new Error(r?.message || "Delete failed.");
 
-              if (oldProofPublicId) {
+              if (oldProofPublicId || oldProofUrl) {
                 try {
-                  await window.electronAPI.deleteCloudinaryFile(
+                  await deleteCloudinaryByIdOrUrl(
                     oldProofPublicId,
+                    oldProofUrl,
                   );
                 } catch (_) {}
               }
@@ -3051,13 +3180,14 @@
             try {
               const oldRep = weeklyReportsCache.find((r) => r.id === id);
               const oldPublicId = oldRep?.cloudinary_public_id || "";
+              const oldFileUrl = oldRep?.file_url || "";
 
               const r = await window.electronAPI.deleteOjtWeeklyReport(id);
               if (!r?.success) throw new Error(r?.message || "Delete failed.");
 
-              if (oldPublicId) {
+              if (oldPublicId || oldFileUrl) {
                 try {
-                  await window.electronAPI.deleteCloudinaryFile(oldPublicId);
+                  await deleteCloudinaryByIdOrUrl(oldPublicId, oldFileUrl);
                 } catch (_) {}
               }
 
@@ -3112,11 +3242,16 @@
               const oldRep = weeklyReportsCache.find(
                 (r) => r.id === parseInt(editId, 10),
               );
-              if (oldRep?.cloudinary_public_id) {
+              if (oldRep?.cloudinary_public_id || oldRep?.file_url) {
                 showToast("Replacing file…");
-                await window.electronAPI.deleteCloudinaryFile(
-                  oldRep.cloudinary_public_id,
-                );
+                try {
+                  await deleteCloudinaryByIdOrUrl(
+                    oldRep.cloudinary_public_id,
+                    oldRep.file_url,
+                  );
+                } catch (_) {
+                  // Non-fatal: continue upload and report update.
+                }
               }
             }
 
@@ -3201,16 +3336,210 @@
         }
       }
 
+      async function loadOjtCertificates() {
+        const grid = document.getElementById("certificateGrid");
+        if (!grid) return;
+
+        try {
+          const r = await window.electronAPI.getOjtCertificates(STUDENT_ID);
+          if (!r?.success)
+            throw new Error(r?.message || "Failed to load certificates.");
+          certificatesCache = r.certificates || [];
+          renderCertificateHistory(certificatesCache);
+        } catch (err) {
+          grid.innerHTML = `<div style="color:#ff5252;font-size:13px;">${esc(err.message)}</div>`;
+        }
+      }
+
+      function renderCertificateHistory(certificates) {
+        const grid = document.getElementById("certificateGrid");
+        if (!grid) return;
+
+        if (!certificates.length) {
+          grid.innerHTML =
+            '<div style="color:var(--secondary-text);font-size:13px;">No certificates issued yet.</div>';
+          return;
+        }
+
+        grid.innerHTML = certificates
+          .map((cert) => {
+            const issueDate = cert.issue_date ? fmtDate(cert.issue_date) : "—";
+            const emailStatus = cert.email_status || "pending";
+            return `
+          <div class="week-card">
+            <div class="week-card-title">${esc(cert.certificate_type || "OJT Certification")}</div>
+            <div class="week-card-date">Issued: ${issueDate}</div>
+            <span class="week-status-badge ${esc(emailStatus === "sent" ? "reviewed" : "pending")}">Email: ${esc(emailStatus)}</span>
+            <div class="week-card-footer">
+              ${
+                cert.file_url
+                  ? `<a class="week-view-link" href="#" onclick="openFile('${esc(cert.file_url)}');return false;">View Certificate</a>`
+                  : '<span style="font-size:12px;color:var(--secondary-text)">No file</span>'
+              }
+              <button class="icon-btn danger" title="Delete certificate" onclick="deleteCertificate(${cert.id})">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3,4 13,4"/><path d="M6 4V2h4v2"/><rect x="4" y="4" width="8" height="9" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11"/><line x1="10" y1="7" x2="10" y2="11"/></svg>
+              </button>
+            </div>
+          </div>`;
+          })
+          .join("");
+      }
+
+      function openCertificateModal() {
+        const archiveBtn = document.getElementById("archiveBtn");
+        if (archiveBtn && archiveBtn.disabled) {
+          showToast(
+            "Please complete all required post requirements before issuing the certificate.",
+            "error",
+          );
+          return;
+        }
+
+        certificateFilePath = null;
+        document.getElementById("certificateFileLabel").textContent = "";
+        document.getElementById("certificateIssueDate").value = new Date()
+          .toISOString()
+          .slice(0, 10);
+        document.getElementById("certificateModal").classList.add("open");
+      }
+
+      function closeCertificateModal() {
+        document.getElementById("certificateModal").classList.remove("open");
+      }
+
+      async function pickCertificateFile() {
+        const r = window.electronAPI.selectCertificateFile
+          ? await window.electronAPI.selectCertificateFile()
+          : await window.electronAPI.selectOjtFile();
+        if (!r?.success || r.canceled) return;
+
+        const selectedPath = r.filePath || "";
+        if (String(selectedPath).toLowerCase().slice(-4) !== ".pdf") {
+          showToast(
+            "Only PDF files are allowed for OJT certificates.",
+            "error",
+          );
+          return;
+        }
+
+        certificateFilePath = selectedPath;
+        document.getElementById("certificateFileLabel").textContent =
+          selectedPath.split(/[/\\]/).pop() || "Selected PDF";
+      }
+
+      async function completeOjtStatusFromCertificate() {
+        const r = await window.electronAPI.updateStudentOjtStatus({
+          student_id: STUDENT_ID,
+          status: "OJT Complete",
+          notes: "OJT certificate issued by coordinator",
+        });
+        if (!r?.success)
+          throw new Error(r?.message || "Failed to mark OJT complete.");
+
+        if (student) student.status = "OJT Complete";
+        const pill = document.getElementById("statusPill");
+        if (pill) {
+          pill.textContent = "OJT Complete";
+          pill.className = "status-pill deployed";
+        }
+      }
+
+      async function submitCertificateAndComplete() {
+        if (!certificateFilePath) {
+          showToast("Please choose a certificate PDF first.", "error");
+          return;
+        }
+
+        const issueDate =
+          document.getElementById("certificateIssueDate").value ||
+          new Date().toISOString().slice(0, 10);
+        const submitBtn = document.getElementById("certificateSubmitBtn");
+        submitBtn.disabled = true;
+
+        try {
+          showToast("Uploading certificate PDF…");
+          const uploadResult =
+            await window.electronAPI.uploadOjtCertificateFile({
+              filePath: certificateFilePath,
+              studentId: STUDENT_ID,
+            });
+          if (!uploadResult?.success) {
+            throw new Error(
+              uploadResult?.message || "Certificate upload failed.",
+            );
+          }
+
+          showToast("Issuing certificate and emailing student…");
+          const fileName = certificateFilePath.split(/[/\\]/).pop();
+          const createResult = await window.electronAPI.createOjtCertificate({
+            student_id: STUDENT_ID,
+            certificate_type: "OJT Certification",
+            issue_date: issueDate,
+            file_url: uploadResult.url,
+            cloudinary_public_id: uploadResult.public_id,
+            folder_path: uploadResult.folder,
+            file_name: fileName,
+          });
+
+          if (!createResult?.success) {
+            throw new Error(
+              createResult?.message ||
+                "Certificate saved failed before email completion.",
+            );
+          }
+
+          await completeOjtStatusFromCertificate();
+
+          showToast(
+            "Certificate issued, emailed to student, and OJT marked complete.",
+            "success",
+          );
+          closeCertificateModal();
+          await loadOjtCertificates();
+        } catch (err) {
+          showToast(err.message, "error");
+        } finally {
+          submitBtn.disabled = false;
+        }
+      }
+
+      function deleteCertificate(id) {
+        openConfirm(
+          "Delete Certificate",
+          "Delete this certificate record and remove the certificate file from Cloudinary?",
+          async () => {
+            try {
+              const cert = certificatesCache.find((c) => c.id === id) || null;
+              const r = await window.electronAPI.deleteOjtCertificate(id);
+              if (!r?.success) throw new Error(r?.message || "Delete failed.");
+
+              const oldPublicId =
+                r.certificate?.cloudinary_public_id ||
+                cert?.cloudinary_public_id ||
+                "";
+              const oldFileUrl =
+                r.certificate?.file_url || cert?.file_url || "";
+
+              if (oldPublicId || oldFileUrl) {
+                try {
+                  await deleteCloudinaryByIdOrUrl(oldPublicId, oldFileUrl);
+                } catch (_) {}
+              }
+
+              showToast("Certificate deleted.", "success");
+              await loadOjtCertificates();
+            } catch (err) {
+              showToast(err.message, "error");
+            }
+          },
+        );
+      }
+
       // â”€â”€ Deploy / Archive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       async function confirmDeploy() {
         // Check capstone approval
         try {
-          const capResult = window.electronAPI.getCoordinatorCapstoneApproval
-            ? await window.electronAPI.getCoordinatorCapstoneApproval(
-                STUDENT_ID,
-              )
-            : null;
-          if (!capResult?.success || !capResult?.isApproved) {
+          if (!isCapstoneApprovedFromStudentProfile()) {
             showToast(
               "Cannot deploy: Capstone must be approved first.",
               "error",
@@ -3527,6 +3856,7 @@
             `[data-submission-id="${submissionId}"]`,
           );
           const oldPublicId = reqDiv?.dataset.cloudinaryPublicId || "";
+          const oldFileUrl = reqDiv?.dataset.fileUrl || "";
 
           // Upload new file
           const folderType =
@@ -3542,9 +3872,9 @@
           }
 
           // Delete old file if exists
-          if (oldPublicId) {
+          if (oldPublicId || oldFileUrl) {
             try {
-              await window.electronAPI.deleteCloudinaryFile(oldPublicId);
+              await deleteCloudinaryByIdOrUrl(oldPublicId, oldFileUrl);
             } catch (_) {
               // Ignore delete errors
             }
@@ -3654,6 +3984,7 @@
             `[data-submission-id="${submissionId}"]`,
           );
           const oldPublicId = reqDiv?.dataset.cloudinaryPublicId || "";
+          const oldFileUrl = reqDiv?.dataset.fileUrl || "";
 
           const r =
             await window.electronAPI.deleteOjtRequirementSubmission(
@@ -3662,9 +3993,9 @@
           if (!r?.success) throw new Error(r?.message || "Delete failed.");
 
           // Delete from Cloudinary after record is gone
-          if (oldPublicId) {
+          if (oldPublicId || oldFileUrl) {
             try {
-              await window.electronAPI.deleteCloudinaryFile(oldPublicId);
+              await deleteCloudinaryByIdOrUrl(oldPublicId, oldFileUrl);
             } catch (_) {
               // Non-fatal: record is already gone
             }

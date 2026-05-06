@@ -202,6 +202,64 @@ router.post(
   },
 );
 
+const certificateUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === "application/pdf") {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF files are allowed for certificates."));
+    }
+  },
+});
+
+router.post(
+  "/ojt-certificate",
+  requireAuth,
+  certificateUpload.single("file"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ success: false, message: "No file uploaded." });
+      }
+
+      const studentId = String(req.body.studentId || "").trim();
+      const fileName = String(
+        req.body.fileName || req.file.originalname || "certificate.pdf",
+      );
+
+      if (!studentId) {
+        return res.status(400).json({
+          success: false,
+          message: "studentId is required.",
+        });
+      }
+
+      const result = await cloudinaryService.uploadOjtCertificatePdf(
+        req.file.buffer,
+        fileName,
+        studentId,
+      );
+
+      return res.json({
+        success: true,
+        url: result.url,
+        public_id: result.public_id,
+        folder: result.folder,
+      });
+    } catch (error) {
+      console.error("Certificate upload error:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Upload failed.",
+      });
+    }
+  },
+);
+
 // ── POST /api/upload/ojt-file-url ─────────────────────────────────────────────
 // Fetch a PDF/image from an external URL and upload to the OJT Cloudinary folder.
 router.post("/ojt-file-url", requireAuth, async (req, res) => {

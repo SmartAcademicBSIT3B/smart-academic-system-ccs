@@ -2055,6 +2055,93 @@ ipcMain.handle("selectOjtFile", async () => {
   }
 });
 
+ipcMain.handle("selectCertificateFile", async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ["openFile"],
+      filters: [{ name: "PDF Documents", extensions: ["pdf"] }],
+    });
+    if (result.canceled || !result.filePaths.length)
+      return { success: false, canceled: true };
+    return { success: true, filePath: result.filePaths[0] };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to open certificate file dialog.",
+    };
+  }
+});
+
+ipcMain.handle("uploadOjtCertificateFile", async (event, payload) => {
+  try {
+    const { filePath, studentId } = payload || {};
+    if (!filePath || !studentId) {
+      return {
+        success: false,
+        message: "filePath and studentId are required.",
+      };
+    }
+
+    if (path.extname(filePath).toLowerCase() !== ".pdf") {
+      return {
+        success: false,
+        message: "Only PDF files are allowed for OJT certificates.",
+      };
+    }
+
+    const fileBuffer = await fs.readFile(filePath);
+    const fileName = path.basename(filePath);
+    return await api.postFile(
+      "/upload/ojt-certificate",
+      fileBuffer,
+      fileName,
+      "application/pdf",
+      {
+        studentId,
+        fileName,
+      },
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to upload OJT certificate file.",
+    };
+  }
+});
+
+ipcMain.handle("getOjtCertificates", async (event, studentId) => {
+  try {
+    return await api.get(`/ojt-certificates/${encodeURIComponent(studentId)}`);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch OJT certificates.",
+    };
+  }
+});
+
+ipcMain.handle("createOjtCertificate", async (event, payload) => {
+  try {
+    return await api.post("/ojt-certificates", payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to create OJT certificate.",
+    };
+  }
+});
+
+ipcMain.handle("deleteOjtCertificate", async (event, id) => {
+  try {
+    return await api.del(`/ojt-certificates/${id}`);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to delete OJT certificate.",
+    };
+  }
+});
+
 // ── OJT Attendance IPC handlers ───────────────────────────────────────────────
 
 ipcMain.handle("getOjtAttendance", async (event, params) => {

@@ -131,6 +131,30 @@ async function uploadOjtFile(fileBuffer, fileName, studentId, folderType) {
   return { url, public_id: result.public_id, folder };
 }
 
+async function uploadOjtCertificatePdf(fileBuffer, fileName, studentId) {
+  const safeStudentId = sanitizePublicId(String(studentId || "unknown"));
+  const baseName = sanitizePublicId(
+    String(fileName || "certificate").replace(/\.[^.]+$/, ""),
+  );
+  const folder = `HTA Files/OJT Certificates/${safeStudentId}/Certificates`;
+  const publicId = `${safeStudentId}_certificate_${Date.now()}_${baseName}`;
+
+  const result = await uploadStream(fileBuffer, {
+    folder,
+    public_id: publicId,
+    resource_type: "raw",
+    format: "pdf",
+    overwrite: false,
+    use_filename: false,
+    unique_filename: false,
+  });
+
+  const url = result?.secure_url || result?.url || "";
+  if (!url)
+    throw new Error("Cloudinary upload succeeded but no URL was returned.");
+  return { url, public_id: result.public_id, folder };
+}
+
 async function deleteByPublicId(publicId) {
   if (!publicId) return;
   try {
@@ -146,4 +170,5 @@ module.exports = {
   deleteByUrl,
   deleteByPublicId,
   uploadOjtFile,
+  uploadOjtCertificatePdf,
 };

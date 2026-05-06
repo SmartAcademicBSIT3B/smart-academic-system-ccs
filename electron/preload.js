@@ -157,4 +157,73 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("updateOjtWeeklyReport", payload),
   deleteOjtWeeklyReport: (id) =>
     ipcRenderer.invoke("deleteOjtWeeklyReport", id),
+
+  // ── OJT Certificates ───────────────────────────────────────────────────────
+  selectCertificateFile: async () => {
+    try {
+      return await ipcRenderer.invoke("selectCertificateFile");
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          canceled: true,
+          message: "Certificate file picker is unavailable.",
+        };
+      }
+      throw error;
+    }
+  },
+  uploadOjtCertificateFile: async (payload) => {
+    try {
+      return await ipcRenderer.invoke("uploadOjtCertificateFile", payload);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message: "Certificate upload is unavailable.",
+        };
+      }
+      throw error;
+    }
+  },
+  getOjtCertificates: async (studentId) => {
+    try {
+      return await ipcRenderer.invoke("getOjtCertificates", studentId);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: true,
+          certificates: [],
+          message: "Certificate history is unavailable in this app session.",
+        };
+      }
+      throw error;
+    }
+  },
+  createOjtCertificate: async (payload) => {
+    try {
+      return await ipcRenderer.invoke("createOjtCertificate", payload);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message: "Certificate creation is unavailable.",
+        };
+      }
+      throw error;
+    }
+  },
+  deleteOjtCertificate: async (id) => {
+    try {
+      return await ipcRenderer.invoke("deleteOjtCertificate", id);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message: "Certificate deletion is unavailable.",
+        };
+      }
+      throw error;
+    }
+  },
 });
