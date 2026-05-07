@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-const { listFilesInFolder } = require("./services/gdrive_service");
+const { listFilesInFolder } = require("../services/gdrive_service");
 
 const folderId = process.argv[2] || "1pUA3iE69luJxk-6XVCme_07gz4ltcJT0";
 

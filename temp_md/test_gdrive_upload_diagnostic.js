@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const { Readable } = require("stream");
-const { getDriveClient } = require("./services/gdrive_service");
+const { getDriveClient } = require("../services/gdrive_service");
 
 const DEFAULT_FOLDER_ID = "1pUA3iE69luJxk-6XVCme_07gz4ltcJT0";
 

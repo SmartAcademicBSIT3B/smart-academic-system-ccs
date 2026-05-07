@@ -7,7 +7,7 @@ const {
   resetPassword,
   getUserOTPs,
   cleanupExpiredOTPs,
-} = require("./services/otp_service");
+} = require("../services/otp_service");
 
 // Test functions
 async function testOTPService() {
