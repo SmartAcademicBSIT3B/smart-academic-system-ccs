@@ -1,7 +1,16 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, net } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  shell,
+  net,
+  utilityProcess,
+} = require("electron");
 const path = require("node:path");
 const fsSync = require("node:fs");
 const fs = require("node:fs/promises");
+const { spawn } = require("node:child_process");
 const { pipeline } = require("node:stream/promises");
 const { fileURLToPath } = require("node:url");
 const dotenv = require("dotenv");
@@ -52,14 +61,207 @@ loadRuntimeEnv();
 const PACKAGED_BACKEND_URL = "https://smart-academic-system-ccs.onrender.com";
 const DEV_BACKEND_URL = "http://localhost:3000";
 const configuredBackendUrl = String(process.env.BACKEND_URL || "").trim();
+const packagedBackendMode = String(process.env.SAS_BACKEND_MODE || "auto")
+  .trim()
+  .toLowerCase();
+const localBackendPort = Number.parseInt(
+  process.env.SAS_LOCAL_BACKEND_PORT || "3000",
+  10,
+);
+
+let bundledBackendProcess = null;
+let backendRuntimeDiagnostics = {
+  mode: app.isPackaged ? "packaged-unresolved" : "dev-local",
+  source: app.isPackaged ? "pending" : "dev",
+  localBackendPort,
+  backendHealthVersion: "",
+  startupError: "",
+};
+
+function getBundledBackendRootPath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "backend");
+  }
+
+  return path.join(__dirname, "..", "backend");
+}
+
+function getBundledBackendEntryPath() {
+  return path.join(getBundledBackendRootPath(), "server.js");
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function readBackendHealth(baseUrl) {
+  const target = String(baseUrl || "").replace(/\/$/, "");
+  if (!target) return null;
+
+  try {
+    const response = await fetch(`${target}/health`);
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return payload && typeof payload === "object" ? payload : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+async function waitForBackendHealth(baseUrl, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const health = await readBackendHealth(baseUrl);
+    if (health?.ok) {
+      return { success: true, health };
+    }
+    await sleep(500);
+  }
+
+  return {
+    success: false,
+    message: `Backend did not become healthy at ${baseUrl} within ${timeoutMs}ms.`,
+  };
+}
+
+function stopBundledBackendProcess() {
+  if (!bundledBackendProcess) return;
+
+  try {
+    if (typeof bundledBackendProcess.kill === "function") {
+      bundledBackendProcess.kill();
+    }
+  } catch (error) {
+    console.error("Failed to stop bundled backend process:", error);
+  } finally {
+    bundledBackendProcess = null;
+  }
+}
+
+async function startBundledBackendProcess(localBaseUrl) {
+  const backendRoot = getBundledBackendRootPath();
+  const backendEntry = getBundledBackendEntryPath();
+
+  if (!fsSync.existsSync(backendEntry)) {
+    return {
+      success: false,
+      message: `Bundled backend entry not found at ${backendEntry}`,
+    };
+  }
+
+  const childEnv = {
+    ...process.env,
+    PORT: String(localBackendPort),
+  };
+
+  try {
+    if (utilityProcess && typeof utilityProcess.fork === "function") {
+      bundledBackendProcess = utilityProcess.fork(backendEntry, [], {
+        cwd: backendRoot,
+        env: childEnv,
+        serviceName: "smart-academic-backend",
+      });
+    } else {
+      bundledBackendProcess = spawn(process.execPath, [backendEntry], {
+        cwd: backendRoot,
+        env: {
+          ...childEnv,
+          ELECTRON_RUN_AS_NODE: "1",
+        },
+        windowsHide: true,
+        stdio: "ignore",
+      });
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to spawn bundled backend process.",
+    };
+  }
+
+  const ready = await waitForBackendHealth(localBaseUrl, 20000);
+  if (!ready.success) {
+    stopBundledBackendProcess();
+    return ready;
+  }
+
+  return { success: true, health: ready.health };
+}
+
+async function initializeBackendRuntime(apiClient) {
+  const remoteUrl =
+    String(process.env.BACKEND_URL || PACKAGED_BACKEND_URL).trim() ||
+    PACKAGED_BACKEND_URL;
+
+  if (!app.isPackaged) {
+    process.env.BACKEND_URL = DEV_BACKEND_URL;
+    apiClient.setBaseUrl(DEV_BACKEND_URL);
+    const devHealth = await readBackendHealth(DEV_BACKEND_URL);
+    backendRuntimeDiagnostics = {
+      ...backendRuntimeDiagnostics,
+      mode: "dev-local",
+      source: "development",
+      backendHealthVersion: String(devHealth?.version || ""),
+      startupError: "",
+    };
+    return;
+  }
+
+  const localUrl = `http://127.0.0.1:${localBackendPort}`;
+
+  if (packagedBackendMode !== "remote") {
+    const existingHealth = await readBackendHealth(localUrl);
+    if (existingHealth?.ok) {
+      process.env.BACKEND_URL = localUrl;
+      apiClient.setBaseUrl(localUrl);
+      backendRuntimeDiagnostics = {
+        ...backendRuntimeDiagnostics,
+        mode: "packaged-local",
+        source: "existing-local-service",
+        backendHealthVersion: String(existingHealth?.version || ""),
+        startupError: "",
+      };
+      return;
+    }
+
+    const localStart = await startBundledBackendProcess(localUrl);
+    if (localStart.success) {
+      process.env.BACKEND_URL = localUrl;
+      apiClient.setBaseUrl(localUrl);
+      backendRuntimeDiagnostics = {
+        ...backendRuntimeDiagnostics,
+        mode: "packaged-local",
+        source: "bundled-backend",
+        backendHealthVersion: String(localStart.health?.version || ""),
+        startupError: "",
+      };
+      return;
+    }
+
+    backendRuntimeDiagnostics.startupError = String(localStart.message || "");
+  }
+
+  process.env.BACKEND_URL = remoteUrl;
+  apiClient.setBaseUrl(remoteUrl);
+  const remoteHealth = await readBackendHealth(remoteUrl);
+  backendRuntimeDiagnostics = {
+    ...backendRuntimeDiagnostics,
+    mode: "packaged-remote",
+    source: "configured-or-default-remote",
+    backendHealthVersion: String(remoteHealth?.version || ""),
+    startupError:
+      backendRuntimeDiagnostics.startupError ||
+      (remoteHealth?.ok ? "" : "Remote backend health check failed."),
+  };
+}
 
 if (app.isPackaged) {
-  if (
-    !configuredBackendUrl ||
-    /(^https?:\/\/(localhost|127\.0\.0\.1))(\/|$)/i.test(configuredBackendUrl)
-  ) {
-    process.env.BACKEND_URL = PACKAGED_BACKEND_URL;
-  }
+  process.env.BACKEND_URL =
+    configuredBackendUrl &&
+    !/(^https?:\/\/(localhost|127\.0\.0\.1))(\/|$)/i.test(configuredBackendUrl)
+      ? configuredBackendUrl
+      : PACKAGED_BACKEND_URL;
 } else {
   // In local development (unpackaged), always use the local backend so code
   // changes take effect immediately.  The BACKEND_URL env var is ignored in
@@ -822,6 +1024,8 @@ function createMainWindow() {
 }
 
 app.whenReady().then(async () => {
+  await initializeBackendRuntime(api);
+
   try {
     const initialSettings = await loadAppSettings();
     const initialDeptCode = String(
@@ -925,16 +1129,28 @@ ipcMain.handle("getAppSettings", async () => {
 
 ipcMain.handle("getBackendDiagnostics", async () => {
   try {
+    const resolvedBackendUrl = api.getBaseUrl();
+    const liveHealth = await readBackendHealth(resolvedBackendUrl);
+
     return {
       success: true,
       diagnostics: {
-        backendUrl: api.getBaseUrl(),
+        backendUrl: resolvedBackendUrl,
         configuredBackendUrl: String(process.env.BACKEND_URL || "").trim(),
         isPackaged: app.isPackaged,
+        packagedBackendMode,
         appVersion: app.getVersion(),
         appPath: app.getAppPath(),
+        resourcesPath: process.resourcesPath,
+        bundledBackendRootPath: getBundledBackendRootPath(),
+        bundledBackendEntryPath: getBundledBackendEntryPath(),
         userDataPath: getWritableUserDataPath(),
         execPath: process.execPath,
+        runtime: {
+          ...backendRuntimeDiagnostics,
+          liveHealthOk: Boolean(liveHealth?.ok),
+          liveHealthVersion: String(liveHealth?.version || ""),
+        },
       },
     };
   } catch (error) {
@@ -2266,4 +2482,8 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+app.on("before-quit", () => {
+  stopBundledBackendProcess();
 });

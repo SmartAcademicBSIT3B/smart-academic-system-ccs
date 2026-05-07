@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require("node:path");
+const fs = require("node:fs");
 
 const authRoutes = require("./routes/auth");
 const archiveRoutes = require("./routes/archives");
@@ -22,6 +24,26 @@ const { syncAllArchiveOjtLinks } = require("./helpers/archive-ojt-link");
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "3000", 10);
+
+function resolveBackendVersion() {
+  if (String(process.env.npm_package_version || "").trim()) {
+    return process.env.npm_package_version;
+  }
+
+  try {
+    const packagePath = path.join(__dirname, "package.json");
+    const raw = fs.readFileSync(packagePath, "utf8");
+    const parsed = JSON.parse(raw);
+    const version = String(parsed?.version || "").trim();
+    if (version) return version;
+  } catch (_error) {
+    // Fall through to the static fallback below.
+  }
+
+  return "1.0.0-beta.1";
+}
+
+const backendVersion = resolveBackendVersion();
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // Accept requests from the packaged Electron app (file://) and any configured
@@ -72,7 +94,7 @@ app.use("/api/proxy", proxyRoutes);
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
-    version: process.env.npm_package_version || "1.0.0-alpha.1",
+    version: backendVersion,
   });
 });
 
