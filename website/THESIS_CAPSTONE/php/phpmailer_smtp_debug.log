@@ -1,0 +1,492 @@
+2026-05-02 12:01:57 [Level 2] SERVER -> CLIENT: 220 smtp.gmail.com ESMTP d9443c01a7336-2b9caad2833sm46072725ad.35 - gsmtp
+
+2026-05-02 12:01:57 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:01:57 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:01:57 [Level 1] CLIENT -> SERVER: STARTTLS
+
+2026-05-02 12:01:57 [Level 2] SERVER -> CLIENT: 220 2.0.0 Ready to start TLS
+
+2026-05-02 12:01:58 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:01:58 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:01:58 [Level 1] CLIENT -> SERVER: AUTH LOGIN
+
+2026-05-02 12:01:58 [Level 2] SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2026-05-02 12:01:58 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:01:58 [Level 2] SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2026-05-02 12:01:58 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:01:59 [Level 2] SERVER -> CLIENT: 235 2.7.0 Accepted
+
+2026-05-02 12:01:59 [Level 1] CLIENT -> SERVER: MAIL FROM:<smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:01:59 [Level 2] SERVER -> CLIENT: 250 2.1.0 OK d9443c01a7336-2b9caad2833sm46072725ad.35 - gsmtp
+
+2026-05-02 12:01:59 [Level 1] CLIENT -> SERVER: RCPT TO:<guevarra_johnmichael@plpasig.edu.ph>
+
+2026-05-02 12:01:59 [Level 2] SERVER -> CLIENT: 250 2.1.5 OK d9443c01a7336-2b9caad2833sm46072725ad.35 - gsmtp
+
+2026-05-02 12:01:59 [Level 1] CLIENT -> SERVER: DATA
+
+2026-05-02 12:02:00 [Level 2] SERVER -> CLIENT: 354 Go ahead d9443c01a7336-2b9caad2833sm46072725ad.35 - gsmtp
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: Date: Sat, 2 May 2026 12:01:56 +0200
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: To: guevarra_johnmichael@plpasig.edu.ph
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: From: PLP System <smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: Subject: Your OTP for Account Reactivation
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: Message-ID: <681Wiy7cTmR789v85hHvDHQnKK7gqrkm7959ujMOU@localhost>
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: X-Mailer: PHPMailer 7.0.0 (https://github.com/PHPMailer/PHPMailer)
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: MIME-Version: 1.0
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: Content-Type: text/plain; charset=iso-8859-1
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: Your OTP code is: 150534
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: This code will expire in 10 minutes.
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:02:00 [Level 1] CLIENT -> SERVER: .
+
+2026-05-02 12:02:01 [Level 2] SERVER -> CLIENT: 250 2.0.0 OK  1777716121 d9443c01a7336-2b9caad2833sm46072725ad.35 - gsmtp
+
+2026-05-02 12:02:01 [Level 1] CLIENT -> SERVER: QUIT
+
+2026-05-02 12:02:01 [Level 2] SERVER -> CLIENT: 221 2.0.0 closing connection d9443c01a7336-2b9caad2833sm46072725ad.35 - gsmtp
+
+2026-05-02 12:02:09 [Level 2] SERVER -> CLIENT: 220 smtp.gmail.com ESMTP d2e1a72fcca58-8351d08065asm4403357b3a.3 - gsmtp
+
+2026-05-02 12:02:09 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:02:09 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:02:09 [Level 1] CLIENT -> SERVER: STARTTLS
+
+2026-05-02 12:02:09 [Level 2] SERVER -> CLIENT: 220 2.0.0 Ready to start TLS
+
+2026-05-02 12:02:09 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:02:10 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:02:10 [Level 1] CLIENT -> SERVER: AUTH LOGIN
+
+2026-05-02 12:02:10 [Level 2] SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2026-05-02 12:02:10 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:02:10 [Level 2] SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2026-05-02 12:02:10 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:02:10 [Level 2] SERVER -> CLIENT: 235 2.7.0 Accepted
+
+2026-05-02 12:02:10 [Level 1] CLIENT -> SERVER: MAIL FROM:<smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:02:11 [Level 2] SERVER -> CLIENT: 250 2.1.0 OK d2e1a72fcca58-8351d08065asm4403357b3a.3 - gsmtp
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: RCPT TO:<guevarra_johnmichael@plpasig.edu.ph>
+
+2026-05-02 12:02:11 [Level 2] SERVER -> CLIENT: 250 2.1.5 OK d2e1a72fcca58-8351d08065asm4403357b3a.3 - gsmtp
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: DATA
+
+2026-05-02 12:02:11 [Level 2] SERVER -> CLIENT: 354 Go ahead d2e1a72fcca58-8351d08065asm4403357b3a.3 - gsmtp
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: Date: Sat, 2 May 2026 12:02:08 +0200
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: To: guevarra_johnmichael@plpasig.edu.ph
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: From: PLP System <smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: Subject: Your OTP for Account Reactivation
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: Message-ID: <3yATQVW2mbh8HLMc4nSy2D9PwRwbI9Wy9qVrKqiQiKQ@localhost>
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: X-Mailer: PHPMailer 7.0.0 (https://github.com/PHPMailer/PHPMailer)
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: MIME-Version: 1.0
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: Content-Type: text/plain; charset=iso-8859-1
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: Your OTP code is: 308162
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: This code will expire in 10 minutes.
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:02:11 [Level 1] CLIENT -> SERVER: .
+
+2026-05-02 12:02:12 [Level 2] SERVER -> CLIENT: 250 2.0.0 OK  1777716132 d2e1a72fcca58-8351d08065asm4403357b3a.3 - gsmtp
+
+2026-05-02 12:02:12 [Level 1] CLIENT -> SERVER: QUIT
+
+2026-05-02 12:02:12 [Level 2] SERVER -> CLIENT: 221 2.0.0 closing connection d2e1a72fcca58-8351d08065asm4403357b3a.3 - gsmtp
+
+2026-05-02 12:03:48 [Level 2] SERVER -> CLIENT: 220 smtp.gmail.com ESMTP d9443c01a7336-2b9caad2bd7sm53936295ad.36 - gsmtp
+
+2026-05-02 12:03:48 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:03:48 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:03:48 [Level 1] CLIENT -> SERVER: STARTTLS
+
+2026-05-02 12:03:49 [Level 2] SERVER -> CLIENT: 220 2.0.0 Ready to start TLS
+
+2026-05-02 12:03:49 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:03:49 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:03:49 [Level 1] CLIENT -> SERVER: AUTH LOGIN
+
+2026-05-02 12:03:49 [Level 2] SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2026-05-02 12:03:49 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:03:50 [Level 2] SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2026-05-02 12:03:50 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:03:50 [Level 2] SERVER -> CLIENT: 235 2.7.0 Accepted
+
+2026-05-02 12:03:50 [Level 1] CLIENT -> SERVER: MAIL FROM:<smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:03:50 [Level 2] SERVER -> CLIENT: 250 2.1.0 OK d9443c01a7336-2b9caad2bd7sm53936295ad.36 - gsmtp
+
+2026-05-02 12:03:50 [Level 1] CLIENT -> SERVER: RCPT TO:<guevarra_johnmichael@plpasig.edu.ph>
+
+2026-05-02 12:03:51 [Level 2] SERVER -> CLIENT: 250 2.1.5 OK d9443c01a7336-2b9caad2bd7sm53936295ad.36 - gsmtp
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: DATA
+
+2026-05-02 12:03:51 [Level 2] SERVER -> CLIENT: 354 Go ahead d9443c01a7336-2b9caad2bd7sm53936295ad.36 - gsmtp
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: Date: Sat, 2 May 2026 12:03:48 +0200
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: To: guevarra_johnmichael@plpasig.edu.ph
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: From: PLP System <smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: Subject: Your OTP for Account Reactivation
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: Message-ID: <7AFCGvdau4aL0VvCmcDkfxxjhaVApVK0SwDCCoigBZM@localhost>
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: X-Mailer: PHPMailer 7.0.0 (https://github.com/PHPMailer/PHPMailer)
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: MIME-Version: 1.0
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: Content-Type: text/plain; charset=iso-8859-1
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: Your OTP code is: 146100
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: This code will expire in 10 minutes.
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:03:51 [Level 1] CLIENT -> SERVER: .
+
+2026-05-02 12:03:52 [Level 2] SERVER -> CLIENT: 250 2.0.0 OK  1777716232 d9443c01a7336-2b9caad2bd7sm53936295ad.36 - gsmtp
+
+2026-05-02 12:03:52 [Level 1] CLIENT -> SERVER: QUIT
+
+2026-05-02 12:03:52 [Level 2] SERVER -> CLIENT: 221 2.0.0 closing connection d9443c01a7336-2b9caad2bd7sm53936295ad.36 - gsmtp
+
+2026-05-02 12:05:27 [Level 2] SERVER -> CLIENT: 220 smtp.gmail.com ESMTP 41be03b00d2f7-c7ffbc8ad8dsm4142643a12.23 - gsmtp
+
+2026-05-02 12:05:27 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:05:27 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:05:27 [Level 1] CLIENT -> SERVER: STARTTLS
+
+2026-05-02 12:05:28 [Level 2] SERVER -> CLIENT: 220 2.0.0 Ready to start TLS
+
+2026-05-02 12:05:28 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:05:28 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:05:28 [Level 1] CLIENT -> SERVER: AUTH LOGIN
+
+2026-05-02 12:05:28 [Level 2] SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2026-05-02 12:05:28 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:05:29 [Level 2] SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2026-05-02 12:05:29 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:05:29 [Level 2] SERVER -> CLIENT: 235 2.7.0 Accepted
+
+2026-05-02 12:05:29 [Level 1] CLIENT -> SERVER: MAIL FROM:<smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:05:29 [Level 2] SERVER -> CLIENT: 250 2.1.0 OK 41be03b00d2f7-c7ffbc8ad8dsm4142643a12.23 - gsmtp
+
+2026-05-02 12:05:29 [Level 1] CLIENT -> SERVER: RCPT TO:<guevarra_johnmichael@plpasig.edu.ph>
+
+2026-05-02 12:05:29 [Level 2] SERVER -> CLIENT: 250 2.1.5 OK 41be03b00d2f7-c7ffbc8ad8dsm4142643a12.23 - gsmtp
+
+2026-05-02 12:05:29 [Level 1] CLIENT -> SERVER: DATA
+
+2026-05-02 12:05:30 [Level 2] SERVER -> CLIENT: 354 Go ahead 41be03b00d2f7-c7ffbc8ad8dsm4142643a12.23 - gsmtp
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: Date: Sat, 2 May 2026 12:05:26 +0200
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: To: guevarra_johnmichael@plpasig.edu.ph
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: From: PLP System <smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: Subject: Your OTP for Account Reactivation
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: Message-ID: <pGuPlT2Y463A9Y04RW2pCoAUDyicAQ86VgkQzvL1eIM@localhost>
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: X-Mailer: PHPMailer 7.0.0 (https://github.com/PHPMailer/PHPMailer)
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: MIME-Version: 1.0
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: Content-Type: text/plain; charset=iso-8859-1
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: Your OTP code is: 862204
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: This code will expire in 10 minutes.
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:05:30 [Level 1] CLIENT -> SERVER: .
+
+2026-05-02 12:05:31 [Level 2] SERVER -> CLIENT: 250 2.0.0 OK  1777716331 41be03b00d2f7-c7ffbc8ad8dsm4142643a12.23 - gsmtp
+
+2026-05-02 12:05:31 [Level 1] CLIENT -> SERVER: QUIT
+
+2026-05-02 12:05:31 [Level 2] SERVER -> CLIENT: 221 2.0.0 closing connection 41be03b00d2f7-c7ffbc8ad8dsm4142643a12.23 - gsmtp
+
+2026-05-02 12:08:55 [Level 2] SERVER -> CLIENT: 220 smtp.gmail.com ESMTP d9443c01a7336-2b9caab6145sm48706985ad.27 - gsmtp
+
+2026-05-02 12:08:55 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:08:55 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:08:55 [Level 1] CLIENT -> SERVER: STARTTLS
+
+2026-05-02 12:08:56 [Level 2] SERVER -> CLIENT: 220 2.0.0 Ready to start TLS
+
+2026-05-02 12:08:56 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:08:56 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:08:56 [Level 1] CLIENT -> SERVER: AUTH LOGIN
+
+2026-05-02 12:08:56 [Level 2] SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2026-05-02 12:08:56 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:08:57 [Level 2] SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2026-05-02 12:08:57 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:08:57 [Level 2] SERVER -> CLIENT: 235 2.7.0 Accepted
+
+2026-05-02 12:08:57 [Level 1] CLIENT -> SERVER: MAIL FROM:<smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:08:57 [Level 2] SERVER -> CLIENT: 250 2.1.0 OK d9443c01a7336-2b9caab6145sm48706985ad.27 - gsmtp
+
+2026-05-02 12:08:57 [Level 1] CLIENT -> SERVER: RCPT TO:<guevarra_johnmichael@plpasig.edu.ph>
+
+2026-05-02 12:08:57 [Level 2] SERVER -> CLIENT: 250 2.1.5 OK d9443c01a7336-2b9caab6145sm48706985ad.27 - gsmtp
+
+2026-05-02 12:08:57 [Level 1] CLIENT -> SERVER: DATA
+
+2026-05-02 12:08:58 [Level 2] SERVER -> CLIENT: 354 Go ahead d9443c01a7336-2b9caab6145sm48706985ad.27 - gsmtp
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: Date: Sat, 2 May 2026 12:08:55 +0200
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: To: guevarra_johnmichael@plpasig.edu.ph
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: From: PLP System <smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: Subject: Your OTP for Account Reactivation
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: Message-ID: <jDEniThlwUAGAGpzTccJdAcZyCvzlodnjcuDzOjQ2c@localhost>
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: X-Mailer: PHPMailer 7.0.0 (https://github.com/PHPMailer/PHPMailer)
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: MIME-Version: 1.0
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: Content-Type: text/plain; charset=iso-8859-1
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: Your OTP code is: 421408
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: This code will expire in 10 minutes.
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:08:58 [Level 1] CLIENT -> SERVER: .
+
+2026-05-02 12:08:59 [Level 2] SERVER -> CLIENT: 250 2.0.0 OK  1777716539 d9443c01a7336-2b9caab6145sm48706985ad.27 - gsmtp
+
+2026-05-02 12:08:59 [Level 1] CLIENT -> SERVER: QUIT
+
+2026-05-02 12:08:59 [Level 2] SERVER -> CLIENT: 221 2.0.0 closing connection d9443c01a7336-2b9caab6145sm48706985ad.27 - gsmtp
+
+2026-05-02 12:11:16 [Level 2] SERVER -> CLIENT: 220 smtp.gmail.com ESMTP d9443c01a7336-2b9cae4b0d5sm48517175ad.68 - gsmtp
+
+2026-05-02 12:11:16 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:11:17 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:11:17 [Level 1] CLIENT -> SERVER: STARTTLS
+
+2026-05-02 12:11:17 [Level 2] SERVER -> CLIENT: 220 2.0.0 Ready to start TLS
+
+2026-05-02 12:11:17 [Level 1] CLIENT -> SERVER: EHLO localhost
+
+2026-05-02 12:11:17 [Level 2] SERVER -> CLIENT: 250-smtp.gmail.com at your service, [2001:4453:65a:8100:98aa:4bfa:dea3:b023]
+250-SIZE 35882577
+250-8BITMIME
+250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+2026-05-02 12:11:17 [Level 1] CLIENT -> SERVER: AUTH LOGIN
+
+2026-05-02 12:11:18 [Level 2] SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2026-05-02 12:11:18 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:11:18 [Level 2] SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2026-05-02 12:11:18 [Level 1] CLIENT -> SERVER: [credentials hidden]
+2026-05-02 12:11:18 [Level 2] SERVER -> CLIENT: 235 2.7.0 Accepted
+
+2026-05-02 12:11:18 [Level 1] CLIENT -> SERVER: MAIL FROM:<smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:11:18 [Level 2] SERVER -> CLIENT: 250 2.1.0 OK d9443c01a7336-2b9cae4b0d5sm48517175ad.68 - gsmtp
+
+2026-05-02 12:11:18 [Level 1] CLIENT -> SERVER: RCPT TO:<guevarra_johnmichael@plpasig.edu.ph>
+
+2026-05-02 12:11:19 [Level 2] SERVER -> CLIENT: 250 2.1.5 OK d9443c01a7336-2b9cae4b0d5sm48517175ad.68 - gsmtp
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: DATA
+
+2026-05-02 12:11:19 [Level 2] SERVER -> CLIENT: 354 Go ahead d9443c01a7336-2b9cae4b0d5sm48517175ad.68 - gsmtp
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: Date: Sat, 2 May 2026 12:11:15 +0200
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: To: guevarra_johnmichael@plpasig.edu.ph
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: From: PLP System <smartacademicbsit3b@gmail.com>
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: Subject: Your OTP for Account Reactivation
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: Message-ID: <ls8lAHyC81atbv9rjptYDbHoSCuzAG29tQ6O3Oxw@localhost>
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: X-Mailer: PHPMailer 7.0.0 (https://github.com/PHPMailer/PHPMailer)
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: MIME-Version: 1.0
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: Content-Type: text/plain; charset=iso-8859-1
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: Your OTP code is: 277851
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: This code will expire in 10 minutes.
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: 
+
+2026-05-02 12:11:19 [Level 1] CLIENT -> SERVER: .
+
+2026-05-02 12:11:20 [Level 2] SERVER -> CLIENT: 250 2.0.0 OK  1777716680 d9443c01a7336-2b9cae4b0d5sm48517175ad.68 - gsmtp
+
+2026-05-02 12:11:20 [Level 1] CLIENT -> SERVER: QUIT
+
+2026-05-02 12:11:20 [Level 2] SERVER -> CLIENT: 221 2.0.0 closing connection d9443c01a7336-2b9cae4b0d5sm48517175ad.68 - gsmtp
+
