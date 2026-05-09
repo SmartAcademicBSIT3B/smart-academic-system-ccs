@@ -2062,7 +2062,10 @@
             if (loginResult && loginResult.success) {
               try {
                 if (loginResult.user && typeof loginResult.user === "object") {
-                  localStorage.setItem("user", JSON.stringify(loginResult.user));
+                  localStorage.setItem(
+                    "user",
+                    JSON.stringify(loginResult.user),
+                  );
                 }
               } catch (_error) {}
 
