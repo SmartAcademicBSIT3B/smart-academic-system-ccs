@@ -9,40 +9,48 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+async function handleProfileImageUpload(req, res) {
+  try {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded." });
+    }
+
+    const userId = String(req.body.userId || "").trim();
+    const fileName = String(
+      req.body.fileName || req.file.originalname || "profile.jpg",
+    );
+    const mimeType = req.file.mimetype || "image/jpeg";
+
+    const url = await cloudinaryService.uploadProfileImage(
+      req.file.buffer,
+      fileName,
+      mimeType,
+      userId,
+    );
+
+    return res.json({ success: true, path: url });
+  } catch (error) {
+    console.error("Profile image upload error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: error.message || "Upload failed." });
+  }
+}
+
+router.post(
+  "/setup-profile-image",
+  upload.single("file"),
+  handleProfileImageUpload,
+);
+
 // ── POST /api/upload/profile-image ────────────────────────────────────────────
 router.post(
   "/profile-image",
   requireAuth,
   upload.single("file"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res
-          .status(400)
-          .json({ success: false, message: "No file uploaded." });
-      }
-
-      const userId = String(req.body.userId || "").trim();
-      const fileName = String(
-        req.body.fileName || req.file.originalname || "profile.jpg",
-      );
-      const mimeType = req.file.mimetype || "image/jpeg";
-
-      const url = await cloudinaryService.uploadProfileImage(
-        req.file.buffer,
-        fileName,
-        mimeType,
-        userId,
-      );
-
-      return res.json({ success: true, path: url });
-    } catch (error) {
-      console.error("Profile image upload error:", error);
-      return res
-        .status(500)
-        .json({ success: false, message: error.message || "Upload failed." });
-    }
-  },
+  handleProfileImageUpload,
 );
 
 // ── POST /api/upload/partner-logo ─────────────────────────────────────────────

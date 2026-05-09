@@ -246,6 +246,21 @@
               </div>
             </div>
           </section>
+
+          <section class="settings-section-card">
+            <h4>Configuration Setup Engine</h4>
+            <p class="settings-help-text">
+              Re-run guided setup for department onboarding and storage
+              configuration.
+            </p>
+            <button
+              id="settings-open-config-btn"
+              class="settings-secondary-btn"
+              type="button"
+            >
+              Open Configuration Setup Engine
+            </button>
+          </section>
         </div>
 
         <div class="settings-modal-footer">
@@ -274,6 +289,371 @@
       </div>
     </div>
 
+    <div
+      id="config-setup-modal"
+      class="config-setup-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="config-setup-title"
+    >
+      <div class="config-setup-content">
+        <div class="config-setup-header">
+          <div>
+            <p class="config-setup-kicker">Windows-Style Guided Setup</p>
+            <h3 id="config-setup-title">Configuration Setup Engine</h3>
+          </div>
+          <button
+            id="config-setup-close-btn"
+            class="config-setup-close-btn"
+            type="button"
+            aria-label="Close configuration setup"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div class="config-setup-progress" aria-hidden="true">
+          <span class="config-step-pill" data-step-pill="1">1</span>
+          <span class="config-step-pill" data-step-pill="2">2</span>
+          <span class="config-step-pill" data-step-pill="3">3</span>
+          <span class="config-step-pill" data-step-pill="4">4</span>
+          <span class="config-step-pill" data-step-pill="5">5</span>
+          <span class="config-step-pill" data-step-pill="6">6</span>
+        </div>
+
+        <div class="config-setup-body">
+          <section class="config-step-panel" data-step="1">
+            <h4>Step 1: Choose Department</h4>
+            <p>Select which department will use this system.</p>
+            <p class="config-department-card-help">
+              Choose one department card below. The selected department will be
+              used for admin creation, Google Drive setup, and local storage.
+            </p>
+            <div
+              id="config-department-cards"
+              class="config-department-cards"
+              role="listbox"
+              aria-label="Department selection"
+            ></div>
+            <select
+              id="config-department-select"
+              class="settings-select config-department-select-hidden"
+              aria-hidden="true"
+              tabindex="-1"
+            >
+              <option value="">Loading departments...</option>
+            </select>
+          </section>
+
+          <section class="config-step-panel" data-step="2">
+            <h4>Step 2: Create Department Admin</h4>
+            <p>
+              No active admin was found for this department. Enter administrator
+              details and verify using OTP sent to email.
+            </p>
+            <div class="config-admin-card">
+              <div class="config-admin-profile-wrap">
+                <div class="config-admin-avatar-wrap">
+                  <img
+                    id="config-admin-profile-preview"
+                    class="config-admin-avatar-img"
+                    src=""
+                    alt="Admin profile preview"
+                  />
+                  <span
+                    id="config-admin-profile-fallback"
+                    class="config-admin-avatar-fallback"
+                    >AD</span
+                  >
+                </div>
+                <input id="config-admin-profile-image" type="hidden" />
+                <button
+                  id="config-admin-upload-profile-btn"
+                  class="settings-secondary-btn"
+                  type="button"
+                >
+                  Select Profile Image
+                </button>
+              </div>
+
+              <div class="config-form-grid">
+                <label class="settings-label" for="config-admin-user-id"
+                  >User ID</label
+                >
+                <input
+                  id="config-admin-user-id"
+                  class="settings-input"
+                  type="text"
+                  readonly
+                  placeholder="Auto-generated"
+                />
+
+                <label class="settings-label" for="config-admin-department"
+                  >Department</label
+                >
+                <input
+                  id="config-admin-department"
+                  class="settings-input"
+                  type="text"
+                  readonly
+                />
+
+                <label class="settings-label" for="config-admin-name"
+                  >Full Name</label
+                >
+                <input
+                  id="config-admin-name"
+                  class="settings-input"
+                  type="text"
+                />
+
+                <label class="settings-label" for="config-admin-email"
+                  >Email</label
+                >
+                <input
+                  id="config-admin-email"
+                  class="settings-input"
+                  type="email"
+                />
+
+                <label class="settings-label" for="config-admin-password"
+                  >Password</label
+                >
+                <div class="config-password-wrapper">
+                  <input
+                    id="config-admin-password"
+                    class="settings-input"
+                    type="password"
+                    placeholder="At least 8 characters with letters and numbers"
+                  />
+                  <button
+                    id="config-toggle-password-btn"
+                    class="config-toggle-password-btn"
+                    type="button"
+                    aria-label="Show password"
+                  >
+                    <svg
+                      id="config-password-eye-icon"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    ></svg>
+                  </button>
+                </div>
+
+                <label
+                  class="settings-label"
+                  for="config-admin-confirm-password"
+                  >Confirm Password</label
+                >
+                <div class="config-password-wrapper">
+                  <input
+                    id="config-admin-confirm-password"
+                    class="settings-input"
+                    type="password"
+                    placeholder="Re-enter password"
+                  />
+                  <button
+                    id="config-toggle-confirm-password-btn"
+                    class="config-toggle-password-btn"
+                    type="button"
+                    aria-label="Show confirm password"
+                  >
+                    <svg
+                      id="config-confirm-password-eye-icon"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    ></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="config-inline-actions">
+              <button
+                id="config-send-otp-btn"
+                class="settings-secondary-btn"
+                type="button"
+              >
+                Get OTP
+              </button>
+            </div>
+          </section>
+
+          <section class="config-step-panel" data-step="3">
+            <h4>Step 3: Google Drive Authentication</h4>
+            <p>
+              Choose and authorize the Google account that will store thesis and
+              capstone files.
+            </p>
+            <div class="settings-auth-row">
+              <span id="config-gdrive-status" class="settings-status-chip"
+                >Checking status...</span
+              >
+              <button
+                id="config-gdrive-auth-btn"
+                class="settings-secondary-btn"
+                type="button"
+              >
+                Authenticate Google Drive
+              </button>
+            </div>
+          </section>
+
+          <section class="config-step-panel" data-step="4">
+            <h4>Step 4: Local Storage Path</h4>
+            <p>
+              Select a local storage folder. A default department folder is
+              generated automatically.
+            </p>
+            <div class="settings-path-row">
+              <input
+                id="config-local-path"
+                class="settings-input"
+                type="text"
+                readonly
+              />
+              <button
+                id="config-browse-path-btn"
+                class="settings-secondary-btn"
+                type="button"
+              >
+                Browse
+              </button>
+            </div>
+            <button
+              id="config-reset-path-btn"
+              class="settings-link-btn"
+              type="button"
+            >
+              Use default department folder
+            </button>
+          </section>
+
+          <section class="config-step-panel" data-step="5">
+            <h4>Step 5: Setup Complete</h4>
+            <p>
+              Thank you. Your configuration has been saved. Click proceed to go
+              directly to the administrator page.
+            </p>
+            <div class="config-thank-card">
+              <p id="config-summary-line">Department setup is ready.</p>
+            </div>
+          </section>
+
+          <section class="config-step-panel" data-step="6">
+            <h4>Step 6: Login</h4>
+            <p>
+              An admin account already exists in this department. Continue to
+              login.
+            </p>
+          </section>
+        </div>
+
+        <div class="config-setup-footer">
+          <p
+            id="config-setup-feedback"
+            class="settings-feedback"
+            aria-live="polite"
+          ></p>
+          <div class="config-footer-actions">
+            <button
+              id="config-back-btn"
+              class="settings-cancel-btn"
+              type="button"
+            >
+              Back
+            </button>
+            <button
+              id="config-cancel-btn"
+              class="settings-cancel-btn"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              id="config-next-btn"
+              class="settings-save-btn"
+              type="button"
+            >
+              Next
+            </button>
+            <button
+              id="config-proceed-admin-btn"
+              class="settings-save-btn"
+              type="button"
+            >
+              Proceed to Admin Page
+            </button>
+            <button
+              id="config-proceed-login-btn"
+              class="settings-save-btn"
+              type="button"
+            >
+              Proceed to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="config-otp-modal"
+      class="config-otp-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="config-otp-title"
+      aria-describedby="config-otp-help"
+    >
+      <div class="config-otp-content">
+        <div class="config-otp-header">
+          <h4 id="config-otp-title">Verify OTP</h4>
+          <button
+            id="config-otp-close-btn"
+            class="config-otp-close-btn"
+            type="button"
+            aria-label="Close OTP verification"
+          >
+            &times;
+          </button>
+        </div>
+        <p id="config-otp-help" class="config-otp-help">
+          Enter the 6-digit code sent to <span id="config-otp-email"></span>.
+        </p>
+        <label class="settings-label" for="config-admin-otp">OTP Code</label>
+        <input
+          id="config-admin-otp"
+          class="settings-input"
+          type="text"
+          maxlength="6"
+          placeholder="Enter 6-digit OTP"
+        />
+        <p
+          id="config-otp-feedback"
+          class="settings-feedback"
+          aria-live="polite"
+        ></p>
+        <div class="config-otp-actions">
+          <button
+            id="config-otp-cancel-btn"
+            class="settings-cancel-btn"
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            id="config-verify-create-btn"
+            class="settings-save-btn"
+            type="button"
+          >
+            Verify OTP and Create Admin
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
       window.addEventListener("load", function () {
         const loadingScreen = document.getElementById("loading-screen");
@@ -298,6 +678,9 @@
           "settings-cancel-btn",
         );
         const settingsSaveBtn = document.getElementById("settings-save-btn");
+        const settingsSetupBtn = document.getElementById(
+          "settings-open-config-btn",
+        );
         const departmentSelect = document.getElementById(
           "settings-department-select",
         );
@@ -316,20 +699,280 @@
           "settings-gdrive-signout-btn",
         );
         const settingsFeedback = document.getElementById("settings-feedback");
+
+        const configSetupModal = document.getElementById("config-setup-modal");
+        const configSetupCloseBtn = document.getElementById(
+          "config-setup-close-btn",
+        );
+        const configStepPanels = Array.from(
+          document.querySelectorAll(".config-step-panel"),
+        );
+        const configStepPills = Array.from(
+          document.querySelectorAll(".config-step-pill"),
+        );
+        const configSetupBody = document.querySelector(".config-setup-body");
+        const configSetupFeedback = document.getElementById(
+          "config-setup-feedback",
+        );
+        const configDepartmentCards = document.getElementById(
+          "config-department-cards",
+        );
+        const configDepartmentSelect = document.getElementById(
+          "config-department-select",
+        );
+        const configAdminName = document.getElementById("config-admin-name");
+        const configAdminEmail = document.getElementById("config-admin-email");
+        const configAdminUserId = document.getElementById(
+          "config-admin-user-id",
+        );
+        const configAdminDepartment = document.getElementById(
+          "config-admin-department",
+        );
+        const configAdminProfileImageInput = document.getElementById(
+          "config-admin-profile-image",
+        );
+        const configAdminProfilePreview = document.getElementById(
+          "config-admin-profile-preview",
+        );
+        const configAdminProfileFallback = document.getElementById(
+          "config-admin-profile-fallback",
+        );
+        const configAdminUploadProfileBtn = document.getElementById(
+          "config-admin-upload-profile-btn",
+        );
+        const configAdminPassword = document.getElementById(
+          "config-admin-password",
+        );
+        const configAdminConfirmPassword = document.getElementById(
+          "config-admin-confirm-password",
+        );
+        const configTogglePasswordBtn = document.getElementById(
+          "config-toggle-password-btn",
+        );
+        const configPasswordEyeIcon = document.getElementById(
+          "config-password-eye-icon",
+        );
+        const configToggleConfirmPasswordBtn = document.getElementById(
+          "config-toggle-confirm-password-btn",
+        );
+        const configConfirmPasswordEyeIcon = document.getElementById(
+          "config-confirm-password-eye-icon",
+        );
+        const configAdminOtp = document.getElementById("config-admin-otp");
+        const configSendOtpBtn = document.getElementById("config-send-otp-btn");
+        const configVerifyCreateBtn = document.getElementById(
+          "config-verify-create-btn",
+        );
+        const configGdriveStatusChip = document.getElementById(
+          "config-gdrive-status",
+        );
+        const configGdriveAuthBtn = document.getElementById(
+          "config-gdrive-auth-btn",
+        );
+        const configOtpModal = document.getElementById("config-otp-modal");
+        const configOtpCloseBtn = document.getElementById(
+          "config-otp-close-btn",
+        );
+        const configOtpCancelBtn = document.getElementById(
+          "config-otp-cancel-btn",
+        );
+        const configOtpEmail = document.getElementById("config-otp-email");
+        const configOtpFeedback = document.getElementById(
+          "config-otp-feedback",
+        );
+        const configLocalPathInput =
+          document.getElementById("config-local-path");
+        const configBrowsePathBtn = document.getElementById(
+          "config-browse-path-btn",
+        );
+        const configResetPathBtn = document.getElementById(
+          "config-reset-path-btn",
+        );
+        const configSummaryLine = document.getElementById(
+          "config-summary-line",
+        );
+        const configBackBtn = document.getElementById("config-back-btn");
+        const configCancelBtn = document.getElementById("config-cancel-btn");
+        const configNextBtn = document.getElementById("config-next-btn");
+        const configProceedAdminBtn = document.getElementById(
+          "config-proceed-admin-btn",
+        );
+        const configProceedLoginBtn = document.getElementById(
+          "config-proceed-login-btn",
+        );
+
         const electronAPI = window.electronAPI || null;
         const loginPath = "../modules/m1_archive/login.html";
+        const adminPath =
+          "../modules/m1_archive/adminpage/htmls/1main_menu.html";
+
         let revealTimer = null;
+        let setupUserIdDebounceTimer = null;
         let availableDepartments = [];
         let settingsDraft = {
           department: null,
           localDocumentsPath: "",
+          setup: {
+            completed: false,
+            completedAt: "",
+            completedDepartmentCode: "",
+          },
         };
+
+        const setupState = {
+          currentStep: 1,
+          lastRenderedStep: null,
+          fromSettings: false,
+          mandatory: false,
+          department: null,
+          userIdSeedByDepartment: {},
+          gdriveAuthorized: false,
+          adminCreated: false,
+          otpSent: false,
+          completedThisSession: false,
+          pendingAdminCredentials: {
+            name: "",
+            email: "",
+            user_id: "",
+            password: "",
+            profile_image: "",
+          },
+        };
+
+        function getInitials(value) {
+          const words = String(value || "")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+          if (!words.length) return "AD";
+          if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+          return `${words[0][0] || ""}${words[1][0] || ""}`.toUpperCase();
+        }
+
+        function currentYearTwoDigits() {
+          return String(new Date().getFullYear()).slice(-2);
+        }
+
+        function parseSetupAdminUserId(value) {
+          const match = String(value || "")
+            .trim()
+            .toUpperCase()
+            .match(/^A(\d{2})-(\d{5})$/);
+          if (!match) return null;
+          return {
+            prefix: "A",
+            year: match[1],
+            seq: Number.parseInt(match[2], 10),
+          };
+        }
+
+        function getSetupDepartmentCode() {
+          const department =
+            setupState.department || getConfigSelectedDepartment();
+          return String(department?.department_code || "CCS")
+            .trim()
+            .toUpperCase();
+        }
+
+        function ensureSetupUserIdSeedFallback(departmentCode) {
+          const code = String(departmentCode || "CCS")
+            .trim()
+            .toUpperCase();
+          const existing = setupState.userIdSeedByDepartment[code];
+          if (existing) return existing;
+
+          const fromCurrent = parseSetupAdminUserId(
+            configAdminUserId.value || "",
+          );
+          const fallbackYear = currentYearTwoDigits();
+          const seed = {
+            year: fromCurrent?.year || fallbackYear,
+            seq: Number.isFinite(fromCurrent?.seq) ? fromCurrent.seq : 1,
+          };
+          setupState.userIdSeedByDepartment[code] = seed;
+          return seed;
+        }
+
+        function applyLiveSetupAdminUserId() {
+          const departmentCode = getSetupDepartmentCode();
+          configAdminDepartment.value = departmentCode;
+
+          const seed = ensureSetupUserIdSeedFallback(departmentCode);
+          const currentYear = currentYearTwoDigits();
+          if (seed.year !== currentYear) {
+            seed.year = currentYear;
+            seed.seq = 1;
+          }
+
+          configAdminUserId.value = `A${seed.year}-${String(seed.seq).padStart(5, "0")}`;
+        }
+
+        function showConfigOtpFeedback(message, tone) {
+          configOtpFeedback.textContent = String(message || "");
+          configOtpFeedback.classList.remove("success", "error");
+          if (tone === "success" || tone === "error") {
+            configOtpFeedback.classList.add(tone);
+          }
+        }
+
+        function setSetupProfilePreview(path) {
+          const imagePath = String(path || "").trim();
+          if (imagePath) {
+            configAdminProfilePreview.src = imagePath;
+            configAdminProfilePreview.classList.add("is-visible");
+            configAdminProfileFallback.classList.add("is-hidden");
+          } else {
+            configAdminProfilePreview.src = "";
+            configAdminProfilePreview.classList.remove("is-visible");
+            configAdminProfileFallback.classList.remove("is-hidden");
+          }
+        }
+
+        function refreshSetupProfileFallbackName() {
+          configAdminProfileFallback.textContent = getInitials(
+            configAdminName.value || "",
+          );
+        }
+
+        function updatePasswordToggleUi(inputEl, buttonEl, iconEl, label) {
+          const isVisible = inputEl.type === "text";
+          buttonEl.setAttribute(
+            "aria-label",
+            isVisible ? `Hide ${label}` : `Show ${label}`,
+          );
+          iconEl.innerHTML = isVisible
+            ? '<path d="M3 3L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.58 10.58A2 2 0 0 0 13.42 13.42" stroke="currentColor" stroke-width="2"/><path d="M9.88 4.24A10.75 10.75 0 0 1 12 4C19 4 23 12 23 12A20.15 20.15 0 0 1 17.95 17.66" stroke="currentColor" stroke-width="2"/><path d="M6.1 6.1A20.35 20.35 0 0 0 1 12S5 20 12 20A10.7 10.7 0 0 0 15.9 19.26" stroke="currentColor" stroke-width="2"/>'
+            : '<path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>';
+        }
+
+        function updateConfigPasswordToggleUi() {
+          updatePasswordToggleUi(
+            configAdminPassword,
+            configTogglePasswordBtn,
+            configPasswordEyeIcon,
+            "password",
+          );
+          updatePasswordToggleUi(
+            configAdminConfirmPassword,
+            configToggleConfirmPasswordBtn,
+            configConfirmPasswordEyeIcon,
+            "confirm password",
+          );
+        }
 
         function showSettingsFeedback(message, tone) {
           settingsFeedback.textContent = String(message || "");
           settingsFeedback.classList.remove("success", "error");
           if (tone === "success" || tone === "error") {
             settingsFeedback.classList.add(tone);
+          }
+        }
+
+        function showConfigFeedback(message, tone) {
+          configSetupFeedback.textContent = String(message || "");
+          configSetupFeedback.classList.remove("success", "error");
+          if (tone === "success" || tone === "error") {
+            configSetupFeedback.classList.add(tone);
           }
         }
 
@@ -369,6 +1012,68 @@
             availableDepartments[0]
           ) {
             departmentSelect.value = String(availableDepartments[0].id);
+          }
+        }
+
+        function renderConfigDepartmentOptions(preferredDepartment) {
+          const preferredId = String(preferredDepartment?.id ?? "").trim();
+          const preferredCode = String(
+            preferredDepartment?.department_code || "",
+          ).trim();
+
+          if (
+            !Array.isArray(availableDepartments) ||
+            availableDepartments.length === 0
+          ) {
+            configDepartmentCards.innerHTML =
+              '<p class="config-department-cards-empty">No departments available</p>';
+            configDepartmentSelect.innerHTML =
+              '<option value="">No departments available</option>';
+            return;
+          }
+
+          configDepartmentSelect.innerHTML = availableDepartments
+            .map((dept) => {
+              const id = String(dept?.id ?? "").trim();
+              const code = String(dept?.department_code || "").trim();
+              const name = String(dept?.department_name || "").trim();
+              const label = code ? `${code} - ${name}` : name;
+              const isSelected =
+                (preferredId && id === preferredId) ||
+                (!preferredId && preferredCode && code === preferredCode);
+              return `<option value="${id}" ${isSelected ? "selected" : ""}>${label}</option>`;
+            })
+            .join("");
+
+          configDepartmentCards.innerHTML = availableDepartments
+            .map((dept) => {
+              const id = String(dept?.id ?? "").trim();
+              const code = String(dept?.department_code || "").trim();
+              const name = String(dept?.department_name || "").trim();
+              const logo = String(dept?.logo_url || "").trim();
+              const isSelected =
+                (preferredId && id === preferredId) ||
+                (!preferredId && preferredCode && code === preferredCode);
+              const safeCode = code.replace(/"/g, "&quot;");
+              const safeName = name.replace(/"/g, "&quot;");
+              const logoMarkup = logo
+                ? `<img class="config-department-card-logo" src="${logo}" alt="${safeCode || safeName} logo" />`
+                : `<span class="config-department-card-fallback">${(code || name || "DP").slice(0, 3).toUpperCase()}</span>`;
+
+              return `<button type="button" class="config-department-card${isSelected ? " is-selected" : ""}" data-department-id="${id}" data-department-code="${safeCode}" aria-selected="${isSelected ? "true" : "false"}"><span class="config-department-card-media">${logoMarkup}</span><span class="config-department-card-copy"><strong>${code || "Department"}</strong><span>${name || "Unnamed Department"}</span></span></button>`;
+            })
+            .join("");
+
+          if (!configDepartmentSelect.value && availableDepartments[0]) {
+            configDepartmentSelect.value = String(availableDepartments[0].id);
+          }
+
+          const initialDepartment =
+            getConfigSelectedDepartment() ||
+            preferredDepartment ||
+            availableDepartments[0];
+          if (initialDepartment) {
+            setConfigDepartmentSelection(initialDepartment);
           }
         }
 
@@ -413,12 +1118,42 @@
           return "CCS";
         }
 
+        function setConfigDepartmentSelection(department) {
+          const targetId = String(department?.id ?? "").trim();
+          if (!targetId) return;
+
+          configDepartmentSelect.value = targetId;
+          setupState.department = department;
+
+          Array.from(
+            configDepartmentCards.querySelectorAll(".config-department-card"),
+          ).forEach((card) => {
+            const isSelected =
+              String(card.dataset.departmentId || "").trim() === targetId;
+            card.classList.toggle("is-selected", isSelected);
+            card.setAttribute("aria-selected", isSelected ? "true" : "false");
+          });
+        }
+
+        function getConfigSelectedDepartment() {
+          const selectedId = String(configDepartmentSelect.value || "").trim();
+          const selectedDepartment =
+            availableDepartments.find(
+              (dept) => String(dept?.id ?? "").trim() === selectedId,
+            ) || null;
+
+          if (selectedDepartment) return selectedDepartment;
+          return setupState.department || null;
+        }
+
         async function loadDepartments() {
           if (
             !electronAPI ||
             typeof electronAPI.getDepartments !== "function"
           ) {
             departmentSelect.innerHTML =
+              '<option value="">Department API unavailable</option>';
+            configDepartmentSelect.innerHTML =
               '<option value="">Department API unavailable</option>';
             return;
           }
@@ -427,6 +1162,8 @@
           if (!result || !result.success) {
             availableDepartments = [];
             departmentSelect.innerHTML =
+              '<option value="">Failed to load departments</option>';
+            configDepartmentSelect.innerHTML =
               '<option value="">Failed to load departments</option>';
             return;
           }
@@ -441,7 +1178,15 @@
             !electronAPI ||
             typeof electronAPI.getAppSettings !== "function"
           ) {
-            settingsDraft = { department: null, localDocumentsPath: "" };
+            settingsDraft = {
+              department: null,
+              localDocumentsPath: "",
+              setup: {
+                completed: false,
+                completedAt: "",
+                completedDepartmentCode: "",
+              },
+            };
             return;
           }
 
@@ -457,6 +1202,20 @@
                 ? loaded.department
                 : null,
             localDocumentsPath: String(loaded.localDocumentsPath || "").trim(),
+            setup:
+              loaded.setup && typeof loaded.setup === "object"
+                ? {
+                    completed: loaded.setup.completed === true,
+                    completedAt: String(loaded.setup.completedAt || ""),
+                    completedDepartmentCode: String(
+                      loaded.setup.completedDepartmentCode || "",
+                    ),
+                  }
+                : {
+                    completed: false,
+                    completedAt: "",
+                    completedDepartmentCode: "",
+                  },
           };
         }
 
@@ -471,7 +1230,6 @@
             getSelectedDepartmentCode() ||
             "CCS";
 
-          // Show immediate visual feedback while folder path is being resolved.
           localPathInput.value = `Updating... Documents/CTA Files/Documents/${departmentCode}`;
 
           if (
@@ -509,6 +1267,29 @@
           return true;
         }
 
+        async function ensureConfigLocalPathForDepartment(department) {
+          const departmentCode =
+            String(department?.department_code || "").trim() || "CCS";
+
+          if (
+            !electronAPI ||
+            typeof electronAPI.ensureDepartmentDocumentsDirectory !== "function"
+          ) {
+            configLocalPathInput.value = `Documents/CTA Files/Documents/${departmentCode}`;
+            return;
+          }
+
+          const result =
+            await electronAPI.ensureDepartmentDocumentsDirectory(
+              departmentCode,
+            );
+          if (result && result.success && result.path) {
+            configLocalPathInput.value = String(result.path);
+          } else {
+            configLocalPathInput.value = `Documents/CTA Files/Documents/${departmentCode}`;
+          }
+        }
+
         function openSettingsModal() {
           settingsModal.classList.add("is-open");
           showSettingsFeedback("", "");
@@ -534,6 +1315,163 @@
           settingsModal.classList.remove("is-open");
         }
 
+        function updateSetupProgress() {
+          configStepPills.forEach((pill) => {
+            const value = Number.parseInt(pill.dataset.stepPill, 10);
+            const isActive = value === setupState.currentStep;
+            const isDone = value < setupState.currentStep;
+            pill.classList.toggle("active", isActive);
+            pill.classList.toggle("done", isDone);
+          });
+        }
+
+        function renderSetupStep() {
+          updateSetupProgress();
+          const previousStep = Number(setupState.lastRenderedStep || 0);
+          const direction =
+            previousStep && setupState.currentStep < previousStep
+              ? "backward"
+              : "forward";
+
+          if (configSetupBody) {
+            configSetupBody.dataset.stepDirection = direction;
+          }
+
+          configStepPanels.forEach((panel) => {
+            const panelStep = Number.parseInt(panel.dataset.step, 10);
+            panel.classList.remove(
+              "step-enter-forward",
+              "step-enter-backward",
+              "step-exit-forward",
+              "step-exit-backward",
+            );
+
+            const isActive = panelStep === setupState.currentStep;
+            const isLeaving =
+              previousStep && panelStep === previousStep && !isActive;
+
+            if (isActive) {
+              panel.classList.add("active");
+              panel.classList.add(
+                direction === "backward"
+                  ? "step-enter-backward"
+                  : "step-enter-forward",
+              );
+            } else if (isLeaving) {
+              panel.classList.add(
+                direction === "backward"
+                  ? "step-exit-backward"
+                  : "step-exit-forward",
+              );
+              window.setTimeout(function () {
+                panel.classList.remove(
+                  "step-exit-forward",
+                  "step-exit-backward",
+                );
+              }, 260);
+              panel.classList.remove("active");
+            } else {
+              panel.classList.remove("active");
+            }
+          });
+
+          setupState.lastRenderedStep = setupState.currentStep;
+
+          configBackBtn.style.display =
+            setupState.currentStep > 1 && setupState.currentStep < 5
+              ? "inline-flex"
+              : "none";
+          configNextBtn.style.display = [1, 3, 4].includes(
+            setupState.currentStep,
+          )
+            ? "inline-flex"
+            : "none";
+          configProceedAdminBtn.style.display =
+            setupState.currentStep === 5 ? "inline-flex" : "none";
+          configProceedLoginBtn.style.display =
+            setupState.currentStep === 6 ? "inline-flex" : "none";
+        }
+
+        function openConfigSetupModal({
+          fromSettings = false,
+          mandatory = false,
+        } = {}) {
+          setupState.fromSettings = fromSettings;
+          setupState.mandatory = mandatory;
+          setupState.currentStep = 1;
+          setupState.lastRenderedStep = null;
+          setupState.department =
+            settingsDraft.department || availableDepartments[0] || null;
+          setupState.gdriveAuthorized = false;
+          setupState.adminCreated = false;
+          setupState.otpSent = false;
+          setupState.completedThisSession = false;
+          setupState.pendingAdminCredentials = {
+            name: "",
+            email: "",
+            user_id: "",
+            password: "",
+            profile_image: "",
+          };
+
+          renderConfigDepartmentOptions(setupState.department);
+          if (setupState.department) {
+            ensureConfigLocalPathForDepartment(setupState.department);
+          }
+
+          configAdminName.value = "";
+          configAdminEmail.value = "";
+          configAdminUserId.value = "";
+          configAdminDepartment.value = "";
+          configAdminProfileImageInput.value = "";
+          setSetupProfilePreview("");
+          refreshSetupProfileFallbackName();
+          configAdminPassword.value = "";
+          configAdminConfirmPassword.value = "";
+          configAdminPassword.type = "password";
+          configAdminConfirmPassword.type = "password";
+          updateConfigPasswordToggleUi();
+          configAdminOtp.value = "";
+          showConfigOtpFeedback("", "");
+          showConfigFeedback("", "");
+          renderSetupStep();
+          configSetupModal.classList.add("is-open");
+        }
+
+        function openConfigOtpModal() {
+          configAdminOtp.value = "";
+          configOtpEmail.textContent =
+            setupState.pendingAdminCredentials.email ||
+            "the administrator email";
+          showConfigOtpFeedback("", "");
+          configOtpModal.classList.add("is-open");
+          window.setTimeout(function () {
+            configAdminOtp.focus();
+          }, 10);
+        }
+
+        function closeConfigOtpModal() {
+          configOtpModal.classList.remove("is-open");
+          configAdminOtp.value = "";
+          showConfigOtpFeedback("", "");
+        }
+
+        function closeConfigSetupModal({ force = false } = {}) {
+          if (
+            !force &&
+            setupState.mandatory &&
+            !setupState.completedThisSession
+          ) {
+            showConfigFeedback(
+              "Complete setup first before leaving this screen.",
+              "error",
+            );
+            return;
+          }
+          closeConfigOtpModal();
+          configSetupModal.classList.remove("is-open");
+        }
+
         async function refreshGoogleDriveAuthStatus() {
           if (
             !electronAPI ||
@@ -542,7 +1480,7 @@
             gdriveStatusChip.textContent = "Google Drive API unavailable";
             gdriveStatusChip.classList.remove("connected");
             gdriveStatusChip.classList.add("disconnected");
-            return;
+            return false;
           }
 
           const authResult = await electronAPI.checkGoogleDriveAuth();
@@ -555,6 +1493,33 @@
             : "Not Connected";
           gdriveStatusChip.classList.toggle("connected", connected);
           gdriveStatusChip.classList.toggle("disconnected", !connected);
+          return connected;
+        }
+
+        async function refreshConfigGoogleDriveStatus() {
+          if (
+            !electronAPI ||
+            typeof electronAPI.checkGoogleDriveAuth !== "function"
+          ) {
+            configGdriveStatusChip.textContent = "Google Drive API unavailable";
+            configGdriveStatusChip.classList.remove("connected");
+            configGdriveStatusChip.classList.add("disconnected");
+            setupState.gdriveAuthorized = false;
+            return false;
+          }
+
+          const authResult = await electronAPI.checkGoogleDriveAuth();
+          const connected = Boolean(
+            authResult && authResult.success && authResult.isAuthorized,
+          );
+
+          configGdriveStatusChip.textContent = connected
+            ? "Connected"
+            : "Not Connected";
+          configGdriveStatusChip.classList.toggle("connected", connected);
+          configGdriveStatusChip.classList.toggle("disconnected", !connected);
+          setupState.gdriveAuthorized = connected;
+          return connected;
         }
 
         async function bootstrapSettingsModal() {
@@ -604,7 +1569,10 @@
             return;
           }
 
-          settingsDraft = result.settings || payload;
+          settingsDraft = {
+            ...settingsDraft,
+            ...(result.settings || payload),
+          };
           try {
             localStorage.setItem(
               "sas.app.settings",
@@ -614,6 +1582,33 @@
 
           showSettingsFeedback("Settings saved successfully.", "success");
           window.setTimeout(closeSettingsModal, 320);
+        }
+
+        async function markSetupCompletion(departmentCode) {
+          if (
+            electronAPI &&
+            typeof electronAPI.markConfigurationSetupCompleted === "function"
+          ) {
+            const result = await electronAPI.markConfigurationSetupCompleted({
+              departmentCode,
+            });
+            if (result && result.success && result.settings) {
+              settingsDraft = { ...settingsDraft, ...result.settings };
+              return true;
+            }
+            showConfigFeedback(
+              result?.message || "Failed to finalize setup.",
+              "error",
+            );
+            return false;
+          }
+
+          settingsDraft.setup = {
+            completed: true,
+            completedAt: new Date().toISOString(),
+            completedDepartmentCode: String(departmentCode || "").trim(),
+          };
+          return true;
         }
 
         function showOfflineBlocker() {
@@ -649,8 +1644,494 @@
           return true;
         }
 
+        async function maybeLaunchFirstRunSetup() {
+          if (
+            !electronAPI ||
+            typeof electronAPI.getConfigurationSetupStatus !== "function"
+          ) {
+            return;
+          }
+
+          const result = await electronAPI.getConfigurationSetupStatus();
+          if (!result || !result.success) return;
+
+          if (result.settings && typeof result.settings === "object") {
+            settingsDraft = {
+              ...settingsDraft,
+              ...result.settings,
+            };
+            syncSettingsForm();
+          }
+
+          if (result.requiresSetup) {
+            openConfigSetupModal({ fromSettings: false, mandatory: true });
+          }
+        }
+
+        async function refreshSetupAdminUserId() {
+          const departmentCode = getSetupDepartmentCode();
+          configAdminDepartment.value = departmentCode;
+
+          if (setupState.userIdSeedByDepartment[departmentCode]) {
+            applyLiveSetupAdminUserId();
+            return;
+          }
+
+          if (
+            !electronAPI ||
+            typeof electronAPI.getSetupNextAdminUserId !== "function"
+          ) {
+            applyLiveSetupAdminUserId();
+            return;
+          }
+
+          let result;
+          try {
+            result = await electronAPI.getSetupNextAdminUserId(departmentCode);
+          } catch (error) {
+            const message = String(error?.message || "");
+            if (/No handler registered/i.test(message)) {
+              applyLiveSetupAdminUserId();
+              return;
+            }
+
+            showConfigFeedback(
+              error?.message || "Failed to generate admin user ID.",
+              "error",
+            );
+            applyLiveSetupAdminUserId();
+            return;
+          }
+
+          if (!result || !result.success || !result.user_id) {
+            showConfigFeedback(
+              result?.message || "Failed to generate admin user ID.",
+              "error",
+            );
+            applyLiveSetupAdminUserId();
+            return;
+          }
+
+          const parsed = parseSetupAdminUserId(result.user_id);
+          setupState.userIdSeedByDepartment[departmentCode] = {
+            year: parsed?.year || currentYearTwoDigits(),
+            seq: Number.isFinite(parsed?.seq) ? parsed.seq : 1,
+          };
+          applyLiveSetupAdminUserId();
+        }
+
+        function scheduleSetupAdminUserIdLiveUpdate() {
+          if (setupUserIdDebounceTimer) {
+            window.clearTimeout(setupUserIdDebounceTimer);
+          }
+          setupUserIdDebounceTimer = window.setTimeout(function () {
+            applyLiveSetupAdminUserId();
+            setupUserIdDebounceTimer = null;
+          }, 150);
+        }
+
+        async function uploadSetupProfileImage() {
+          if (!electronAPI) {
+            showConfigFeedback("Image upload API is unavailable.", "error");
+            return;
+          }
+
+          if (
+            typeof electronAPI.selectProfileImage !== "function" ||
+            typeof electronAPI.uploadProfileImage !== "function"
+          ) {
+            showConfigFeedback("Image upload API is unavailable.", "error");
+            return;
+          }
+
+          const userIdForAsset = String(configAdminUserId.value || "")
+            .trim()
+            .toUpperCase();
+          const uploadAssetKey = userIdForAsset || `SETUP-TMP-${Date.now()}`;
+
+          const picker = await electronAPI.selectProfileImage();
+          if (!picker || picker.canceled || !picker.success) return;
+
+          const uploadResult = await electronAPI.uploadProfileImage({
+            localPath: picker.localPath,
+            fileName: picker.fileName,
+            mimeType: picker.mimeType,
+            userId: uploadAssetKey,
+          });
+
+          if (!uploadResult || !uploadResult.success || !uploadResult.path) {
+            showConfigFeedback(
+              uploadResult?.message || "Profile upload failed.",
+              "error",
+            );
+            return;
+          }
+
+          const uploadedPath = String(uploadResult.path || "").trim();
+          configAdminProfileImageInput.value = uploadedPath;
+          setSetupProfilePreview(uploadedPath);
+          showConfigFeedback(
+            "Profile image uploaded to Cloudinary.",
+            "success",
+          );
+        }
+
+        async function handleStepOneNext() {
+          const selectedDepartment = getConfigSelectedDepartment();
+          if (!selectedDepartment) {
+            showConfigFeedback("Please select a department.", "error");
+            return;
+          }
+
+          setupState.department = selectedDepartment;
+          await ensureConfigLocalPathForDepartment(selectedDepartment);
+
+          if (
+            !electronAPI ||
+            typeof electronAPI.checkSetupDepartmentAdminExists !== "function"
+          ) {
+            showConfigFeedback("Setup status API is unavailable.", "error");
+            return;
+          }
+
+          showConfigFeedback("Checking existing department admin...", "");
+          const result = await electronAPI.checkSetupDepartmentAdminExists(
+            selectedDepartment.department_code,
+          );
+
+          if (!result || !result.success) {
+            showConfigFeedback(
+              result?.message || "Failed to check department admin status.",
+              "error",
+            );
+            return;
+          }
+
+          if (result.adminExists) {
+            setupState.currentStep = 6;
+            showConfigFeedback(
+              "Admin account exists. Continuing to login step.",
+              "success",
+            );
+            renderSetupStep();
+            return;
+          }
+
+          setupState.currentStep = 2;
+          showConfigFeedback("No admin found. Create first admin account.", "");
+          renderSetupStep();
+          await refreshSetupAdminUserId();
+        }
+
+        async function handleStepTwoSendOtp() {
+          const department =
+            setupState.department || getConfigSelectedDepartment();
+          if (!department) {
+            showConfigFeedback("Please select a department first.", "error");
+            return;
+          }
+
+          const name = String(configAdminName.value || "").trim();
+          const email = String(configAdminEmail.value || "")
+            .trim()
+            .toLowerCase();
+          const user_id = String(configAdminUserId.value || "")
+            .trim()
+            .toUpperCase();
+          const password = String(configAdminPassword.value || "");
+          const confirmPassword = String(
+            configAdminConfirmPassword.value || "",
+          );
+          const profile_image = String(
+            configAdminProfileImageInput.value || "",
+          ).trim();
+
+          applyLiveSetupAdminUserId();
+
+          if (!name || !email || !password || !confirmPassword) {
+            showConfigFeedback(
+              "Full Name, Email, Password, and Confirm Password are required.",
+              "error",
+            );
+            return;
+          }
+
+          if (!user_id) {
+            showConfigFeedback(
+              "User ID is still generating. Please wait.",
+              "error",
+            );
+            return;
+          }
+
+          if (password !== confirmPassword) {
+            showConfigFeedback("Passwords do not match.", "error");
+            return;
+          }
+
+          if (
+            !electronAPI ||
+            typeof electronAPI.sendSetupAdminOtp !== "function"
+          ) {
+            showConfigFeedback("Setup OTP API is unavailable.", "error");
+            return;
+          }
+
+          configSendOtpBtn.disabled = true;
+          const result = await electronAPI.sendSetupAdminOtp({
+            departmentCode: department.department_code,
+            name,
+            email,
+            user_id,
+            profile_image,
+            password,
+          });
+          configSendOtpBtn.disabled = false;
+
+          if (!result || !result.success) {
+            showConfigFeedback(
+              result?.message || "Failed to send OTP.",
+              "error",
+            );
+            return;
+          }
+
+          setupState.otpSent = true;
+          setupState.pendingAdminCredentials = {
+            name,
+            email,
+            user_id,
+            password,
+            profile_image,
+          };
+          showConfigFeedback("OTP sent successfully.", "success");
+          openConfigOtpModal();
+        }
+
+        async function handleStepTwoVerifyAndCreate() {
+          const department =
+            setupState.department || getConfigSelectedDepartment();
+          if (!department) {
+            showConfigFeedback("Department is required.", "error");
+            return;
+          }
+
+          const email = String(configAdminEmail.value || "")
+            .trim()
+            .toLowerCase();
+          const otp = String(configAdminOtp.value || "").trim();
+
+          if (!email || !otp) {
+            showConfigOtpFeedback("Email and OTP are required.", "error");
+            return;
+          }
+
+          if (
+            !electronAPI ||
+            typeof electronAPI.verifySetupAdminOtpAndCreate !== "function"
+          ) {
+            showConfigOtpFeedback(
+              "Setup verification API is unavailable.",
+              "error",
+            );
+            return;
+          }
+
+          configVerifyCreateBtn.disabled = true;
+          const result = await electronAPI.verifySetupAdminOtpAndCreate({
+            departmentCode: department.department_code,
+            email,
+            otp,
+          });
+          configVerifyCreateBtn.disabled = false;
+
+          if (!result || !result.success) {
+            showConfigOtpFeedback(
+              result?.message || "Failed to verify OTP and create admin.",
+              "error",
+            );
+            return;
+          }
+
+          closeConfigOtpModal();
+          setupState.adminCreated = true;
+          setupState.currentStep = 3;
+          showConfigFeedback("Admin created successfully.", "success");
+          await refreshConfigGoogleDriveStatus();
+          renderSetupStep();
+        }
+
+        async function handleStepThreeGoogleAuth() {
+          if (
+            !electronAPI ||
+            typeof electronAPI.authorizeGoogleDriveInteractive !== "function"
+          ) {
+            showConfigFeedback(
+              "Interactive Google Drive auth is unavailable.",
+              "error",
+            );
+            return;
+          }
+
+          configGdriveAuthBtn.disabled = true;
+          const result = await electronAPI.authorizeGoogleDriveInteractive();
+          configGdriveAuthBtn.disabled = false;
+
+          if (!result || !result.success) {
+            showConfigFeedback(
+              result?.message || "Google Drive authentication failed.",
+              "error",
+            );
+            await refreshConfigGoogleDriveStatus();
+            return;
+          }
+
+          await refreshConfigGoogleDriveStatus();
+          showConfigFeedback(
+            "Google Drive authentication successful.",
+            "success",
+          );
+        }
+
+        async function handleStepFourSaveSettingsAndContinue() {
+          const department =
+            setupState.department || getConfigSelectedDepartment();
+          if (!department) {
+            showConfigFeedback("Department is required.", "error");
+            return;
+          }
+
+          const pathValue = String(configLocalPathInput.value || "").trim();
+          if (!pathValue) {
+            showConfigFeedback("Please select a local storage path.", "error");
+            return;
+          }
+
+          if (
+            !electronAPI ||
+            typeof electronAPI.saveAppSettings !== "function"
+          ) {
+            showConfigFeedback("Settings API is unavailable.", "error");
+            return;
+          }
+
+          const result = await electronAPI.saveAppSettings({
+            department: {
+              id: department.id,
+              department_name: department.department_name,
+              department_code: department.department_code,
+              logo_url: department.logo_url || "",
+            },
+            localDocumentsPath: pathValue,
+          });
+
+          if (!result || !result.success) {
+            showConfigFeedback(
+              result?.message || "Failed to save setup settings.",
+              "error",
+            );
+            return;
+          }
+
+          settingsDraft = { ...settingsDraft, ...(result.settings || {}) };
+          setupState.currentStep = 5;
+          configSummaryLine.textContent = `Department ${department.department_code} is configured.`;
+          showConfigFeedback("Setup settings saved.", "success");
+          renderSetupStep();
+        }
+
+        async function proceedToAdminAfterSetup() {
+          const departmentCode = String(
+            setupState.department?.department_code || "CCS",
+          ).trim();
+
+          const completionSaved = await markSetupCompletion(departmentCode);
+          if (!completionSaved) return;
+
+          setupState.completedThisSession = true;
+
+          if (setupState.pendingAdminCredentials.email) {
+            const loginResult = await electronAPI.login(
+              setupState.pendingAdminCredentials.email,
+              setupState.pendingAdminCredentials.password,
+              departmentCode,
+              false,
+              "admin",
+            );
+
+            if (loginResult && loginResult.success) {
+              try {
+                if (loginResult.user && typeof loginResult.user === "object") {
+                  localStorage.setItem("user", JSON.stringify(loginResult.user));
+                }
+              } catch (_error) {}
+
+              closeConfigSetupModal({ force: true });
+              document.body.classList.add("page-exit");
+              window.setTimeout(function () {
+                window.location.href = adminPath;
+              }, 320);
+              return;
+            }
+          }
+
+          try {
+            const rawUser = localStorage.getItem("user");
+            const cachedUser = rawUser ? JSON.parse(rawUser) : null;
+            const cachedRole = String(cachedUser?.role || "")
+              .trim()
+              .toLowerCase();
+            const hasPrivilegedRole =
+              cachedRole === "admin" || cachedRole === "coordinator";
+
+            if (
+              hasPrivilegedRole &&
+              cachedUser?.user_id &&
+              electronAPI &&
+              typeof electronAPI.getProfile === "function"
+            ) {
+              const profileResult = await electronAPI.getProfile(
+                cachedUser.user_id,
+              );
+              if (profileResult && profileResult.success) {
+                closeConfigSetupModal({ force: true });
+                document.body.classList.add("page-exit");
+                window.setTimeout(function () {
+                  window.location.href = adminPath;
+                }, 320);
+                return;
+              }
+            }
+          } catch (_error) {}
+
+          closeConfigSetupModal({ force: true });
+          document.body.classList.add("page-exit");
+          window.setTimeout(function () {
+            window.location.href = loginPath;
+          }, 320);
+        }
+
+        async function proceedToLoginAfterSetup() {
+          const departmentCode = String(
+            setupState.department?.department_code || "CCS",
+          ).trim();
+
+          const completionSaved = await markSetupCompletion(departmentCode);
+          if (!completionSaved) return;
+
+          setupState.completedThisSession = true;
+          closeConfigSetupModal({ force: true });
+          document.body.classList.add("page-exit");
+          window.setTimeout(function () {
+            window.location.href = loginPath;
+          }, 320);
+        }
+
         enforceConnectivity();
-        bootstrapSettingsModal();
+
+        Promise.resolve()
+          .then(bootstrapSettingsModal)
+          .then(maybeLaunchFirstRunSetup);
 
         window.addEventListener("offline", showOfflineBlocker);
         window.addEventListener("online", enforceConnectivity);
@@ -659,6 +2140,12 @@
         settingsBtn.addEventListener("click", async function () {
           await bootstrapSettingsModal();
           openSettingsModal();
+        });
+
+        settingsSetupBtn.addEventListener("click", async function () {
+          await bootstrapSettingsModal();
+          closeSettingsModal();
+          openConfigSetupModal({ fromSettings: true, mandatory: false });
         });
 
         settingsCloseBtn.addEventListener("click", closeSettingsModal);
@@ -749,17 +2236,10 @@
           }
 
           await electronAPI.openExternalUrl(authUrlResult.authUrl);
-          if (!authUrlResult || !authUrlResult.success) {
-            showSettingsFeedback(
-              "Google Drive sign-in was not completed.",
-              "error",
-            );
-          } else {
-            showSettingsFeedback(
-              "Browser opened for Google sign-in. Complete the flow, then check the status.",
-              "success",
-            );
-          }
+          showSettingsFeedback(
+            "Browser opened for Google sign-in. Complete the flow, then check the status.",
+            "success",
+          );
 
           await refreshGoogleDriveAuthStatus();
         });
@@ -794,14 +2274,202 @@
 
         settingsSaveBtn.addEventListener("click", saveSettings);
 
+        configSetupCloseBtn.addEventListener("click", function () {
+          closeConfigSetupModal();
+        });
+
+        configSetupModal.addEventListener("click", function (event) {
+          if (event.target === configSetupModal) {
+            closeConfigSetupModal();
+          }
+        });
+
+        configOtpModal.addEventListener("click", function (event) {
+          if (event.target === configOtpModal) {
+            closeConfigOtpModal();
+          }
+        });
+
+        configOtpCloseBtn.addEventListener("click", function () {
+          closeConfigOtpModal();
+        });
+
+        configOtpCancelBtn.addEventListener("click", function () {
+          closeConfigOtpModal();
+        });
+
+        configBackBtn.addEventListener("click", function () {
+          if (setupState.currentStep > 1 && setupState.currentStep < 5) {
+            setupState.currentStep -= 1;
+            renderSetupStep();
+            showConfigFeedback("", "");
+          }
+        });
+
+        configCancelBtn.addEventListener("click", function () {
+          if (setupState.mandatory && !setupState.completedThisSession) {
+            showConfigFeedback(
+              "Setup is required on first launch. Please complete all steps.",
+              "error",
+            );
+            return;
+          }
+          closeConfigSetupModal({ force: true });
+        });
+
+        configNextBtn.addEventListener("click", async function () {
+          if (setupState.currentStep === 1) {
+            await handleStepOneNext();
+            return;
+          }
+          if (setupState.currentStep === 3) {
+            if (!setupState.gdriveAuthorized) {
+              showConfigFeedback(
+                "Please authenticate Google Drive before continuing.",
+                "error",
+              );
+              return;
+            }
+            setupState.currentStep = 4;
+            renderSetupStep();
+            showConfigFeedback("", "");
+            return;
+          }
+          if (setupState.currentStep === 4) {
+            await handleStepFourSaveSettingsAndContinue();
+          }
+        });
+
+        configSendOtpBtn.addEventListener("click", handleStepTwoSendOtp);
+        configVerifyCreateBtn.addEventListener(
+          "click",
+          handleStepTwoVerifyAndCreate,
+        );
+        configGdriveAuthBtn.addEventListener(
+          "click",
+          handleStepThreeGoogleAuth,
+        );
+
+        configTogglePasswordBtn.addEventListener("click", function () {
+          const nextType =
+            configAdminPassword.type === "password" ? "text" : "password";
+          configAdminPassword.type = nextType;
+          updateConfigPasswordToggleUi();
+        });
+
+        configToggleConfirmPasswordBtn.addEventListener("click", function () {
+          const nextType =
+            configAdminConfirmPassword.type === "password"
+              ? "text"
+              : "password";
+          configAdminConfirmPassword.type = nextType;
+          updateConfigPasswordToggleUi();
+        });
+
+        configAdminUploadProfileBtn.addEventListener(
+          "click",
+          uploadSetupProfileImage,
+        );
+
+        configAdminName.addEventListener("input", function () {
+          refreshSetupProfileFallbackName();
+          scheduleSetupAdminUserIdLiveUpdate();
+        });
+
+        configAdminEmail.addEventListener(
+          "input",
+          scheduleSetupAdminUserIdLiveUpdate,
+        );
+        configAdminPassword.addEventListener(
+          "input",
+          scheduleSetupAdminUserIdLiveUpdate,
+        );
+        configAdminConfirmPassword.addEventListener(
+          "input",
+          scheduleSetupAdminUserIdLiveUpdate,
+        );
+
+        updateConfigPasswordToggleUi();
+
+        configBrowsePathBtn.addEventListener("click", async function () {
+          if (
+            !electronAPI ||
+            typeof electronAPI.selectLocalDocumentsDirectory !== "function"
+          ) {
+            showConfigFeedback("Folder picker API is unavailable.", "error");
+            return;
+          }
+
+          const picker = await electronAPI.selectLocalDocumentsDirectory();
+          if (picker && picker.success && picker.path) {
+            configLocalPathInput.value = String(picker.path);
+          }
+        });
+
+        configResetPathBtn.addEventListener("click", async function () {
+          await ensureConfigLocalPathForDepartment(
+            setupState.department || getConfigSelectedDepartment(),
+          );
+        });
+
+        configDepartmentCards.addEventListener("click", function (event) {
+          const card = event.target.closest(".config-department-card");
+          if (!card) return;
+
+          const departmentId = String(card.dataset.departmentId || "").trim();
+          if (!departmentId) return;
+
+          const department =
+            availableDepartments.find(
+              (item) => String(item?.id ?? "").trim() === departmentId,
+            ) || null;
+          if (!department) return;
+
+          setConfigDepartmentSelection(department);
+          configDepartmentSelect.dispatchEvent(new Event("change"));
+        });
+
+        configDepartmentSelect.addEventListener("change", async function () {
+          setupState.department = getConfigSelectedDepartment();
+          if (setupState.department) {
+            setConfigDepartmentSelection(setupState.department);
+          }
+          await ensureConfigLocalPathForDepartment(setupState.department);
+          configAdminDepartment.value = String(
+            setupState.department?.department_code || "",
+          ).trim();
+          await refreshSetupAdminUserId();
+        });
+
+        configProceedAdminBtn.addEventListener(
+          "click",
+          proceedToAdminAfterSetup,
+        );
+        configProceedLoginBtn.addEventListener(
+          "click",
+          proceedToLoginAfterSetup,
+        );
+
         closeBtn.addEventListener("click", function () {
           openCloseConfirmModal();
         });
 
         document.addEventListener("keydown", function (event) {
           if (event.key !== "Escape") return;
+          if (configOtpModal.classList.contains("is-open")) {
+            closeConfigOtpModal();
+            return;
+          }
           if (closeConfirmModal.classList.contains("is-open")) {
             closeCloseConfirmModal();
+            return;
+          }
+          if (settingsModal.classList.contains("is-open")) {
+            closeSettingsModal();
+            return;
+          }
+          if (configSetupModal.classList.contains("is-open")) {
+            closeConfigSetupModal();
           }
         });
 

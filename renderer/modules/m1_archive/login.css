@@ -270,6 +270,13 @@ input:focus {
   color: var(--accent-blue);
 }
 
+.account-help-text {
+  margin: -4px 0 18px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--secondary-text);
+}
+
 /* ===============================
    LOGIN BUTTON
 =================================*/

@@ -73,9 +73,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("authorizeGoogleDriveInteractive"),
   clearGoogleDriveAuth: () => ipcRenderer.invoke("clearGoogleDriveAuth"),
   getAppSettings: () => ipcRenderer.invoke("getAppSettings"),
+  getConfigurationSetupStatus: () =>
+    ipcRenderer.invoke("getConfigurationSetupStatus"),
   getBackendDiagnostics: () => ipcRenderer.invoke("getBackendDiagnostics"),
   saveAppSettings: (settingsPatch) =>
     ipcRenderer.invoke("saveAppSettings", settingsPatch),
+  checkSetupDepartmentAdminExists: (departmentCode) =>
+    ipcRenderer.invoke("checkSetupDepartmentAdminExists", departmentCode),
+  getSetupNextAdminUserId: (departmentCode) =>
+    ipcRenderer.invoke("getSetupNextAdminUserId", departmentCode),
+  sendSetupAdminOtp: (payload) =>
+    ipcRenderer.invoke("sendSetupAdminOtp", payload),
+  verifySetupAdminOtpAndCreate: (payload) =>
+    ipcRenderer.invoke("verifySetupAdminOtpAndCreate", payload),
+  markConfigurationSetupCompleted: (payload) =>
+    ipcRenderer.invoke("markConfigurationSetupCompleted", payload),
   selectLocalDocumentsDirectory: () =>
     ipcRenderer.invoke("selectLocalDocumentsDirectory"),
   ensureDepartmentDocumentsDirectory: (departmentCode) =>

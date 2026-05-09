@@ -301,6 +301,11 @@ const DEFAULT_APP_SETTINGS = {
     logo_url: "",
   },
   localDocumentsPath: "",
+  setup: {
+    completed: false,
+    completedAt: "",
+    completedDepartmentCode: "",
+  },
 };
 
 let cachedAppSettings = null;
@@ -331,10 +336,22 @@ function normalizeDepartmentSetting(department) {
 function normalizeSettingsData(value) {
   const raw = value && typeof value === "object" ? value : {};
   const localDocumentsPath = String(raw.localDocumentsPath || "").trim();
+  const rawSetup = raw.setup && typeof raw.setup === "object" ? raw.setup : {};
+
+  const completed = rawSetup.completed === true;
+  const completedAt = String(rawSetup.completedAt || "").trim();
+  const completedDepartmentCode = String(rawSetup.completedDepartmentCode || "")
+    .trim()
+    .toUpperCase();
 
   return {
     department: normalizeDepartmentSetting(raw.department),
     localDocumentsPath,
+    setup: {
+      completed,
+      completedAt,
+      completedDepartmentCode,
+    },
   };
 }
 
@@ -420,6 +437,10 @@ async function saveAppSettingsPatch(settingsPatch = {}) {
     patch,
     "localDocumentsPath",
   );
+  const patchIncludesSetup = Object.prototype.hasOwnProperty.call(
+    patch,
+    "setup",
+  );
 
   const next = {
     ...current,
@@ -434,6 +455,47 @@ async function saveAppSettingsPatch(settingsPatch = {}) {
               ? patch.department
               : {}),
           }),
+        }
+      : {}),
+    ...(patchIncludesSetup
+      ? {
+          setup: {
+            ...(current.setup && typeof current.setup === "object"
+              ? current.setup
+              : DEFAULT_APP_SETTINGS.setup),
+            ...(patch.setup && typeof patch.setup === "object"
+              ? {
+                  ...(Object.prototype.hasOwnProperty.call(
+                    patch.setup,
+                    "completed",
+                  )
+                    ? { completed: patch.setup.completed === true }
+                    : {}),
+                  ...(Object.prototype.hasOwnProperty.call(
+                    patch.setup,
+                    "completedAt",
+                  )
+                    ? {
+                        completedAt: String(
+                          patch.setup.completedAt || "",
+                        ).trim(),
+                      }
+                    : {}),
+                  ...(Object.prototype.hasOwnProperty.call(
+                    patch.setup,
+                    "completedDepartmentCode",
+                  )
+                    ? {
+                        completedDepartmentCode: String(
+                          patch.setup.completedDepartmentCode || "",
+                        )
+                          .trim()
+                          .toUpperCase(),
+                      }
+                    : {}),
+                }
+              : {}),
+          },
         }
       : {}),
   };
@@ -1127,6 +1189,118 @@ ipcMain.handle("getAppSettings", async () => {
   }
 });
 
+ipcMain.handle("getConfigurationSetupStatus", async () => {
+  try {
+    const settings = await loadAppSettings();
+    const completed = settings?.setup?.completed === true;
+    return {
+      success: true,
+      settings,
+      completed,
+      requiresSetup: !completed,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to check setup status.",
+      settings: { ...DEFAULT_APP_SETTINGS },
+      completed: false,
+      requiresSetup: true,
+    };
+  }
+});
+
+ipcMain.handle(
+  "checkSetupDepartmentAdminExists",
+  async (event, departmentCode) => {
+    try {
+      const encodedDepartment = encodeURIComponent(
+        String(departmentCode || "")
+          .trim()
+          .toUpperCase() || "CCS",
+      );
+      return await api.get(
+        `/users/setup/admin-exists?departmentCode=${encodedDepartment}`,
+      );
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to check department admin status.",
+        adminExists: false,
+      };
+    }
+  },
+);
+
+ipcMain.handle("getSetupNextAdminUserId", async (event, departmentCode) => {
+  try {
+    const encodedDepartment = encodeURIComponent(
+      String(departmentCode || "")
+        .trim()
+        .toUpperCase() || "CCS",
+    );
+    return await api.get(
+      `/users/setup/admin/next-user-id?departmentCode=${encodedDepartment}`,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to generate admin user ID.",
+    };
+  }
+});
+
+ipcMain.handle("sendSetupAdminOtp", async (event, payload = {}) => {
+  try {
+    return await api.post("/users/setup/admin/send-otp", payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to send setup OTP.",
+    };
+  }
+});
+
+ipcMain.handle("verifySetupAdminOtpAndCreate", async (event, payload = {}) => {
+  try {
+    return await api.post("/users/setup/admin/verify-create", payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to verify setup OTP.",
+    };
+  }
+});
+
+ipcMain.handle(
+  "markConfigurationSetupCompleted",
+  async (event, payload = {}) => {
+    try {
+      const departmentCode = String(payload.departmentCode || "")
+        .trim()
+        .toUpperCase();
+      const settings = await saveAppSettingsPatch({
+        setup: {
+          completed: true,
+          completedAt: new Date().toISOString(),
+          completedDepartmentCode: departmentCode,
+        },
+      });
+
+      if (departmentCode) {
+        api.setDepartmentCode(departmentCode);
+      }
+
+      return { success: true, settings };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to mark setup completion.",
+      };
+    }
+  },
+);
+
 ipcMain.handle("getBackendDiagnostics", async () => {
   try {
     const resolvedBackendUrl = api.getBaseUrl();
@@ -1308,13 +1482,31 @@ ipcMain.handle(
   async (event, { localPath, fileName, mimeType, userId }) => {
     try {
       const fileBuffer = await fs.readFile(localPath);
-      return await api.postFile(
+      const primaryResult = await api.postFile(
         "/upload/profile-image",
         fileBuffer,
         fileName,
         mimeType,
         { userId },
       );
+
+      if (
+        primaryResult &&
+        primaryResult.success === false &&
+        /unauthorized|invalid or expired token/i.test(
+          String(primaryResult.message || ""),
+        )
+      ) {
+        return await api.postFile(
+          "/upload/setup-profile-image",
+          fileBuffer,
+          fileName,
+          mimeType,
+          { userId },
+        );
+      }
+
+      return primaryResult;
     } catch (error) {
       console.error("Profile upload error:", error);
       return {
