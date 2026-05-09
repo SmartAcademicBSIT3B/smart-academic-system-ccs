@@ -2785,15 +2785,19 @@
 
       function approveFromViewer() {
         if (currentViewerSubmissionId && currentViewerType) {
+          const subId = currentViewerSubmissionId;
+          const type = currentViewerType;
           closeFileViewer();
-          openApproveReqModal(currentViewerSubmissionId, currentViewerType);
+          openApproveReqModal(subId, type);
         }
       }
 
       function rejectFromViewer() {
         if (currentViewerSubmissionId && currentViewerType) {
+          const subId = currentViewerSubmissionId;
+          const type = currentViewerType;
           closeFileViewer();
-          openRejectReqModal(currentViewerSubmissionId, currentViewerType);
+          openRejectReqModal(subId, type);
         }
       }
 
@@ -3903,19 +3907,21 @@
 
       async function confirmApproveRequirement() {
         if (!pendingApprovalSubId) return;
+        const subId = pendingApprovalSubId;
+        const type = pendingApprovalType;
         try {
           const r = await window.electronAPI.updateOjtRequirementSubmission({
-            id: pendingApprovalSubId,
+            id: subId,
             status: "verified",
           });
           if (!r?.success) throw new Error(r?.message || "Approval failed.");
           showToast("Requirement approved.", "success");
           closeApproveReqModal();
-          await loadRequirements(pendingApprovalType);
+          await loadRequirements(type);
           notifyParentOfCoordinatorActivity(
             "requirement",
-            `approved a ${pendingApprovalType} requirement`,
-            { file_name: `Approved ${pendingApprovalType} requirement` },
+            `approved a ${type} requirement`,
+            { file_name: `Approved ${type} requirement` },
           );
         } catch (err) {
           showToast(err.message, "error");
@@ -3924,6 +3930,8 @@
 
       async function confirmRejectRequirement() {
         if (!pendingRejectionSubId) return;
+        const subId = pendingRejectionSubId;
+        const type = pendingRejectionType;
         const reason = document
           .getElementById("rejectReasonInput")
           .value.trim();
@@ -3933,18 +3941,18 @@
         }
         try {
           const r = await window.electronAPI.updateOjtRequirementSubmission({
-            id: pendingRejectionSubId,
+            id: subId,
             status: "rejected",
             notes: reason,
           });
           if (!r?.success) throw new Error(r?.message || "Rejection failed.");
           showToast("Requirement rejected.", "success");
           closeRejectReqModal();
-          await loadRequirements(pendingRejectionType);
+          await loadRequirements(type);
           notifyParentOfCoordinatorActivity(
             "requirement",
-            `rejected a ${pendingRejectionType} requirement`,
-            { file_name: `Rejected ${pendingRejectionType} requirement` },
+            `rejected a ${type} requirement`,
+            { file_name: `Rejected ${type} requirement` },
           );
         } catch (err) {
           showToast(err.message, "error");
