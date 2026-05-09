@@ -24,6 +24,208 @@ function getDept(req) {
   );
 }
 
+function normalizeText(value) {
+  return String(value || "").trim();
+}
+
+function normalizeUpper(value) {
+  return normalizeText(value).toUpperCase();
+}
+
+function isFourthYearSection(sectionName) {
+  const section = normalizeUpper(sectionName).replace(/\s+/g, "");
+  if (!section) return false;
+  return section.includes("4");
+}
+
+function getProgramFromSection(sectionName) {
+  const section = normalizeUpper(sectionName);
+  if (section.includes("BSIT")) return "BSIT";
+  if (section.includes("BSCS")) return "BSCS";
+  return null;
+}
+
+function normalizeStudentStatus(status) {
+  const normalized = normalizeUpper(status);
+  if (!normalized) return "";
+  if (normalized === "OJT COMPLETE") return "DEPLOYED";
+  return normalized;
+}
+
+function toSchoolYearLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  return `${year}-${year + 1}`;
+}
+
+function sortSchoolYearLabels(a, b) {
+  const aYear = parseInt(String(a || "").split("-")[0], 10);
+  const bYear = parseInt(String(b || "").split("-")[0], 10);
+  if (!Number.isFinite(aYear) || !Number.isFinite(bYear)) {
+    return String(a || "").localeCompare(String(b || ""));
+  }
+  return aYear - bYear;
+}
+
+function ensureRecentSchoolYears(labels, count = 5) {
+  const sorted = [...new Set(labels)].sort(sortSchoolYearLabels);
+  const maxStartYear = sorted.length
+    ? parseInt(sorted[sorted.length - 1].split("-")[0], 10)
+    : new Date().getFullYear();
+
+  const recent = [];
+  for (let offset = count - 1; offset >= 0; offset -= 1) {
+    const startYear = maxStartYear - offset;
+    recent.push(`${startYear}-${startYear + 1}`);
+  }
+
+  return recent;
+}
+
+function toSortedEntryArray(entryMap) {
+  return Object.entries(entryMap)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
+}
+
+// ── GET /api/ojt-students/dashboard-summary ─────────────────────────────────
+// Aggregated dataset for admin dashboard cards and charts.
+router.get("/dashboard-summary", requireAuth, async (req, res) => {
+  try {
+    await ensureArchiveOjtLinksTable();
+    const department = getDept(req);
+
+    const [students, archives, partnerCountRows] = await Promise.all([
+      query(
+        `SELECT student_id, section, status, nature_of_business, created_at
+         FROM ojt_students
+         WHERE department = ?`,
+        [department],
+      ),
+      query(
+        `SELECT type, status
+         FROM archives
+         WHERE department = ?
+           AND LOWER(TRIM(type)) IN ('thesis', 'capstone')`,
+        [department],
+      ),
+      query(
+        `SELECT COUNT(*) AS total
+         FROM external_partners
+         WHERE department = ?`,
+        [department],
+      ),
+    ]);
+
+    let bsitPopulation = 0;
+    let bscsPopulation = 0;
+    let deployedCount = 0;
+    let preDeploymentCount = 0;
+    let pendingRequirementsCount = 0;
+    const schoolYearMap = {};
+    const deployedFieldMap = {};
+    const sectionMap = {};
+
+    for (const student of students) {
+      const sectionName = normalizeText(student.section) || "Unassigned";
+      const normalizedStatus = normalizeStudentStatus(student.status);
+      const isDeployed = normalizedStatus === "DEPLOYED";
+      const statusLower = normalizeText(student.status).toLowerCase();
+      const program = getProgramFromSection(sectionName);
+      const isFourthYear = isFourthYearSection(sectionName);
+
+      if (program === "BSIT" && isFourthYear) bsitPopulation += 1;
+      if (program === "BSCS" && isFourthYear) bscsPopulation += 1;
+
+      if (program && isFourthYear) {
+        sectionMap[sectionName] = (sectionMap[sectionName] || 0) + 1;
+      }
+
+      if (isDeployed) {
+        deployedCount += 1;
+
+        const schoolYearLabel = toSchoolYearLabel(student.created_at);
+        if (schoolYearLabel) {
+          schoolYearMap[schoolYearLabel] = schoolYearMap[schoolYearLabel] || {
+            BSIT: 0,
+            BSCS: 0,
+          };
+          if (program === "BSIT") schoolYearMap[schoolYearLabel].BSIT += 1;
+          if (program === "BSCS") schoolYearMap[schoolYearLabel].BSCS += 1;
+        }
+
+        const fieldLabel =
+          normalizeText(student.nature_of_business) || "Unspecified";
+        deployedFieldMap[fieldLabel] = (deployedFieldMap[fieldLabel] || 0) + 1;
+      } else if (statusLower.includes("pending requirement")) {
+        pendingRequirementsCount += 1;
+      } else {
+        preDeploymentCount += 1;
+      }
+    }
+
+    const schoolYearLabels = ensureRecentSchoolYears(
+      Object.keys(schoolYearMap),
+      5,
+    );
+    const deployedPerSchoolYearByProgram = schoolYearLabels.map((label) => ({
+      label,
+      bsit: schoolYearMap[label]?.BSIT || 0,
+      bscs: schoolYearMap[label]?.BSCS || 0,
+    }));
+
+    const completionCounts = {
+      completed: 0,
+      inProgress: 0,
+      pending: 0,
+    };
+    for (const archive of archives) {
+      const status = normalizeText(archive.status).toLowerCase();
+      if (status === "approved") {
+        completionCounts.completed += 1;
+      } else if (status === "pending") {
+        completionCounts.inProgress += 1;
+      } else {
+        completionCounts.pending += 1;
+      }
+    }
+
+    const responsePayload = {
+      success: true,
+      cards: {
+        bsitPopulation,
+        bscsPopulation,
+        thesisRecords: archives.length,
+        externalPartners: Number(partnerCountRows?.[0]?.total || 0),
+      },
+      charts: {
+        deployedPerSchoolYearByProgram,
+        deploymentFields: toSortedEntryArray(deployedFieldMap),
+        completionBreakdown: [
+          { label: "Completed", value: completionCounts.completed },
+          { label: "In Progress", value: completionCounts.inProgress },
+          { label: "Pending", value: completionCounts.pending },
+        ],
+        populationPerSection: toSortedEntryArray(sectionMap),
+        deploymentStatus: [
+          { label: "Deployed", value: deployedCount },
+          { label: "Pre-Deployment", value: preDeploymentCount },
+          { label: "Pending Requirements", value: pendingRequirementsCount },
+        ],
+      },
+    };
+
+    return res.json(responsePayload);
+  } catch (error) {
+    console.error("getAdminDashboardSummary error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch admin dashboard summary.",
+    });
+  }
+});
+
 // ── GET /api/ojt-students ─────────────────────────────────────────────────────
 router.get("/", requireAuth, async (req, res) => {
   try {

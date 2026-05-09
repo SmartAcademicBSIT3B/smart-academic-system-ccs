@@ -81,184 +81,491 @@
     </div>
 
     <script>
-      (function renderDashboardWithSampleData() {
-        const sampleMetrics = {
-          bsitPopulation: 286,
-          bscsPopulation: 174,
-          thesisRecords: 312,
-          externalPartners: 58,
-        };
+      (function initializeAdminDashboard() {
+        const chartInstances = {};
 
-        const setCardValue = (id, value) => {
+        document.addEventListener("DOMContentLoaded", loadDashboard);
+
+        async function loadDashboard() {
+          setCardValue("card-bsit-population", 0);
+          setCardValue("card-bscs-population", 0);
+          setCardValue("card-thesis-records", 0);
+          setCardValue("card-external-partners", 0);
+
+          try {
+            const api = getElectronApi();
+            if (!api) {
+              throw new Error("Dashboard API is unavailable.");
+            }
+
+            const result =
+              typeof api.getAdminDashboardSummary === "function"
+                ? await api.getAdminDashboardSummary()
+                : await buildDashboardSummaryFromLegacyApi(api);
+
+            if (!result?.success) {
+              throw new Error(
+                result?.message || "Failed to load dashboard data.",
+              );
+            }
+
+            renderDashboard(result);
+          } catch (error) {
+            console.error("admin dashboard load error:", error);
+            renderDashboard({
+              cards: {
+                bsitPopulation: 0,
+                bscsPopulation: 0,
+                thesisRecords: 0,
+                externalPartners: 0,
+              },
+              charts: {
+                deployedPerSchoolYearByProgram: [],
+                deploymentFields: [],
+                completionBreakdown: [],
+                populationPerSection: [],
+                deploymentStatus: [],
+              },
+            });
+          }
+        }
+
+        async function buildDashboardSummaryFromLegacyApi(api) {
+          if (
+            typeof api.getOjtStudents !== "function" ||
+            typeof api.getArchives !== "function" ||
+            typeof api.getExternalPartners !== "function"
+          ) {
+            return {
+              success: false,
+              message: "Dashboard API is unavailable.",
+            };
+          }
+
+          const [studentsResult, archivesResult, partnersResult] =
+            await Promise.all([
+              api.getOjtStudents(),
+              api.getArchives(),
+              api.getExternalPartners(),
+            ]);
+
+          if (!studentsResult?.success) {
+            return {
+              success: false,
+              message:
+                studentsResult?.message || "Failed to load OJT student data.",
+            };
+          }
+          if (!archivesResult?.success) {
+            return {
+              success: false,
+              message:
+                archivesResult?.message || "Failed to load archive data.",
+            };
+          }
+          if (!partnersResult?.success) {
+            return {
+              success: false,
+              message:
+                partnersResult?.message ||
+                "Failed to load external partner data.",
+            };
+          }
+
+          const students = Array.isArray(studentsResult.students)
+            ? studentsResult.students
+            : [];
+          const archives = Array.isArray(archivesResult.archives)
+            ? archivesResult.archives
+            : [];
+          const partners = Array.isArray(partnersResult.partners)
+            ? partnersResult.partners
+            : [];
+
+          let bsitPopulation = 0;
+          let bscsPopulation = 0;
+          let deployedCount = 0;
+          let preDeploymentCount = 0;
+          let pendingRequirementsCount = 0;
+          const schoolYearMap = {};
+          const sectionMap = {};
+          const deploymentFieldMap = {};
+
+          for (const student of students) {
+            const section = normalizeText(student?.section) || "Unassigned";
+            const status = normalizeText(student?.status).toLowerCase();
+            const normalizedStatus = normalizeStatus(student?.status);
+            const isFourthYear = /4/.test(
+              normalizeText(section).toUpperCase().replace(/\s+/g, ""),
+            );
+            const isBsit = normalizeText(section)
+              .toUpperCase()
+              .includes("BSIT");
+            const isBscs = normalizeText(section)
+              .toUpperCase()
+              .includes("BSCS");
+
+            if (isBsit && isFourthYear) bsitPopulation += 1;
+            if (isBscs && isFourthYear) bscsPopulation += 1;
+
+            if ((isBsit || isBscs) && isFourthYear) {
+              sectionMap[section] = (sectionMap[section] || 0) + 1;
+            }
+
+            if (normalizedStatus === "deployed") {
+              deployedCount += 1;
+
+              const schoolYear = toSchoolYearLabel(student?.created_at);
+              if (schoolYear) {
+                schoolYearMap[schoolYear] = schoolYearMap[schoolYear] || {
+                  bsit: 0,
+                  bscs: 0,
+                };
+                if (isBsit) schoolYearMap[schoolYear].bsit += 1;
+                if (isBscs) schoolYearMap[schoolYear].bscs += 1;
+              }
+
+              const fieldLabel =
+                normalizeText(student?.nature_of_business) || "Unspecified";
+              deploymentFieldMap[fieldLabel] =
+                (deploymentFieldMap[fieldLabel] || 0) + 1;
+            } else if (status.includes("pending requirement")) {
+              pendingRequirementsCount += 1;
+            } else {
+              preDeploymentCount += 1;
+            }
+          }
+
+          const schoolYearLabels = getRecentSchoolYears(
+            Object.keys(schoolYearMap),
+            5,
+          );
+
+          const completion = { completed: 0, inProgress: 0, pending: 0 };
+          const thesisCapstoneArchives = archives.filter((archive) => {
+            const type = normalizeText(archive?.type).toLowerCase();
+            return type === "thesis" || type === "capstone";
+          });
+
+          for (const archive of thesisCapstoneArchives) {
+            const archiveStatus = normalizeText(archive?.status).toLowerCase();
+            if (archiveStatus === "approved") completion.completed += 1;
+            else if (archiveStatus === "pending") completion.inProgress += 1;
+            else completion.pending += 1;
+          }
+
+          return {
+            success: true,
+            cards: {
+              bsitPopulation,
+              bscsPopulation,
+              thesisRecords: thesisCapstoneArchives.length,
+              externalPartners: partners.length,
+            },
+            charts: {
+              deployedPerSchoolYearByProgram: schoolYearLabels.map((label) => ({
+                label,
+                bsit: toNumber(schoolYearMap[label]?.bsit || 0),
+                bscs: toNumber(schoolYearMap[label]?.bscs || 0),
+              })),
+              deploymentFields: toEntriesByValueDesc(deploymentFieldMap),
+              completionBreakdown: [
+                { label: "Completed", value: completion.completed },
+                { label: "In Progress", value: completion.inProgress },
+                { label: "Pending", value: completion.pending },
+              ],
+              populationPerSection: toEntriesByValueDesc(sectionMap),
+              deploymentStatus: [
+                { label: "Deployed", value: deployedCount },
+                { label: "Pre-Deployment", value: preDeploymentCount },
+                {
+                  label: "Pending Requirements",
+                  value: pendingRequirementsCount,
+                },
+              ],
+            },
+          };
+        }
+
+        function getElectronApi() {
+          if (window.electronAPI) return window.electronAPI;
+
+          try {
+            if (
+              window.parent &&
+              window.parent !== window &&
+              window.parent.electronAPI
+            ) {
+              return window.parent.electronAPI;
+            }
+          } catch (_error) {
+            // Cross-context access can fail; continue to next fallback.
+          }
+
+          try {
+            if (window.top && window.top !== window && window.top.electronAPI) {
+              return window.top.electronAPI;
+            }
+          } catch (_error) {
+            // Cross-context access can fail; no-op fallback.
+          }
+
+          return null;
+        }
+
+        function renderDashboard(payload) {
+          const cards = payload?.cards || {};
+          const charts = payload?.charts || {};
+
+          setCardValue("card-bsit-population", toNumber(cards.bsitPopulation));
+          setCardValue("card-bscs-population", toNumber(cards.bscsPopulation));
+          setCardValue("card-thesis-records", toNumber(cards.thesisRecords));
+          setCardValue(
+            "card-external-partners",
+            toNumber(cards.externalPartners),
+          );
+
+          if (typeof Chart === "undefined") return;
+
+          const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  color: "#C9CCD1",
+                },
+              },
+            },
+            scales: {
+              x: {
+                ticks: { color: "#9AA0A6" },
+                grid: { color: "rgba(58, 63, 70, 0.45)" },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { color: "#9AA0A6" },
+                grid: { color: "rgba(58, 63, 70, 0.45)" },
+              },
+            },
+          };
+
+          const schoolYearRows = toArray(charts.deployedPerSchoolYearByProgram);
+          const schoolYearLabels = schoolYearRows.length
+            ? schoolYearRows.map((row) => row.label || "")
+            : ["No Data"];
+          const schoolYearBsit = schoolYearRows.length
+            ? schoolYearRows.map((row) => toNumber(row.bsit))
+            : [0];
+          const schoolYearBscs = schoolYearRows.length
+            ? schoolYearRows.map((row) => toNumber(row.bscs))
+            : [0];
+
+          renderChart("barChart", {
+            type: "bar",
+            data: {
+              labels: schoolYearLabels,
+              datasets: [
+                {
+                  label: "BSIT",
+                  data: schoolYearBsit,
+                  backgroundColor: "rgba(157, 198, 255, 0.85)",
+                  borderRadius: 6,
+                },
+                {
+                  label: "BSCS",
+                  data: schoolYearBscs,
+                  backgroundColor: "rgba(89, 140, 216, 0.85)",
+                  borderRadius: 6,
+                },
+              ],
+            },
+            options: commonOptions,
+          });
+
+          const fieldRows = toArray(charts.deploymentFields);
+          renderChart("smallBarChart", {
+            type: "bar",
+            data: {
+              labels: fieldRows.length
+                ? fieldRows.map((row) => row.label || "Unspecified")
+                : ["No Data"],
+              datasets: [
+                {
+                  label: "Deployed Students",
+                  data: fieldRows.length
+                    ? fieldRows.map((row) => toNumber(row.value))
+                    : [0],
+                  backgroundColor: [
+                    "rgba(157, 198, 255, 0.85)",
+                    "rgba(120, 170, 238, 0.85)",
+                    "rgba(95, 149, 227, 0.85)",
+                    "rgba(75, 126, 205, 0.85)",
+                    "rgba(58, 110, 184, 0.85)",
+                  ],
+                  borderRadius: 6,
+                },
+              ],
+            },
+            options: {
+              ...commonOptions,
+              plugins: {
+                legend: { display: false },
+              },
+            },
+          });
+
+          const completionRows = toArray(charts.completionBreakdown);
+          renderChart("pieChart1", {
+            type: "doughnut",
+            data: {
+              labels: completionRows.length
+                ? completionRows.map((row) => row.label || "Unknown")
+                : ["Completed", "In Progress", "Pending"],
+              datasets: [
+                {
+                  data: completionRows.length
+                    ? completionRows.map((row) => toNumber(row.value))
+                    : [0, 0, 0],
+                  backgroundColor: ["#6BD39A", "#9DC6FF", "#F2B366"],
+                  borderColor: "#181C22",
+                  borderWidth: 2,
+                },
+              ],
+            },
+            options: circularOptions(),
+          });
+
+          const sectionRows = toArray(charts.populationPerSection);
+          renderChart("pieChart2", {
+            type: "pie",
+            data: {
+              labels: sectionRows.length
+                ? sectionRows.map((row) => row.label || "Unassigned")
+                : ["No Data"],
+              datasets: [
+                {
+                  data: sectionRows.length
+                    ? sectionRows.map((row) => toNumber(row.value))
+                    : [0],
+                  backgroundColor: ["#9DC6FF", "#7EAEF3", "#5D95E3", "#4A7CC8"],
+                  borderColor: "#181C22",
+                  borderWidth: 2,
+                },
+              ],
+            },
+            options: circularOptions(),
+          });
+
+          const statusRows = toArray(charts.deploymentStatus);
+          renderChart("pieChart3", {
+            type: "doughnut",
+            data: {
+              labels: statusRows.length
+                ? statusRows.map((row) => row.label || "Unknown")
+                : ["Deployed", "Pre-Deployment", "Pending Requirements"],
+              datasets: [
+                {
+                  data: statusRows.length
+                    ? statusRows.map((row) => toNumber(row.value))
+                    : [0, 0, 0],
+                  backgroundColor: ["#6BD39A", "#9DC6FF", "#E98F8F"],
+                  borderColor: "#181C22",
+                  borderWidth: 2,
+                },
+              ],
+            },
+            options: circularOptions(),
+          });
+        }
+
+        function renderChart(chartId, config) {
+          const canvas = document.getElementById(chartId);
+          if (!canvas) return;
+          if (chartInstances[chartId]) {
+            chartInstances[chartId].destroy();
+          }
+          chartInstances[chartId] = new Chart(canvas, config);
+        }
+
+        function circularOptions() {
+          return {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: { color: "#C9CCD1" },
+              },
+            },
+          };
+        }
+
+        function setCardValue(id, value) {
           const el = document.getElementById(id);
           if (el) el.textContent = String(value);
-        };
+        }
 
-        setCardValue("card-bsit-population", sampleMetrics.bsitPopulation);
-        setCardValue("card-bscs-population", sampleMetrics.bscsPopulation);
-        setCardValue("card-thesis-records", sampleMetrics.thesisRecords);
-        setCardValue("card-external-partners", sampleMetrics.externalPartners);
+        function toArray(value) {
+          return Array.isArray(value) ? value : [];
+        }
 
-        if (typeof Chart === "undefined") return;
+        function normalizeText(value) {
+          return String(value || "").trim();
+        }
 
-        const commonOptions = {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              labels: {
-                color: "#C9CCD1",
-              },
-            },
-          },
-          scales: {
-            x: {
-              ticks: { color: "#9AA0A6" },
-              grid: { color: "rgba(58, 63, 70, 0.45)" },
-            },
-            y: {
-              beginAtZero: true,
-              ticks: { color: "#9AA0A6" },
-              grid: { color: "rgba(58, 63, 70, 0.45)" },
-            },
-          },
-        };
+        function normalizeStatus(value) {
+          const status = normalizeText(value).toLowerCase();
+          if (status === "ojt complete") return "deployed";
+          return status;
+        }
 
-        new Chart(document.getElementById("barChart"), {
-          type: "bar",
-          data: {
-            labels: [
-              "2020-2021",
-              "2021-2022",
-              "2022-2023",
-              "2023-2024",
-              "2024-2025",
-            ],
-            datasets: [
-              {
-                label: "BSIT",
-                data: [112, 126, 139, 151, 164],
-                backgroundColor: "rgba(157, 198, 255, 0.85)",
-                borderRadius: 6,
-              },
-              {
-                label: "BSCS",
-                data: [76, 88, 95, 104, 117],
-                backgroundColor: "rgba(89, 140, 216, 0.85)",
-                borderRadius: 6,
-              },
-            ],
-          },
-          options: commonOptions,
-        });
+        function toSchoolYearLabel(value) {
+          const date = new Date(value);
+          if (Number.isNaN(date.getTime())) return null;
+          const year = date.getFullYear();
+          return `${year}-${year + 1}`;
+        }
 
-        new Chart(document.getElementById("smallBarChart"), {
-          type: "bar",
-          data: {
-            labels: [
-              "Software Dev",
-              "Networking",
-              "Data/BI",
-              "Cybersecurity",
-              "UI/UX",
-            ],
-            datasets: [
-              {
-                label: "Deployed Students",
-                data: [118, 86, 64, 52, 40],
-                backgroundColor: [
-                  "rgba(157, 198, 255, 0.85)",
-                  "rgba(120, 170, 238, 0.85)",
-                  "rgba(95, 149, 227, 0.85)",
-                  "rgba(75, 126, 205, 0.85)",
-                  "rgba(58, 110, 184, 0.85)",
-                ],
-                borderRadius: 6,
-              },
-            ],
-          },
-          options: {
-            ...commonOptions,
-            plugins: {
-              legend: { display: false },
-            },
-          },
-        });
+        function getRecentSchoolYears(inputLabels, count) {
+          const labels = [...new Set(toArray(inputLabels))]
+            .filter(Boolean)
+            .sort((a, b) => {
+              const aYear = parseInt(String(a).split("-")[0], 10);
+              const bYear = parseInt(String(b).split("-")[0], 10);
+              if (!Number.isFinite(aYear) || !Number.isFinite(bYear)) {
+                return String(a).localeCompare(String(b));
+              }
+              return aYear - bYear;
+            });
 
-        new Chart(document.getElementById("pieChart1"), {
-          type: "doughnut",
-          data: {
-            labels: ["Completed", "In Progress", "Pending"],
-            datasets: [
-              {
-                data: [68, 22, 10],
-                backgroundColor: ["#6BD39A", "#9DC6FF", "#F2B366"],
-                borderColor: "#181C22",
-                borderWidth: 2,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: "bottom",
-                labels: { color: "#C9CCD1" },
-              },
-            },
-          },
-        });
+          const maxStartYear = labels.length
+            ? parseInt(String(labels[labels.length - 1]).split("-")[0], 10)
+            : new Date().getFullYear();
 
-        new Chart(document.getElementById("pieChart2"), {
-          type: "pie",
-          data: {
-            labels: ["BSIT-4A", "BSIT-4B", "BSCS-4A", "BSCS-4B"],
-            datasets: [
-              {
-                data: [122, 98, 94, 80],
-                backgroundColor: ["#9DC6FF", "#7EAEF3", "#5D95E3", "#4A7CC8"],
-                borderColor: "#181C22",
-                borderWidth: 2,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: "bottom",
-                labels: { color: "#C9CCD1" },
-              },
-            },
-          },
-        });
+          const recentLabels = [];
+          for (let offset = count - 1; offset >= 0; offset -= 1) {
+            const startYear = maxStartYear - offset;
+            recentLabels.push(`${startYear}-${startYear + 1}`);
+          }
+          return recentLabels;
+        }
 
-        new Chart(document.getElementById("pieChart3"), {
-          type: "doughnut",
-          data: {
-            labels: ["Deployed", "Pre-Deployment", "Pending Requirements"],
-            datasets: [
-              {
-                data: [71, 19, 10],
-                backgroundColor: ["#6BD39A", "#9DC6FF", "#E98F8F"],
-                borderColor: "#181C22",
-                borderWidth: 2,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: "bottom",
-                labels: { color: "#C9CCD1" },
-              },
-            },
-          },
-        });
+        function toEntriesByValueDesc(map) {
+          return Object.entries(map)
+            .map(([label, value]) => ({
+              label,
+              value: toNumber(value),
+            }))
+            .sort(
+              (a, b) => b.value - a.value || a.label.localeCompare(b.label),
+            );
+        }
+
+        function toNumber(value) {
+          const numeric = Number(value);
+          return Number.isFinite(numeric) ? numeric : 0;
+        }
       })();
     </script>
   </body>

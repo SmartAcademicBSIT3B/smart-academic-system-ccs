@@ -1551,6 +1551,17 @@ ipcMain.handle("getOjtStudents", async () => {
   }
 });
 
+ipcMain.handle("getAdminDashboardSummary", async () => {
+  try {
+    return await api.get("/ojt-students/dashboard-summary");
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch admin dashboard summary.",
+    };
+  }
+});
+
 ipcMain.handle("createOjtStudent", async (event, payload = {}) => {
   try {
     return await api.post("/ojt-students", payload);

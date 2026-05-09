@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deleteExternalPartner: (partnerId) =>
     ipcRenderer.invoke("deleteExternalPartner", partnerId),
   getOjtStudents: () => ipcRenderer.invoke("getOjtStudents"),
+  getAdminDashboardSummary: () =>
+    ipcRenderer.invoke("getAdminDashboardSummary"),
   createOjtStudent: (studentData) =>
     ipcRenderer.invoke("createOjtStudent", studentData),
   updateOjtStudent: (studentData) =>
