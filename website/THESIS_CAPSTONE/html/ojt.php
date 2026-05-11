@@ -7,12 +7,75 @@ if (!isset($_SESSION['student_id'])) {
     exit();
 }
 
-// Include database config to get student data
+function format_name_surname_first($name) {
+    $raw = trim((string)$name);
+    if ($raw === '') {
+        return 'Student Name';
+    }
+    if (strpos($raw, ',') !== false) {
+        return $raw;
+    }
+    $parts = preg_split('/\s+/', $raw);
+    if (!$parts || count($parts) < 2) {
+        return $raw;
+    }
+    $surname = array_pop($parts);
+    $firstMiddle = implode(' ', $parts);
+    return trim($surname . ', ' . $firstMiddle);
+}
+
+function normalize_ojt_status($status) {
+    $normalized = strtolower(trim((string)$status));
+    if ($normalized === '') {
+        return 'Pending Requirements';
+    }
+    if (strpos($normalized, 'deploy') !== false || strpos($normalized, 'complete') !== false) {
+        return 'Deployed';
+    }
+    if (strpos($normalized, 'pre') !== false) {
+        return 'Pre-Deployment';
+    }
+    if (strpos($normalized, 'pending') !== false) {
+        return 'Pending Requirements';
+    }
+    return ucwords($normalized);
+}
+
+function status_css_class($status) {
+    $normalized = strtolower(trim((string)$status));
+    if (strpos($normalized, 'deploy') !== false || strpos($normalized, 'complete') !== false) {
+        return 'deployed';
+    }
+    if (strpos($normalized, 'pre') !== false) {
+        return 'pre-deployment';
+    }
+    return 'pending-requirements';
+}
+
+// Include database config to get student + OJT data
 $conn = include("../php/config.php");
 $student_data = null;
+$partner_profile = null;
+$connected_thesis_status = 'Not Approved';
 
 if ($conn) {
-    $sql = "SELECT student_id, name, email, status, profile_image_url FROM students_user WHERE student_id = ? AND status = 'active'";
+    $sql = "SELECT 
+                os.id AS ojt_student_id,
+                os.student_id,
+                os.name,
+                os.email,
+                os.section,
+                os.department,
+                os.contact_no,
+                os.status AS ojt_status,
+                os.external_partner_assigned,
+                os.nature_of_business,
+                su.profile_image_url,
+                su.status AS account_status
+            FROM ojt_students os
+            LEFT JOIN students_user su ON LOWER(TRIM(su.student_id)) = LOWER(TRIM(os.student_id))
+            WHERE LOWER(TRIM(os.student_id)) = LOWER(TRIM(?))
+            LIMIT 1";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $_SESSION['student_id']);
     $stmt->execute();
@@ -20,24 +83,94 @@ if ($conn) {
 
     if ($result->num_rows > 0) {
         $student_data = $result->fetch_assoc();
-        // Fetch OJT details
-        $ojt_sql = "SELECT external_partner_assigned, nature_of_business FROM ojt_students WHERE student_id = ?";
-        $ojt_stmt = $conn->prepare($ojt_sql);
-        $ojt_stmt->bind_param("s", $_SESSION['student_id']);
-        $ojt_stmt->execute();
-        $ojt_result = $ojt_stmt->get_result();
-        if ($ojt_result->num_rows > 0) {
-            $ojt_data = $ojt_result->fetch_assoc();
-            $student_data['external_partner'] = $ojt_data['external_partner_assigned'];
-            $student_data['specialization'] = $ojt_data['nature_of_business'];
+        $student_data['external_partner'] = $student_data['external_partner_assigned'] ?? null;
+        $student_data['specialization'] = $student_data['nature_of_business'] ?? null;
+        $student_data['display_name'] = format_name_surname_first($student_data['name'] ?? '');
+        $student_data['display_ojt_status'] = normalize_ojt_status($student_data['ojt_status'] ?? '');
+        $student_data['status_css_class'] = status_css_class($student_data['display_ojt_status']);
+
+        // External partner profile details (same source as coordinator: external_partners table).
+        $partnerName = trim((string)($student_data['external_partner'] ?? ''));
+        if ($partnerName !== '' && strtolower($partnerName) !== 'n/a') {
+            $dept = trim((string)($student_data['department'] ?? ''));
+            if ($dept !== '') {
+                $partnerSql = "SELECT id, logo, company_name, address, department, company_email,
+                                      company_contact, representative, job_description,
+                                      representative_email, representative_contact
+                               FROM external_partners
+                               WHERE LOWER(TRIM(company_name)) = LOWER(TRIM(?))
+                                 AND LOWER(TRIM(department)) = LOWER(TRIM(?))
+                               ORDER BY id DESC
+                               LIMIT 1";
+                $partnerStmt = $conn->prepare($partnerSql);
+                $partnerStmt->bind_param("ss", $partnerName, $dept);
+            } else {
+                $partnerSql = "SELECT id, logo, company_name, address, department, company_email,
+                                      company_contact, representative, job_description,
+                                      representative_email, representative_contact
+                               FROM external_partners
+                               WHERE LOWER(TRIM(company_name)) = LOWER(TRIM(?))
+                               ORDER BY id DESC
+                               LIMIT 1";
+                $partnerStmt = $conn->prepare($partnerSql);
+                $partnerStmt->bind_param("s", $partnerName);
+            }
+            $partnerStmt->execute();
+            $partnerRes = $partnerStmt->get_result();
+            if ($partnerRes && $partnerRes->num_rows > 0) {
+                $partner_profile = $partnerRes->fetch_assoc();
+            }
+            $partnerStmt->close();
         }
-        $ojt_stmt->close();
+
+        // Connected thesis/capstone status based on archive links to this OJT student.
+        $ojtStudentPk = (int)($student_data['ojt_student_id'] ?? 0);
+        if ($ojtStudentPk > 0) {
+            $archiveSql = "SELECT a.status
+                           FROM archive_ojt_links l
+                           INNER JOIN archives a ON a.id = l.archive_id
+                           WHERE l.ojt_student_id = ?
+                           ORDER BY a.created_at DESC, a.id DESC
+                           LIMIT 20";
+            $archiveStmt = $conn->prepare($archiveSql);
+            $archiveStmt->bind_param("i", $ojtStudentPk);
+            $archiveStmt->execute();
+            $archiveRes = $archiveStmt->get_result();
+            while ($archiveRow = $archiveRes->fetch_assoc()) {
+                $statusValue = strtolower(trim((string)($archiveRow['status'] ?? '')));
+                if ($statusValue === 'approved') {
+                    $connected_thesis_status = 'Approved';
+                    break;
+                }
+            }
+            $archiveStmt->close();
+        }
+    } else {
+        // Fallback: minimal profile from students_user if OJT row is missing.
+        $fallbackSql = "SELECT student_id, name, email, profile_image_url, status AS account_status FROM students_user WHERE student_id = ? LIMIT 1";
+        $fallbackStmt = $conn->prepare($fallbackSql);
+        $fallbackStmt->bind_param("s", $_SESSION['student_id']);
+        $fallbackStmt->execute();
+        $fallbackRes = $fallbackStmt->get_result();
+        if ($fallbackRes->num_rows > 0) {
+            $student_data = $fallbackRes->fetch_assoc();
+            $student_data['section'] = null;
+            $student_data['department'] = null;
+            $student_data['contact_no'] = null;
+            $student_data['external_partner'] = null;
+            $student_data['specialization'] = null;
+            $student_data['display_name'] = format_name_surname_first($student_data['name'] ?? '');
+            $student_data['display_ojt_status'] = 'Pending Requirements';
+            $student_data['status_css_class'] = 'pending-requirements';
+        }
+        $fallbackStmt->close();
     }
     $stmt->close();
     $conn->close();
 }
 // Check if all pre requirements are approved
 function all_pre_requirements_approved($student_id) {
+    if (!$student_id) return false;
     $conn = include("../php/config.php");
     if (!$conn) return false;
     $ojt_student_id = null;
@@ -50,7 +183,7 @@ function all_pre_requirements_approved($student_id) {
     if (!$ojt_student_id) return false;
     $sql = "SELECT COUNT(*) as cnt FROM ojt_requirement_templates WHERE type='pre' AND is_required=1";
     $total = $conn->query($sql)->fetch_assoc()['cnt'];
-    $sql2 = "SELECT COUNT(*) as cnt FROM ojt_requirement_submissions WHERE ojt_student_id=? AND status='Approved'";
+    $sql2 = "SELECT COUNT(*) as cnt FROM ojt_requirement_submissions WHERE ojt_student_id=? AND LOWER(status) IN ('approved','verified')";
     $stmt2 = $conn->prepare($sql2);
     $stmt2->bind_param("i", $ojt_student_id);
     $stmt2->execute();
@@ -60,7 +193,8 @@ function all_pre_requirements_approved($student_id) {
     $conn->close();
     return $approved >= $total && $total > 0;
 }
-$can_access_dtr = all_pre_requirements_approved($student_data['student_id']);
+$profile_student_id = $student_data['student_id'] ?? ($_SESSION['student_id'] ?? null);
+$can_access_dtr = all_pre_requirements_approved($profile_student_id);
 
 ?>
 
@@ -94,25 +228,114 @@ $can_access_dtr = all_pre_requirements_approved($student_data['student_id']);
 <div class="profile-meta">
 
 <div class="name-row">
-<h1 class="student-name"><?php echo htmlspecialchars($student_data['name'] ?? 'Student Name'); ?></h1>
+<h1 class="student-name"><?php echo htmlspecialchars($student_data['display_name'] ?? 'Student Name'); ?></h1>
 <span class="student-id"><?php echo htmlspecialchars($student_data['student_id'] ?? 'Student ID'); ?></span>
 </div>
 
 <!-- ✅ NEW DETAILS ROW -->
-<div class="details-row">
+<div class="details-grid">
 
     <div class="status-row">
-        <div class="status-pill"><?php echo htmlspecialchars(strtoupper($student_data['status'] ?? 'STATUS')); ?></div>
+        <span class="detail-label">Status</span>
+        <div class="status-pill <?php echo htmlspecialchars($student_data['status_css_class'] ?? 'pending-requirements'); ?>"><?php echo htmlspecialchars($student_data['display_ojt_status'] ?? 'Pending Requirements'); ?></div>
     </div>
 
     <div class="detail inline-detail">
-        <span class="detail-label">External Partner</span>
-        <span class="detail-value student-company"><?php echo htmlspecialchars($student_data['external_partner'] ?? 'N/A'); ?></span>
+        <span class="detail-label">Email</span>
+        <span class="detail-value"><?php echo htmlspecialchars($student_data['email'] ?? 'N/A'); ?></span>
+    </div>
+
+    <div class="detail inline-detail">
+        <span class="detail-label">Contact</span>
+        <span class="detail-value"><?php echo htmlspecialchars($student_data['contact_no'] ?? 'N/A'); ?></span>
+    </div>
+
+    <div class="detail inline-detail">
+        <span class="detail-label">Section</span>
+        <span class="detail-value"><?php echo htmlspecialchars($student_data['section'] ?? 'N/A'); ?></span>
+    </div>
+
+    <div class="detail inline-detail partner-detail">
+        <span class="detail-label">External Partner Assigned</span>
+        <div class="partner-inline-group readonly" aria-label="External Partner Assigned">
+            <button
+              type="button"
+              class="partner-inline-input partner-readonly partner-inline-trigger"
+              id="partnerToggleBtn"
+              aria-expanded="false"
+              data-has-partner="<?php echo !empty($student_data['external_partner']) && strtolower((string)$student_data['external_partner']) !== 'n/a' ? '1' : '0'; ?>"
+            >
+                <span class="partner-readonly-name"><?php echo htmlspecialchars($student_data['external_partner'] ?? 'N/A'); ?></span>
+                <span class="partner-readonly-chevron">▾</span>
+            </button>
+        </div>
+
+        <div class="partner-card" id="partnerCard">
+            <?php
+              $logo = trim((string)($partner_profile['logo'] ?? ''));
+              $companyName = trim((string)($partner_profile['company_name'] ?? ($student_data['external_partner'] ?? 'N/A')));
+              $companyInitial = strtoupper(substr($companyName !== '' ? $companyName : 'N', 0, 1));
+            ?>
+            <div class="partner-card-header">
+                <div class="partner-card-logo">
+                    <?php if ($logo !== ''): ?>
+                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Partner Logo" />
+                    <?php else: ?>
+                        <?php echo htmlspecialchars($companyInitial); ?>
+                    <?php endif; ?>
+                </div>
+                <div>
+                    <div class="partner-card-name"><?php echo htmlspecialchars($companyName); ?></div>
+                    <div class="partner-card-job"><?php echo htmlspecialchars($partner_profile['job_description'] ?? ($student_data['specialization'] ?? 'N/A')); ?></div>
+                </div>
+            </div>
+            <div class="partner-card-grid">
+                <div class="partner-card-field">
+                    <span class="partner-card-label">External Partner</span>
+                    <span class="partner-card-value"><?php echo htmlspecialchars($companyName); ?></span>
+                </div>
+                <div class="partner-card-field">
+                    <span class="partner-card-label">Specialization</span>
+                    <span class="partner-card-value"><?php echo htmlspecialchars($partner_profile['job_description'] ?? ($student_data['specialization'] ?? 'N/A')); ?></span>
+                </div>
+                <div class="partner-card-field">
+                    <span class="partner-card-label">Address</span>
+                    <span class="partner-card-value"><?php echo htmlspecialchars($partner_profile['address'] ?? 'N/A'); ?></span>
+                </div>
+                <div class="partner-card-field">
+                    <span class="partner-card-label">Company Email</span>
+                    <span class="partner-card-value"><?php echo htmlspecialchars($partner_profile['company_email'] ?? 'N/A'); ?></span>
+                </div>
+                <div class="partner-card-field">
+                    <span class="partner-card-label">Company Contact</span>
+                    <span class="partner-card-value"><?php echo htmlspecialchars($partner_profile['company_contact'] ?? 'N/A'); ?></span>
+                </div>
+                <div class="partner-card-field">
+                    <span class="partner-card-label">Representative</span>
+                    <span class="partner-card-value"><?php echo htmlspecialchars($partner_profile['representative'] ?? 'N/A'); ?></span>
+                </div>
+                <div class="partner-card-field">
+                    <span class="partner-card-label">Representative Email</span>
+                    <span class="partner-card-value"><?php echo htmlspecialchars($partner_profile['representative_email'] ?? 'N/A'); ?></span>
+                </div>
+                <div class="partner-card-field">
+                    <span class="partner-card-label">Representative Contact</span>
+                    <span class="partner-card-value"><?php echo htmlspecialchars($partner_profile['representative_contact'] ?? 'N/A'); ?></span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="detail inline-detail">
         <span class="detail-label">Specialization</span>
-        <span class="detail-value student-specialization"><?php echo htmlspecialchars($student_data['specialization'] ?? 'N/A'); ?></span>
+        <span class="detail-value"><?php echo htmlspecialchars($student_data['specialization'] ?? 'N/A'); ?></span>
+    </div>
+
+    <div class="detail inline-detail">
+        <span class="detail-label">Connected Thesis/Capstone</span>
+        <span class="detail-value thesis-status <?php echo strtolower($connected_thesis_status) === 'approved' ? 'approved' : 'not-approved'; ?>">
+            <?php echo htmlspecialchars($connected_thesis_status); ?>
+        </span>
     </div>
 
 </div>
@@ -201,6 +424,8 @@ foreach ($pre_requirements as $req):
     $file_url = $submission['file_url'] ?? null;
     $file_name = $submission['file_name'] ?? null;
     $status = $submission['status'] ?? null;
+    $status_normalized = strtolower(trim((string)($status ?? 'pending')));
+    $is_locked = in_array($status_normalized, ['approved', 'verified'], true);
 ?>
 <div class="req" data-requirement-key="<?php echo $key; ?>">
     <div class="req-label"><?php echo htmlspecialchars($req['name']); ?></div>
@@ -222,7 +447,7 @@ foreach ($pre_requirements as $req):
                 <a href="<?php echo htmlspecialchars($view_url); ?>" target="_blank" class="view-link" title="View File">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>
                 </a>
-                <?php if ($status !== 'Approved'): ?>
+                <?php if (!$is_locked): ?>
                     <button class="remove-btn icon-btn danger" data-requirement-key="<?php echo $key; ?>" title="Remove">
                         <svg width="18" height="18" fill="none" stroke="#d32f2f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                     </button>
@@ -273,14 +498,30 @@ if ($conn && isset($student_data['student_id'])) {
 }
 $date_today = date('Y-m-d');
 $has_in = false; $has_out = false;
+$present_count = 0;
+$absent_count = 0;
+$late_count = 0;
+$total_minutes = 0;
 foreach ($attendance as $row) {
     if ($row['attendance_date'] == $date_today) {
         if ($row['datetime_in']) $has_in = true;
         if ($row['datetime_out']) $has_out = true;
     }
+    $status = strtolower((string)($row['status'] ?? ''));
+    if ($status === 'present') $present_count++;
+    if ($status === 'absent') $absent_count++;
+    if ($status === 'late') $late_count++;
+    $total_minutes += (int)($row['duration_minutes'] ?? 0);
 }
 ?>
-<table class="attendance-table">
+<div class="att-summary-row">
+    <div class="att-summary-item">Present: <strong><?php echo $present_count; ?></strong></div>
+    <div class="att-summary-item">Late: <strong><?php echo $late_count; ?></strong></div>
+    <div class="att-summary-item">Absent: <strong><?php echo $absent_count; ?></strong></div>
+    <div class="att-summary-item">Rendered Hours: <strong><?php echo number_format($total_minutes / 60, 2); ?> hrs</strong></div>
+</div>
+<div class="attendance-table-wrap">
+<table class="att-table">
 <thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Duration</th><th>Status</th><th>Proof</th><th>Notes</th></tr></thead>
 <tbody>
 <?php foreach ($attendance as $row): ?>
@@ -289,13 +530,17 @@ foreach ($attendance as $row) {
 <td><?php echo $row['datetime_in'] ? date('H:i', strtotime($row['datetime_in'])) : '-'; ?></td>
 <td><?php echo $row['datetime_out'] ? date('H:i', strtotime($row['datetime_out'])) : '-'; ?></td>
 <td><?php echo $row['duration_minutes'] ? $row['duration_minutes'].' min' : '-'; ?></td>
-<td><?php echo htmlspecialchars($row['status']); ?></td>
-<td><?php if ($row['proof_url']): ?><a href="<?php echo htmlspecialchars($row['proof_url']); ?>" target="_blank">View</a><?php endif; ?></td>
+<td>
+    <?php $status_class = strtolower(str_replace(' ', '-', (string)($row['status'] ?? 'pending'))); ?>
+    <span class="att-status-pill <?php echo htmlspecialchars($status_class); ?>"><?php echo htmlspecialchars($row['status'] ?? 'Pending'); ?></span>
+</td>
+<td><?php if ($row['proof_url']): ?><a href="<?php echo htmlspecialchars($row['proof_url']); ?>" target="_blank" class="att-proof-link">View proof</a><?php endif; ?></td>
 <td><?php echo htmlspecialchars($row['notes']); ?></td>
 </tr>
 <?php endforeach; ?>
 </tbody>
 </table>
+</div>
 <div class="attendance-actions">
     <button class="in-btn submit-btn" id="inBtn" <?php if ($has_in) echo 'disabled'; ?>>IN</button>
     <button class="out-btn danger" id="outBtn" <?php if (!$has_in || $has_out) echo 'disabled'; ?>>OUT</button>
@@ -423,39 +668,51 @@ if ($conn) {
         }
         $stmt3->close();
     }
-    foreach ($post_reqs as $req) {
+    foreach ($post_reqs as $req):
         $key = 'requirement_' . $req['id'];
-        $file = isset($submissions[$req['id']]) ? $submissions[$req['id']] : null;
-        echo '<div class="req">';
-        echo '<div class="req-label">' . htmlspecialchars($req['name']) . '</div>';
-        if ($file && $file['file_url']) {
-            $file_url = $file['file_url'];
-            $file_name = $file['file_name'];
-            $status = $file['status'] ?? 'Pending';
-            $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-            $view_url = $file_url;
-            if (in_array($ext, ['doc','docx','xls','xlsx','ppt','pptx'])) {
-                $view_url = 'https://docs.google.com/gview?url=' . urlencode($file_url) . '&embedded=true';
-            } elseif (in_array($ext, ['pdf','png','jpg','jpeg','gif','bmp','webp'])) {
-                $view_url = $file_url;
-            } else {
-                $view_url = 'https://docs.google.com/gview?url=' . urlencode($file_url) . '&embedded=true';
-            }
-            echo '<div class="uploaded-file-row">';
-            echo '<span class="file-name">' . htmlspecialchars($file_name) . '</span>';
-            echo '<a href="' . htmlspecialchars($view_url) . '" target="_blank" class="pro-view-btn" title="View File">';
-            echo '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>';
-            echo '</a>';
-            echo '<button class="remove-btn icon-btn danger" data-requirement-key="' . $key . '" title="Remove">';
-            echo '<svg width="18" height="18" fill="none" stroke="#d32f2f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
-            echo '</button>';
-            echo '<span class="status-label">Status: ' . htmlspecialchars($status) . '</span>';
-            echo '</div>';
-        } else {
-            echo '<span class="status-label">Status: Pending</span>';
-        }
-        echo '</div>';
-    }
+        $submission = $submissions[$req['id']] ?? null;
+        $file_url = $submission['file_url'] ?? null;
+        $file_name = $submission['file_name'] ?? null;
+        $status = $submission['status'] ?? null;
+        $status_normalized = strtolower(trim((string)($status ?? 'pending')));
+        $is_locked = in_array($status_normalized, ['approved', 'verified'], true);
+?>
+<div class="req" data-requirement-key="<?php echo $key; ?>">
+    <div class="req-label"><?php echo htmlspecialchars($req['name']); ?></div>
+    <div class="req-actions">
+        <?php if ($file_url): ?>
+            <div class="uploaded-file-row">
+                <span class="file-name"><?php echo htmlspecialchars($file_name); ?></span>
+                <?php
+                    $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                    $view_url = $file_url;
+                    if (in_array($ext, ['doc','docx','xls','xlsx','ppt','pptx'])) {
+                        $view_url = 'https://docs.google.com/gview?url=' . urlencode($file_url) . '&embedded=true';
+                    } elseif (in_array($ext, ['pdf','png','jpg','jpeg','gif','bmp','webp'])) {
+                        $view_url = $file_url;
+                    } else {
+                        $view_url = 'https://docs.google.com/gview?url=' . urlencode($file_url) . '&embedded=true';
+                    }
+                ?>
+                <a href="<?php echo htmlspecialchars($view_url); ?>" target="_blank" class="pro-view-btn" title="View File">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>
+                </a>
+                <?php if (!$is_locked): ?>
+                    <button class="remove-btn icon-btn danger" data-requirement-key="<?php echo $key; ?>" title="Remove">
+                        <svg width="18" height="18" fill="none" stroke="#d32f2f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    </button>
+                <?php endif; ?>
+            </div>
+        <?php else: ?>
+            <button class="upload-btn" data-requirement-key="<?php echo $key; ?>">Upload File</button>
+        <?php endif; ?>
+    </div>
+    <div class="req-status">
+        Status: <span class="status-label status-<?php echo strtolower($status ?? 'pending'); ?>"><?php echo htmlspecialchars($status ?? 'Pending'); ?></span>
+    </div>
+</div>
+<?php
+    endforeach;
     $conn->close();
 }
 ?>
@@ -470,7 +727,58 @@ if ($conn) {
 </div>
 
 <script>
-// POST-REQUIREMENTS AJAX (matches pre-requirements logic, uses section: 'post')
+// TAB SWITCH + URL PARAM
+document.addEventListener("DOMContentLoaded", function(){
+
+    const tabs = document.querySelectorAll(".tab");
+    const panels = document.querySelectorAll(".tab-panel");
+
+    function activateTab(targetId){
+        tabs.forEach(t => t.classList.remove("active"));
+        panels.forEach(p => p.classList.remove("active"));
+
+        const targetTab = document.querySelector(`[data-target="${targetId}"]`);
+        const targetPanel = document.getElementById(targetId);
+        if (targetTab) targetTab.classList.add("active");
+        if (targetPanel) targetPanel.classList.add("active");
+    }
+
+    tabs.forEach(function(tab){
+        tab.addEventListener("click", function(){
+            activateTab(this.dataset.target);
+        });
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+
+    if(tab === "pre") activateTab("prePanel");
+    if(tab === "weekly") activateTab("weeklyPanel");
+    if(tab === "post") activateTab("postPanel");
+    if(tab === "attendance") activateTab("attendancePanel");
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const partnerBtn = document.getElementById("partnerToggleBtn");
+    const partnerCard = document.getElementById("partnerCard");
+    if (!partnerBtn || !partnerCard) return;
+
+    const hasPartner = partnerBtn.dataset.hasPartner === "1";
+    if (!hasPartner) {
+        partnerBtn.disabled = true;
+        partnerBtn.classList.add("is-disabled");
+        return;
+    }
+
+    partnerBtn.addEventListener("click", function () {
+        const isOpen = partnerCard.classList.toggle("visible");
+        partnerBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        const chevron = partnerBtn.querySelector(".partner-readonly-chevron");
+        if (chevron) chevron.textContent = isOpen ? "▴" : "▾";
+    });
+});
+
+// POST-REQUIREMENTS AJAX (uses section: 'post')
 document.addEventListener("DOMContentLoaded", function () {
     const postFileInput = document.createElement("input");
     postFileInput.type = "file";
@@ -535,64 +843,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-// TAB SWITCH
-document.addEventListener("DOMContentLoaded", function(){
-
-    const tabs = document.querySelectorAll(".tab");
-    const panels = document.querySelectorAll(".tab-panel");
-
-    tabs.forEach(function(tab){
-
-        tab.addEventListener("click", function(){
-
-            tabs.forEach(t => t.classList.remove("active"));
-            panels.forEach(p => p.classList.remove("active"));
-
-            this.classList.add("active");
-
-            const target = this.dataset.target;
-            document.getElementById(target).classList.add("active");
-
-        });
-
-    });
-
-});
-
-document.addEventListener("DOMContentLoaded", function(){
-
-    const tabs = document.querySelectorAll(".tab");
-    const panels = document.querySelectorAll(".tab-panel");
-
-    function activateTab(targetId){
-        tabs.forEach(t => t.classList.remove("active"));
-        panels.forEach(p => p.classList.remove("active"));
-
-        document.querySelector(`[data-target="${targetId}"]`).classList.add("active");
-        document.getElementById(targetId).classList.add("active");
-    }
-
-    // CLICK TAB
-    tabs.forEach(function(tab){
-        tab.addEventListener("click", function(){
-            activateTab(this.dataset.target);
-        });
-    });
-
-    // 🔥 URL PARAM (MAIN FIX)
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab");
-
-    if(tab){
-        if(tab === "pre") activateTab("prePanel");
-        if(tab === "weekly") activateTab("weeklyPanel");
-        if(tab === "post") activateTab("postPanel");
-        if(tab === "attendance") activateTab("attendancePanel");
-    }
-
-});
-
-
 // PRE-REQUIREMENTS AJAX (simple, robust, matches weekly logic)
 document.addEventListener("DOMContentLoaded", function () {
     const preFileInput = document.createElement("input");
@@ -602,7 +852,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let selectedRequirementKey = null;
 
     // Upload
-    document.querySelectorAll('.upload-btn').forEach(btn => {
+    document.querySelectorAll('#prePanel .upload-btn').forEach(btn => {
         btn.onclick = function () {
             selectedRequirementKey = this.dataset.requirementKey;
             preFileInput.value = "";
@@ -615,6 +865,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const formData = new FormData();
         formData.append('requirement', selectedRequirementKey);
         formData.append('action', 'upload');
+        formData.append('section', 'pre');
         formData.append('file', file);
         fetch('../php/ojt_upload.php', {
             method: 'POST',
@@ -632,7 +883,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Remove
-    document.querySelectorAll('.remove-btn').forEach(btn => {
+    document.querySelectorAll('#prePanel .remove-btn').forEach(btn => {
         btn.onclick = function () {
             const key = this.dataset.requirementKey;
             if (!confirm('Remove uploaded file?')) return;
@@ -640,7 +891,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 method: 'POST',
                 body: new URLSearchParams({
                     requirement: key,
-                    action: 'remove'
+                    action: 'remove',
+                    section: 'pre'
                 })
             })
             .then(r => r.json())

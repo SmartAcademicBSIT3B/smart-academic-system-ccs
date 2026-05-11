@@ -77,22 +77,12 @@ $profile_image_url = $student_profile['profile_image_url'] ?? '';
                 <span>Thesis/Capstone Archives</span>
             </div>
         </li>
-
-
-        <li class="menu-item dropdown" onclick="toggleMenu(this)">
+        <li class="menu-item" onclick="loadPage('ojt.php', this)">
             <div class="menu-left">
                 <i data-lucide="building"></i>
                 <span>On-the-Job Training (OJT)</span>
             </div>
-            <i class="arrow" data-lucide="chevron-down"></i>
         </li>
-
-        <ul class="submenu">
-            <li onclick="loadPage('ojt.php?tab=pre', this)">Pre Requirements</li>
-            <li onclick="loadPage('ojt.php?tab=weekly', this)">Weekly Report</li>
-            <li onclick="loadPage('ojt.php?tab=post', this)">Post Requirements</li>
-            <li onclick="loadPage('ojt.php?tab=attendance', this)">Daily Time Record</li>
-        </ul>
 
     </ul>
 
