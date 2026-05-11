@@ -354,7 +354,7 @@ $can_access_dtr = all_pre_requirements_approved($profile_student_id);
 
 <!-- SCHEDULE MODAL -->
 <?php if ($can_access_dtr && empty($_COOKIE['schedule_modal_shown'])): ?>
-<div id="scheduleModal" class="modal" style="display:block;">
+<div id="scheduleModal" class="modal" style="display:flex;">
   <div class="modal-content">
     <h3>Set Your OJT Schedule</h3>
     <form id="scheduleForm">
@@ -375,623 +375,489 @@ document.getElementById('scheduleForm').onsubmit = function(e) {
 </script>
 <?php endif; ?>
 
-<!-- PRE -->
-<section class="panel tab-panel active" id="prePanel">
-<h2 class="panel-title">PRE REQUIREMENTS</h2>
-
-<div class="requirements-grid">
-<?php
-// Fetch pre-requirements from ojt_requirement_templates table
-$pre_requirements = [];
-$submissions = [];
-$conn = include("../php/config.php");
-if ($conn) {
-    // Get requirements
-    $sql = "SELECT id, name FROM ojt_requirement_templates WHERE type='pre' AND is_required=1 ORDER BY display_order ASC, id ASC";
-    $result = $conn->query($sql);
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $pre_requirements[] = $row;
-        }
-    }
-    // Get ojt_student_id
-    $ojt_student_id = null;
-    if (isset($student_data['student_id'])) {
-        $stmt = $conn->prepare("SELECT id FROM ojt_students WHERE student_id = ? LIMIT 1");
-        $stmt->bind_param("s", $student_data['student_id']);
-        $stmt->execute();
-        $stmt->bind_result($ojt_student_id);
-        $stmt->fetch();
-        $stmt->close();
-    }
-    // Get submissions for this student
-    if ($ojt_student_id) {
-        $sql2 = "SELECT template_id, file_url, file_name, status FROM ojt_requirement_submissions WHERE ojt_student_id = ?";
-        $stmt2 = $conn->prepare($sql2);
-        $stmt2->bind_param("i", $ojt_student_id);
-        $stmt2->execute();
-        $res2 = $stmt2->get_result();
-        while ($row2 = $res2->fetch_assoc()) {
-            $submissions[$row2['template_id']] = $row2;
-        }
-        $stmt2->close();
-    }
-    $conn->close();
-}
-foreach ($pre_requirements as $req):
-    $key = 'requirement_' . $req['id'];
-    $submission = $submissions[$req['id']] ?? null;
-    $file_url = $submission['file_url'] ?? null;
-    $file_name = $submission['file_name'] ?? null;
-    $status = $submission['status'] ?? null;
-    $status_normalized = strtolower(trim((string)($status ?? 'pending')));
-    $is_locked = in_array($status_normalized, ['approved', 'verified'], true);
-?>
-<div class="req" data-requirement-key="<?php echo $key; ?>">
-    <div class="req-label"><?php echo htmlspecialchars($req['name']); ?></div>
-    <div class="req-actions">
-        <?php if ($file_url): ?>
-            <div class="uploaded-file-row">
-                <span class="file-name"><?php echo htmlspecialchars($file_name); ?></span>
-                <?php
-                    $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-                    $view_url = $file_url;
-                    if (in_array($ext, ['doc','docx','xls','xlsx','ppt','pptx'])) {
-                        $view_url = 'https://docs.google.com/gview?url=' . urlencode($file_url) . '&embedded=true';
-                    } elseif (in_array($ext, ['pdf','png','jpg','jpeg','gif','bmp','webp'])) {
-                        $view_url = $file_url;
-                    } else {
-                        $view_url = 'https://docs.google.com/gview?url=' . urlencode($file_url) . '&embedded=true';
-                    }
-                ?>
-                <a href="<?php echo htmlspecialchars($view_url); ?>" target="_blank" class="view-link" title="View File">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>
-                </a>
-                <?php if (!$is_locked): ?>
-                    <button class="remove-btn icon-btn danger" data-requirement-key="<?php echo $key; ?>" title="Remove">
-                        <svg width="18" height="18" fill="none" stroke="#d32f2f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
-                <?php endif; ?>
-            </div>
-        <?php else: ?>
-            <button class="upload-btn" data-requirement-key="<?php echo $key; ?>">Upload File</button>
-        <?php endif; ?>
-    </div>
-    <div class="req-status">
-        Status: <span class="status-label status-<?php echo strtolower($status ?? 'pending'); ?>"><?php echo htmlspecialchars($status ?? 'Pending'); ?></span>
-    </div>
-</div>
-<?php endforeach; ?>
-</div>
-
-<div class="panel-actions">
-<button class="submit-btn">Submit</button>
-</div>
+<section class="panel tab-panel active" id="prePanel" data-tab="pre">
+    <div class="panel-loading">Loading pre requirements...</div>
 </section>
 
-<!-- ATTENDANCE -->
-<section class="panel tab-panel" id="attendancePanel">
-<h2 class="panel-title">DAILY TIME RECORD</h2>
-<?php
-$conn = include("../php/config.php");
-$attendance = [];
-$ojt_student_id = null;
-if ($conn && isset($student_data['student_id'])) {
-    $stmt = $conn->prepare("SELECT id FROM ojt_students WHERE student_id = ? LIMIT 1");
-    $stmt->bind_param("s", $student_data['student_id']);
-    $stmt->execute();
-    $stmt->bind_result($ojt_student_id);
-    $stmt->fetch();
-    $stmt->close();
-    if ($ojt_student_id) {
-        $sql2 = "SELECT * FROM ojt_attendance WHERE ojt_student_id = ? ORDER BY attendance_date DESC, id DESC";
-        $stmt2 = $conn->prepare($sql2);
-        $stmt2->bind_param("i", $ojt_student_id);
-        $stmt2->execute();
-        $res2 = $stmt2->get_result();
-        while ($row2 = $res2->fetch_assoc()) {
-            $attendance[] = $row2;
-        }
-        $stmt2->close();
-    }
-    $conn->close();
-}
-$date_today = date('Y-m-d');
-$has_in = false; $has_out = false;
-$present_count = 0;
-$absent_count = 0;
-$late_count = 0;
-$total_minutes = 0;
-foreach ($attendance as $row) {
-    if ($row['attendance_date'] == $date_today) {
-        if ($row['datetime_in']) $has_in = true;
-        if ($row['datetime_out']) $has_out = true;
-    }
-    $status = strtolower((string)($row['status'] ?? ''));
-    if ($status === 'present') $present_count++;
-    if ($status === 'absent') $absent_count++;
-    if ($status === 'late') $late_count++;
-    $total_minutes += (int)($row['duration_minutes'] ?? 0);
-}
-?>
-<div class="att-summary-row">
-    <div class="att-summary-item">Present: <strong><?php echo $present_count; ?></strong></div>
-    <div class="att-summary-item">Late: <strong><?php echo $late_count; ?></strong></div>
-    <div class="att-summary-item">Absent: <strong><?php echo $absent_count; ?></strong></div>
-    <div class="att-summary-item">Rendered Hours: <strong><?php echo number_format($total_minutes / 60, 2); ?> hrs</strong></div>
-</div>
-<div class="attendance-table-wrap">
-<table class="att-table">
-<thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Duration</th><th>Status</th><th>Proof</th><th>Notes</th></tr></thead>
-<tbody>
-<?php foreach ($attendance as $row): ?>
-<tr>
-<td><?php echo htmlspecialchars($row['attendance_date']); ?></td>
-<td><?php echo $row['datetime_in'] ? date('H:i', strtotime($row['datetime_in'])) : '-'; ?></td>
-<td><?php echo $row['datetime_out'] ? date('H:i', strtotime($row['datetime_out'])) : '-'; ?></td>
-<td><?php echo $row['duration_minutes'] ? $row['duration_minutes'].' min' : '-'; ?></td>
-<td>
-    <?php $status_class = strtolower(str_replace(' ', '-', (string)($row['status'] ?? 'pending'))); ?>
-    <span class="att-status-pill <?php echo htmlspecialchars($status_class); ?>"><?php echo htmlspecialchars($row['status'] ?? 'Pending'); ?></span>
-</td>
-<td><?php if ($row['proof_url']): ?><a href="<?php echo htmlspecialchars($row['proof_url']); ?>" target="_blank" class="att-proof-link">View proof</a><?php endif; ?></td>
-<td><?php echo htmlspecialchars($row['notes']); ?></td>
-</tr>
-<?php endforeach; ?>
-</tbody>
-</table>
-</div>
-<div class="attendance-actions">
-    <button class="in-btn submit-btn" id="inBtn" <?php if ($has_in) echo 'disabled'; ?>>IN</button>
-    <button class="out-btn danger" id="outBtn" <?php if (!$has_in || $has_out) echo 'disabled'; ?>>OUT</button>
-</div>
-<script>
-document.getElementById('inBtn').onclick = function() {
-    // AJAX to backend to record IN (with optional proof upload)
-    alert('IN recorded! (stub)');
-    // On success: window.location.reload();
-};
-document.getElementById('outBtn').onclick = function() {
-    // AJAX to backend to record OUT (with optional proof upload)
-    alert('OUT recorded! (stub)');
-    // On success: window.location.reload();
-};
-</script>
+<section class="panel tab-panel" id="weeklyPanel" data-tab="weekly">
+    <div class="panel-loading">Loading weekly reports...</div>
 </section>
 
-<!-- WEEKLY -->
-<section class="panel tab-panel" id="weeklyPanel">
-<h2 class="panel-title">WEEKLY REPORTS</h2>
-<div class="requirements-grid" id="weekly-reports-grid">
-<?php
-$conn = include("../php/config.php");
-$weekly_reports = [];
-$ojt_student_id = null;
-if ($conn && isset($student_data['student_id'])) {
-    $stmt = $conn->prepare("SELECT id FROM ojt_students WHERE student_id = ? LIMIT 1");
-    $stmt->bind_param("s", $student_data['student_id']);
-    $stmt->execute();
-    $stmt->bind_result($ojt_student_id);
-    $stmt->fetch();
-    $stmt->close();
-    if ($ojt_student_id) {
-        $sql2 = "SELECT week_number, file_url, file_name, status FROM ojt_weekly_reports WHERE ojt_student_id = ?";
-        $stmt2 = $conn->prepare($sql2);
-        $stmt2->bind_param("i", $ojt_student_id);
-        $stmt2->execute();
-        $res2 = $stmt2->get_result();
-        while ($row2 = $res2->fetch_assoc()) {
-            $weekly_reports[$row2['week_number']] = $row2;
-        }
-        $stmt2->close();
-    }
-    $conn->close();
-}
-for ($week = 1; $week <= 10; $week++):
-    $report = $weekly_reports[$week] ?? null;
-    $file_url = $report['file_url'] ?? null;
-    $file_name = $report['file_name'] ?? null;
-    $status = $report['status'] ?? null;
-?>
-<div class="req" data-week-number="<?php echo $week; ?>">
-    <div class="req-label">WEEK <?php echo $week; ?></div>
-    <div class="req-actions">
-        <?php if ($file_url): ?>
-            <div class="uploaded-file-row">
-                <span class="file-name"><?php echo htmlspecialchars($file_name); ?></span>
-                <?php
-                    $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-                    $view_url = $file_url;
-                    if (in_array($ext, ['doc','docx','xls','xlsx','ppt','pptx'])) {
-                        $view_url = 'https://docs.google.com/gview?url=' . urlencode($file_url) . '&embedded=true';
-                    } elseif (in_array($ext, ['pdf','png','jpg','jpeg','gif','bmp','webp'])) {
-                        $view_url = $file_url;
-                    } else {
-                        $view_url = 'https://docs.google.com/gview?url=' . urlencode($file_url) . '&embedded=true';
-                    }
-                ?>
-                <a href="<?php echo htmlspecialchars($view_url); ?>" target="_blank" class="pro-view-btn" title="View File">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>
-                </a>
-                <?php if ($status !== 'Submitted'): ?>
-                    <button class="remove-weekly-btn icon-btn danger" data-week-number="<?php echo $week; ?>" title="Remove">
-                        <svg width="18" height="18" fill="none" stroke="#d32f2f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
-                    <button class="submit-weekly-btn submit-btn" data-week-number="<?php echo $week; ?>" title="Submit">
-                        <svg width="18" height="18" fill="none" stroke="#388e3c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Submit
-                    </button>
-                <?php endif; ?>
-            </div>
-        <?php else: ?>
-            <button class="upload-weekly-btn upload-btn" data-week-number="<?php echo $week; ?>">Upload File</button>
-        <?php endif; ?>
-    </div>
-    <div class="req-status">
-        Status: <span class="status-label status-<?php echo strtolower($status ?? 'pending'); ?>"><?php echo htmlspecialchars($status ?? 'Pending'); ?></span>
-    </div>
-</div>
-
-<?php endfor; ?>
-</div>
+<section class="panel tab-panel" id="postPanel" data-tab="post">
+    <div class="panel-loading">Loading post requirements...</div>
 </section>
 
-<!-- POST -->
-
-<section class="panel tab-panel" id="postPanel">
-<h2 class="panel-title">POST REQUIREMENTS</h2>
-<div class="requirements-grid">
-<?php
-$conn = include("../php/config.php");
-if ($conn) {
-    $sql = "SELECT id, name FROM ojt_requirement_templates WHERE type='post' AND is_required=1 ORDER BY display_order ASC, id ASC";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $post_reqs = $result->fetch_all(MYSQLI_ASSOC);
-    $stmt->close();
-    $ojt_student_id = null;
-    $stmt2 = $conn->prepare("SELECT id FROM ojt_students WHERE student_id = ? LIMIT 1");
-    $stmt2->bind_param("s", $_SESSION['student_id']);
-    $stmt2->execute();
-    $stmt2->bind_result($ojt_student_id);
-    $stmt2->fetch();
-    $stmt2->close();
-    $submissions = [];
-    if ($ojt_student_id) {
-        $sql2 = "SELECT template_id, file_url, file_name, status FROM ojt_requirement_submissions WHERE ojt_student_id = ?";
-        $stmt3 = $conn->prepare($sql2);
-        $stmt3->bind_param("i", $ojt_student_id);
-        $stmt3->execute();
-        $result2 = $stmt3->get_result();
-        while ($row = $result2->fetch_assoc()) {
-            $submissions[$row['template_id']] = $row;
-        }
-        $stmt3->close();
-    }
-    foreach ($post_reqs as $req):
-        $key = 'requirement_' . $req['id'];
-        $submission = $submissions[$req['id']] ?? null;
-        $file_url = $submission['file_url'] ?? null;
-        $file_name = $submission['file_name'] ?? null;
-        $status = $submission['status'] ?? null;
-        $status_normalized = strtolower(trim((string)($status ?? 'pending')));
-        $is_locked = in_array($status_normalized, ['approved', 'verified'], true);
-?>
-<div class="req" data-requirement-key="<?php echo $key; ?>">
-    <div class="req-label"><?php echo htmlspecialchars($req['name']); ?></div>
-    <div class="req-actions">
-        <?php if ($file_url): ?>
-            <div class="uploaded-file-row">
-                <span class="file-name"><?php echo htmlspecialchars($file_name); ?></span>
-                <?php
-                    $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-                    $view_url = $file_url;
-                    if (in_array($ext, ['doc','docx','xls','xlsx','ppt','pptx'])) {
-                        $view_url = 'https://docs.google.com/gview?url=' . urlencode($file_url) . '&embedded=true';
-                    } elseif (in_array($ext, ['pdf','png','jpg','jpeg','gif','bmp','webp'])) {
-                        $view_url = $file_url;
-                    } else {
-                        $view_url = 'https://docs.google.com/gview?url=' . urlencode($file_url) . '&embedded=true';
-                    }
-                ?>
-                <a href="<?php echo htmlspecialchars($view_url); ?>" target="_blank" class="pro-view-btn" title="View File">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>
-                </a>
-                <?php if (!$is_locked): ?>
-                    <button class="remove-btn icon-btn danger" data-requirement-key="<?php echo $key; ?>" title="Remove">
-                        <svg width="18" height="18" fill="none" stroke="#d32f2f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
-                <?php endif; ?>
-            </div>
-        <?php else: ?>
-            <button class="upload-btn" data-requirement-key="<?php echo $key; ?>">Upload File</button>
-        <?php endif; ?>
-    </div>
-    <div class="req-status">
-        Status: <span class="status-label status-<?php echo strtolower($status ?? 'pending'); ?>"><?php echo htmlspecialchars($status ?? 'Pending'); ?></span>
-    </div>
-</div>
-<?php
-    endforeach;
-    $conn->close();
-}
-?>
-</div>
-<div class="panel-actions">
-    <button class="completeojt-btn">Submit</button>
-</div>
+<section class="panel tab-panel" id="attendancePanel" data-tab="attendance">
+    <div class="panel-loading">Loading daily time record...</div>
 </section>
 
 </section>
 </div>
+</div>
+
+<div id="appModal" class="app-modal-overlay" aria-hidden="true">
+    <div class="app-modal" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+        <h3 id="appModalTitle" class="app-modal-title">Notice</h3>
+        <p id="appModalMessage" class="app-modal-message"></p>
+        <ul id="appModalList" class="app-modal-list" hidden></ul>
+        <div class="app-modal-actions">
+            <button type="button" id="appModalCancel" class="app-modal-btn secondary" hidden>Cancel</button>
+            <button type="button" id="appModalOk" class="app-modal-btn primary">OK</button>
+        </div>
+    </div>
 </div>
 
 <script>
-// TAB SWITCH + URL PARAM
-document.addEventListener("DOMContentLoaded", function(){
-
-    const tabs = document.querySelectorAll(".tab");
-    const panels = document.querySelectorAll(".tab-panel");
-
-    function activateTab(targetId){
-        tabs.forEach(t => t.classList.remove("active"));
-        panels.forEach(p => p.classList.remove("active"));
-
-        const targetTab = document.querySelector(`[data-target="${targetId}"]`);
-        const targetPanel = document.getElementById(targetId);
-        if (targetTab) targetTab.classList.add("active");
-        if (targetPanel) targetPanel.classList.add("active");
-    }
-
-    tabs.forEach(function(tab){
-        tab.addEventListener("click", function(){
-            activateTab(this.dataset.target);
-        });
-    });
-
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab");
-
-    if(tab === "pre") activateTab("prePanel");
-    if(tab === "weekly") activateTab("weeklyPanel");
-    if(tab === "post") activateTab("postPanel");
-    if(tab === "attendance") activateTab("attendancePanel");
-});
-
 document.addEventListener("DOMContentLoaded", function () {
-    const partnerBtn = document.getElementById("partnerToggleBtn");
-    const partnerCard = document.getElementById("partnerCard");
-    if (!partnerBtn || !partnerCard) return;
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+    const panels = Array.from(document.querySelectorAll(".tab-panel"));
+    const loadedPanels = new Set();
 
-    const hasPartner = partnerBtn.dataset.hasPartner === "1";
-    if (!hasPartner) {
-        partnerBtn.disabled = true;
-        partnerBtn.classList.add("is-disabled");
-        return;
-    }
+    let selectedRequirementUpload = null;
+    let selectedWeekUpload = null;
 
-    partnerBtn.addEventListener("click", function () {
-        const isOpen = partnerCard.classList.toggle("visible");
-        partnerBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-        const chevron = partnerBtn.querySelector(".partner-readonly-chevron");
-        if (chevron) chevron.textContent = isOpen ? "▴" : "▾";
-    });
-});
+    const requirementFileInput = document.createElement("input");
+    requirementFileInput.type = "file";
+    requirementFileInput.style.display = "none";
+    document.body.appendChild(requirementFileInput);
 
-// POST-REQUIREMENTS AJAX (uses section: 'post')
-document.addEventListener("DOMContentLoaded", function () {
-    const postFileInput = document.createElement("input");
-    postFileInput.type = "file";
-    postFileInput.style.display = "none";
-    document.body.appendChild(postFileInput);
-    let selectedPostRequirementKey = null;
-
-    // Upload
-    document.querySelectorAll('#postPanel .upload-btn').forEach(btn => {
-        btn.onclick = function () {
-            selectedPostRequirementKey = this.dataset.requirementKey;
-            postFileInput.value = "";
-            postFileInput.click();
-        };
-    });
-    postFileInput.addEventListener('change', function (event) {
-        const file = event.target.files && event.target.files[0];
-        if (!file || !selectedPostRequirementKey) return;
-        const formData = new FormData();
-        formData.append('requirement', selectedPostRequirementKey);
-        formData.append('action', 'upload');
-        formData.append('section', 'post');
-        formData.append('file', file);
-        fetch('../php/ojt_upload.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                alert(data.error || 'Upload failed');
-            }
-        });
-        selectedPostRequirementKey = null;
-    });
-
-    // Remove
-    document.querySelectorAll('#postPanel .remove-btn').forEach(btn => {
-        btn.onclick = function () {
-            const key = this.dataset.requirementKey;
-            if (!confirm('Remove uploaded file?')) return;
-            const params = new URLSearchParams({
-                requirement: key,
-                action: 'remove',
-                section: 'post'
-            });
-            fetch('../php/ojt_upload.php', {
-                method: 'POST',
-                body: params
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.error || 'Remove failed');
-                }
-            });
-        };
-    });
-});
-
-// PRE-REQUIREMENTS AJAX (simple, robust, matches weekly logic)
-document.addEventListener("DOMContentLoaded", function () {
-    const preFileInput = document.createElement("input");
-    preFileInput.type = "file";
-    preFileInput.style.display = "none";
-    document.body.appendChild(preFileInput);
-    let selectedRequirementKey = null;
-
-    // Upload
-    document.querySelectorAll('#prePanel .upload-btn').forEach(btn => {
-        btn.onclick = function () {
-            selectedRequirementKey = this.dataset.requirementKey;
-            preFileInput.value = "";
-            preFileInput.click();
-        };
-    });
-    preFileInput.addEventListener('change', function (event) {
-        const file = event.target.files && event.target.files[0];
-        if (!file || !selectedRequirementKey) return;
-        const formData = new FormData();
-        formData.append('requirement', selectedRequirementKey);
-        formData.append('action', 'upload');
-        formData.append('section', 'pre');
-        formData.append('file', file);
-        fetch('../php/ojt_upload.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                alert(data.error || 'Upload failed');
-            }
-        });
-        selectedRequirementKey = null;
-    });
-
-    // Remove
-    document.querySelectorAll('#prePanel .remove-btn').forEach(btn => {
-        btn.onclick = function () {
-            const key = this.dataset.requirementKey;
-            if (!confirm('Remove uploaded file?')) return;
-            fetch('../php/ojt_upload.php', {
-                method: 'POST',
-                body: new URLSearchParams({
-                    requirement: key,
-                    action: 'remove',
-                    section: 'pre'
-                })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.error || 'Remove failed');
-                }
-            });
-        };
-    });
-});
-
-// WEEKLY REPORTS AJAX
-document.addEventListener("DOMContentLoaded", function () {
     const weeklyFileInput = document.createElement("input");
     weeklyFileInput.type = "file";
     weeklyFileInput.style.display = "none";
     document.body.appendChild(weeklyFileInput);
-    let selectedWeekNumber = null;
 
-    // Upload
-    document.querySelectorAll('.upload-weekly-btn').forEach(btn => {
-        btn.onclick = function () {
-            selectedWeekNumber = this.dataset.weekNumber;
-            weeklyFileInput.value = "";
-            weeklyFileInput.click();
-        };
-    });
-    weeklyFileInput.addEventListener('change', function (event) {
-        const file = event.target.files && event.target.files[0];
-        if (!file || !selectedWeekNumber) return;
-        const formData = new FormData();
-        formData.append('week_number', selectedWeekNumber);
-        formData.append('action', 'upload');
-        formData.append('file', file);
-        fetch('../php/ojt_weekly_upload.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                alert(data.error || 'Upload failed');
-            }
+    const appModal = document.getElementById("appModal");
+    const appModalTitle = document.getElementById("appModalTitle");
+    const appModalMessage = document.getElementById("appModalMessage");
+    const appModalList = document.getElementById("appModalList");
+    const appModalOk = document.getElementById("appModalOk");
+    const appModalCancel = document.getElementById("appModalCancel");
+
+    function escapeHtml(text) {
+        return String(text || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function openModal(options) {
+        const opts = options || {};
+        const title = opts.title || "Notice";
+        const message = opts.message || "";
+        const details = Array.isArray(opts.details) ? opts.details : [];
+        const confirmText = opts.confirmText || "OK";
+        const cancelText = opts.cancelText || "";
+
+        appModalTitle.textContent = title;
+        appModalMessage.innerHTML = escapeHtml(message).replace(/\n/g, "<br>");
+        appModalOk.textContent = confirmText;
+
+        if (details.length) {
+            appModalList.hidden = false;
+            appModalList.innerHTML = details.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+        } else {
+            appModalList.hidden = true;
+            appModalList.innerHTML = "";
+        }
+
+        if (cancelText) {
+            appModalCancel.hidden = false;
+            appModalCancel.textContent = cancelText;
+        } else {
+            appModalCancel.hidden = true;
+            appModalCancel.textContent = "";
+        }
+
+        appModal.classList.add("open");
+        appModal.setAttribute("aria-hidden", "false");
+
+        return new Promise((resolve) => {
+            const close = (value) => {
+                appModal.classList.remove("open");
+                appModal.setAttribute("aria-hidden", "true");
+                appModalOk.removeEventListener("click", onOk);
+                appModalCancel.removeEventListener("click", onCancel);
+                appModal.removeEventListener("click", onBackdrop);
+                document.removeEventListener("keydown", onKeyDown);
+                resolve(value);
+            };
+
+            const onOk = () => close(true);
+            const onCancel = () => close(false);
+            const onBackdrop = (event) => {
+                if (event.target === appModal && !cancelText) {
+                    close(true);
+                }
+                if (event.target === appModal && cancelText) {
+                    close(false);
+                }
+            };
+            const onKeyDown = (event) => {
+                if (event.key === "Escape") {
+                    close(cancelText ? false : true);
+                }
+            };
+
+            appModalOk.addEventListener("click", onOk);
+            appModalCancel.addEventListener("click", onCancel);
+            appModal.addEventListener("click", onBackdrop);
+            document.addEventListener("keydown", onKeyDown);
         });
-        selectedWeekNumber = null;
+    }
+
+    async function showAlert(message, title) {
+        await openModal({
+            title: title || "Notice",
+            message,
+            confirmText: "OK",
+        });
+    }
+
+    async function showConfirm(message, title, confirmText, cancelText, details) {
+        return openModal({
+            title: title || "Confirm",
+            message,
+            confirmText: confirmText || "Confirm",
+            cancelText: cancelText || "Cancel",
+            details: details || [],
+        });
+    }
+
+    async function parseJsonSafely(response) {
+        const text = await response.text();
+        try {
+            return JSON.parse(text);
+        } catch (_e) {
+            return {
+                success: false,
+                error: "Unexpected server response. Please refresh and try again.",
+            };
+        }
+    }
+
+    const partnerBtn = document.getElementById("partnerToggleBtn");
+    const partnerCard = document.getElementById("partnerCard");
+    if (partnerBtn && partnerCard) {
+        const hasPartner = partnerBtn.dataset.hasPartner === "1";
+        if (!hasPartner) {
+            partnerBtn.disabled = true;
+            partnerBtn.classList.add("is-disabled");
+        } else {
+            partnerBtn.addEventListener("click", function () {
+                const isOpen = partnerCard.classList.toggle("visible");
+                partnerBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+                const chevron = partnerBtn.querySelector(".partner-readonly-chevron");
+                if (chevron) chevron.textContent = isOpen ? "▴" : "▾";
+            });
+        }
+    }
+
+    function tabKeyFromPanel(panelId) {
+        if (panelId === "prePanel") return "pre";
+        if (panelId === "postPanel") return "post";
+        if (panelId === "weeklyPanel") return "weekly";
+        if (panelId === "attendancePanel") return "attendance";
+        return "pre";
+    }
+
+    function panelIdFromSection(section) {
+        if (section === "pre") return "prePanel";
+        if (section === "post") return "postPanel";
+        if (section === "weekly") return "weeklyPanel";
+        if (section === "attendance") return "attendancePanel";
+        return "prePanel";
+    }
+
+    function setActiveTab(panelId) {
+        tabs.forEach((tab) => tab.classList.remove("active"));
+        panels.forEach((panel) => panel.classList.remove("active"));
+        const tabButton = document.querySelector(`[data-target="${panelId}"]`);
+        const panel = document.getElementById(panelId);
+        if (tabButton) tabButton.classList.add("active");
+        if (panel) panel.classList.add("active");
+    }
+
+    async function loadPanel(panelId, forceReload) {
+        const shouldReload = forceReload === true;
+        if (!shouldReload && loadedPanels.has(panelId)) {
+            return;
+        }
+
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        panel.innerHTML = '<div class="panel-loading">Loading...</div>';
+
+        const tabKey = tabKeyFromPanel(panelId);
+        try {
+            const response = await fetch(`../php/ojt_tab_loader.php?tab=${encodeURIComponent(tabKey)}`);
+            const data = await response.json();
+            if (!data.success) {
+                panel.innerHTML = `<div class="panel-loading">${data.error || "Failed to load panel."}</div>`;
+                return;
+            }
+            panel.innerHTML = data.html;
+            loadedPanels.add(panelId);
+        } catch (_err) {
+            panel.innerHTML = '<div class="panel-loading">Failed to load panel.</div>';
+        }
+    }
+
+    async function refreshSection(section) {
+        const panelId = panelIdFromSection(section);
+        await loadPanel(panelId, true);
+    }
+
+    async function activatePanel(panelId) {
+        setActiveTab(panelId);
+        await loadPanel(panelId, false);
+        const tabKey = tabKeyFromPanel(panelId);
+        const params = new URLSearchParams(window.location.search);
+        params.set("tab", tabKey);
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, "", newUrl);
+    }
+
+    tabs.forEach((tabButton) => {
+        tabButton.addEventListener("click", function () {
+            if (tabButton.disabled) return;
+            activatePanel(tabButton.dataset.target || "prePanel");
+        });
     });
 
-    // Remove
-    document.querySelectorAll('.remove-weekly-btn').forEach(btn => {
-        btn.onclick = function () {
-            const week = this.dataset.weekNumber;
-            if (!confirm('Remove uploaded file for week ' + week + '?')) return;
-            fetch('../php/ojt_weekly_upload.php', {
-                method: 'POST',
-                body: new URLSearchParams({
-                    week_number: week,
-                    action: 'remove'
-                })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.error || 'Remove failed');
-                }
-            });
-        };
+    requirementFileInput.addEventListener("change", async function (event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file || !selectedRequirementUpload) return;
+
+        const formData = new FormData();
+        formData.append("requirement", selectedRequirementUpload.requirementKey);
+        formData.append("action", "upload");
+        formData.append("section", selectedRequirementUpload.section);
+        formData.append("file", file);
+
+        try {
+            const response = await fetch("../php/ojt_upload.php", { method: "POST", body: formData });
+            const data = await parseJsonSafely(response);
+            if (!data.success) {
+                await showAlert(data.error || "Upload failed", "Upload Failed");
+            } else {
+                await refreshSection(selectedRequirementUpload.section);
+            }
+        } catch (_err) {
+            await showAlert("Upload failed", "Upload Failed");
+        } finally {
+            selectedRequirementUpload = null;
+            requirementFileInput.value = "";
+        }
     });
 
-    // Submit
-    document.querySelectorAll('.submit-weekly-btn').forEach(btn => {
-        btn.onclick = function () {
-            const week = this.dataset.weekNumber;
-            if (!confirm('Submit file for week ' + week + '? You will not be able to edit after submitting.')) return;
-            fetch('../php/ojt_weekly_upload.php', {
-                method: 'POST',
-                body: new URLSearchParams({
-                    week_number: week,
-                    action: 'submit'
-                })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.error || 'Submit failed');
-                }
-            });
-        };
+    weeklyFileInput.addEventListener("change", async function (event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file || selectedWeekUpload === null) return;
+
+        const formData = new FormData();
+        formData.append("week_number", selectedWeekUpload);
+        formData.append("action", "upload");
+        formData.append("file", file);
+
+        try {
+            const response = await fetch("../php/ojt_weekly_upload.php", { method: "POST", body: formData });
+            const data = await parseJsonSafely(response);
+            if (!data.success) {
+                await showAlert(data.error || "Upload failed", "Upload Failed");
+            } else {
+                await refreshSection("weekly");
+            }
+        } catch (_err) {
+            await showAlert("Upload failed", "Upload Failed");
+        } finally {
+            selectedWeekUpload = null;
+            weeklyFileInput.value = "";
+        }
     });
+
+    function getIncompleteRequirements(section) {
+        const panelId = panelIdFromSection(section);
+        const panel = document.getElementById(panelId);
+        if (!panel) return [];
+
+        return Array.from(panel.querySelectorAll(".req[data-requirement-key]")).filter((req) => {
+            const hasFile = !!req.querySelector(".uploaded-file-row .file-name");
+            return !hasFile;
+        }).map((req) => {
+            const label = req.querySelector(".req-label");
+            return (label ? label.textContent : "Requirement").trim();
+        });
+    }
+
+    document.addEventListener("click", async function (event) {
+        const refreshBtn = event.target.closest(".panel-refresh-btn[data-section]");
+        if (refreshBtn) {
+            const section = refreshBtn.dataset.section;
+            if (!section) return;
+            await refreshSection(section);
+            return;
+        }
+
+        const requirementLabelUpload = event.target.closest(".req-label-upload[data-requirement-key]");
+        if (requirementLabelUpload) {
+            const panel = requirementLabelUpload.closest(".tab-panel");
+            const section = tabKeyFromPanel(panel ? panel.id : "prePanel");
+            selectedRequirementUpload = {
+                requirementKey: requirementLabelUpload.dataset.requirementKey,
+                section,
+            };
+            requirementFileInput.click();
+            return;
+        }
+
+        const requirementUploadBtn = event.target.closest(".upload-btn[data-requirement-key]");
+        if (requirementUploadBtn) {
+            const panel = requirementUploadBtn.closest(".tab-panel");
+            const section = tabKeyFromPanel(panel ? panel.id : "prePanel");
+            selectedRequirementUpload = {
+                requirementKey: requirementUploadBtn.dataset.requirementKey,
+                section,
+            };
+            requirementFileInput.click();
+            return;
+        }
+
+        const removeRequirementBtn = event.target.closest(".remove-btn[data-requirement-key]");
+        if (removeRequirementBtn) {
+            const shouldRemove = await showConfirm(
+                "Remove uploaded file?",
+                "Remove File",
+                "Remove",
+                "Cancel",
+            );
+            if (!shouldRemove) return;
+            const panel = removeRequirementBtn.closest(".tab-panel");
+            const section = tabKeyFromPanel(panel ? panel.id : "prePanel");
+            const params = new URLSearchParams({
+                requirement: removeRequirementBtn.dataset.requirementKey,
+                action: "remove",
+                section,
+            });
+            const response = await fetch("../php/ojt_upload.php", { method: "POST", body: params });
+            const data = await parseJsonSafely(response);
+            if (!data.success) {
+                await showAlert(data.error || "Remove failed", "Remove Failed");
+            } else {
+                await refreshSection(section);
+            }
+            return;
+        }
+
+        const submitToggleBtn = event.target.closest(".req-submit-toggle[data-section][data-action]");
+        if (submitToggleBtn) {
+            const section = submitToggleBtn.dataset.section;
+            const action = submitToggleBtn.dataset.action;
+            if (action === "submit") {
+                const incompleteRequirements = getIncompleteRequirements(section);
+                const hasIncomplete = incompleteRequirements.length > 0;
+                const proceedSubmit = await showConfirm(
+                    hasIncomplete
+                        ? `You are about to submit ${section.toUpperCase()} requirements with incomplete items.`
+                        : `Submit ${section.toUpperCase()} requirements? You cannot edit this tab after submitting.`,
+                    hasIncomplete ? "Incomplete Requirements" : "Submit Requirements",
+                    hasIncomplete ? "Submit Anyway" : "Submit",
+                    "Cancel",
+                    incompleteRequirements,
+                );
+                if (!proceedSubmit) return;
+            } else {
+                const proceedUnsubmit = await showConfirm(
+                    `Unsubmit ${section.toUpperCase()} requirements? This will make the tab editable again.`,
+                    "Unsubmit Requirements",
+                    "Unsubmit",
+                    "Cancel",
+                );
+                if (!proceedUnsubmit) return;
+            }
+
+            const params = new URLSearchParams({ section, action });
+            const response = await fetch("../php/ojt_requirements_submit.php", { method: "POST", body: params });
+            const data = await parseJsonSafely(response);
+            if (!data.success) {
+                await showAlert(data.error || "Action failed", "Action Failed");
+            } else {
+                await refreshSection(section);
+            }
+            return;
+        }
+
+        const weeklyUploadBtn = event.target.closest(".upload-weekly-btn[data-week-number]");
+        if (weeklyUploadBtn) {
+            selectedWeekUpload = weeklyUploadBtn.dataset.weekNumber;
+            weeklyFileInput.click();
+            return;
+        }
+
+        const weeklyRemoveBtn = event.target.closest(".remove-weekly-btn[data-week-number]");
+        if (weeklyRemoveBtn) {
+            const weekNumber = weeklyRemoveBtn.dataset.weekNumber;
+            const shouldRemoveWeekly = await showConfirm(
+                `Remove uploaded file for week ${weekNumber}?`,
+                "Remove Weekly File",
+                "Remove",
+                "Cancel",
+            );
+            if (!shouldRemoveWeekly) return;
+            const params = new URLSearchParams({ week_number: weekNumber, action: "remove" });
+            const response = await fetch("../php/ojt_weekly_upload.php", { method: "POST", body: params });
+            const data = await parseJsonSafely(response);
+            if (!data.success) {
+                await showAlert(data.error || "Remove failed", "Remove Failed");
+            } else {
+                await refreshSection("weekly");
+            }
+            return;
+        }
+
+        const weeklySubmitBtn = event.target.closest(".submit-weekly-btn[data-week-number]");
+        if (weeklySubmitBtn) {
+            const weekNumber = weeklySubmitBtn.dataset.weekNumber;
+            const shouldSubmitWeekly = await showConfirm(
+                `Submit file for week ${weekNumber}? You will not be able to edit after submitting.`,
+                "Submit Weekly File",
+                "Submit",
+                "Cancel",
+            );
+            if (!shouldSubmitWeekly) return;
+            const params = new URLSearchParams({ week_number: weekNumber, action: "submit" });
+            const response = await fetch("../php/ojt_weekly_upload.php", { method: "POST", body: params });
+            const data = await parseJsonSafely(response);
+            if (!data.success) {
+                await showAlert(data.error || "Submit failed", "Submit Failed");
+            } else {
+                await refreshSection("weekly");
+            }
+            return;
+        }
+
+        if (event.target.id === "inBtn") {
+            await showAlert("IN recorded! (stub)", "Daily Time Record");
+            return;
+        }
+
+        if (event.target.id === "outBtn") {
+            await showAlert("OUT recorded! (stub)", "Daily Time Record");
+        }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const urlTab = params.get("tab");
+    let initialPanelId = panelIdFromSection(urlTab || "pre");
+
+    const initialTabButton = document.querySelector(`[data-target="${initialPanelId}"]`);
+    if (initialTabButton && initialTabButton.disabled) {
+        initialPanelId = "prePanel";
+    }
+
+    activatePanel(initialPanelId);
 });
-
 </script>
 
 </body>

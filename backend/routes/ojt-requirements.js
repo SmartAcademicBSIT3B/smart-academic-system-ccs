@@ -367,7 +367,24 @@ router.get("/submissions/:studentId", requireAuth, async (req, res) => {
     );
     const subMap = {};
     submissions.forEach((s) => {
-      subMap[s.template_id] = s;
+      const status = String(s?.status || "")
+        .trim()
+        .toLowerCase();
+      const isCoordinatorVisible = [
+        "submitted",
+        "verified",
+        "rejected",
+      ].includes(status);
+      subMap[s.template_id] = isCoordinatorVisible
+        ? s
+        : {
+            ...s,
+            file_url: null,
+            file_name: null,
+            cloudinary_public_id: null,
+            folder_path: null,
+            file_type: null,
+          };
     });
 
     const result = templates.map((t) => {

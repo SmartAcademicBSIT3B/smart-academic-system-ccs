@@ -604,6 +604,36 @@
       .panel-header .panel-title {
         margin-bottom: 0;
       }
+      .panel-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .panel-refresh-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        border: 1px solid var(--border-color);
+        background: transparent;
+        color: var(--secondary-text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition:
+          transform 0.12s ease,
+          border-color 0.12s ease,
+          color 0.12s ease;
+      }
+      .panel-refresh-btn:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+        transform: rotate(24deg);
+      }
+      .panel-refresh-btn svg {
+        width: 16px;
+        height: 16px;
+      }
 
       /* â”€â”€ Modal overlay â”€â”€ */
       .modal-overlay {
@@ -1491,9 +1521,33 @@
           <section class="panel tab-panel active" id="prePanel">
             <div class="panel-header">
               <h2 class="panel-title">PRE REQUIREMENTS</h2>
-              <button class="add-req-btn" onclick="openAddReqModal('pre')">
-                + Add Requirement
-              </button>
+              <div class="panel-header-actions">
+                <button
+                  class="panel-refresh-btn"
+                  type="button"
+                  title="Refresh requirements"
+                  aria-label="Refresh requirements"
+                  onclick="refreshRequirementsPanel('pre')"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path
+                      d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0 0 20.49 15"
+                    ></path>
+                  </svg>
+                </button>
+                <button class="add-req-btn" onclick="openAddReqModal('pre')">
+                  + Add Requirement
+                </button>
+              </div>
             </div>
             <div class="requirements-grid" id="preGrid">
               <div style="color: var(--secondary-text); font-size: 13px">
@@ -1568,9 +1622,33 @@
           <section class="panel tab-panel" id="postPanel">
             <div class="panel-header">
               <h2 class="panel-title">POST REQUIREMENTS</h2>
-              <button class="add-req-btn" onclick="openAddReqModal('post')">
-                + Add Requirement
-              </button>
+              <div class="panel-header-actions">
+                <button
+                  class="panel-refresh-btn"
+                  type="button"
+                  title="Refresh requirements"
+                  aria-label="Refresh requirements"
+                  onclick="refreshRequirementsPanel('post')"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path
+                      d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0 0 20.49 15"
+                    ></path>
+                  </svg>
+                </button>
+                <button class="add-req-btn" onclick="openAddReqModal('post')">
+                  + Add Requirement
+                </button>
+              </div>
             </div>
             <div class="requirements-grid" id="postGrid">
               <div style="color: var(--secondary-text); font-size: 13px">
@@ -2478,6 +2556,19 @@
       }
       async function loadPostRequirements() {
         await Promise.all([loadRequirements("post"), loadOjtCertificates()]);
+      }
+
+      async function refreshRequirementsPanel(type) {
+        if (type !== "pre" && type !== "post") return;
+        try {
+          await loadRequirements(type);
+          showToast(
+            `${type === "pre" ? "Pre" : "Post"} requirements refreshed.`,
+            "success",
+          );
+        } catch (_err) {
+          showToast("Failed to refresh requirements.", "error");
+        }
       }
 
       async function loadRequirements(type) {

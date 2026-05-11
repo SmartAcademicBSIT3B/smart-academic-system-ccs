@@ -1,13 +1,7 @@
 <?php
-ob_clean();
 header('Content-Type: application/json');
 error_reporting(0);
 ini_set('display_errors', 0);
-
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
 // Always return JSON on fatal DB errors
 set_exception_handler(function($e) {
@@ -30,6 +24,12 @@ if (!isset($_SESSION['student_id'])) {
 $student_id = $_SESSION['student_id'];
 $requirement_key = $_POST['requirement'] ?? null;
 $action = $_POST['action'] ?? 'upload';
+$requirement_section = strtolower(trim((string)($_POST['section'] ?? 'pre')));
+
+if (!in_array($requirement_section, ['pre', 'post'], true)) {
+    echo json_encode(['error' => 'Invalid requirement section']);
+    exit();
+}
 
 if (!$requirement_key || strpos($requirement_key, 'requirement_') !== 0) {
     echo json_encode(['error' => 'Missing or invalid requirement key']);
@@ -39,6 +39,36 @@ $template_id = intval(str_replace('requirement_', '', $requirement_key));
 if ($template_id <= 0) {
     echo json_encode(['error' => 'Invalid template id']);
     exit();
+}
+
+function section_is_submitted($conn, $ojt_student_id, $requirement_section) {
+    $sql = "SELECT COUNT(*) AS cnt
+            FROM ojt_requirement_submissions s
+            INNER JOIN ojt_requirement_templates t ON t.id = s.template_id
+            WHERE s.ojt_student_id = ?
+              AND LOWER(t.type) = ?
+              AND LOWER(COALESCE(s.status, 'pending')) IN ('submitted','verified','rejected')";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('is', $ojt_student_id, $requirement_section);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+    return ((int)($row['cnt'] ?? 0)) > 0;
+}
+
+function requirement_status($conn, $ojt_student_id, $template_id) {
+    $sql = "SELECT LOWER(COALESCE(status, 'pending')) AS status
+            FROM ojt_requirement_submissions
+            WHERE ojt_student_id = ? AND template_id = ?
+            LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('ii', $ojt_student_id, $template_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+    return strtolower(trim((string)($row['status'] ?? 'pending')));
 }
 
 // --- REMOVE LOGIC ---
@@ -59,15 +89,25 @@ if ($action === 'remove') {
         echo json_encode(['error' => 'Student OJT record not found']);
         exit();
     }
-    $stmt = $conn->prepare("UPDATE ojt_requirement_submissions SET file_url=NULL, file_name=NULL, cloudinary_public_id=NULL, file_type=NULL, status='Pending', updated_at=NOW() WHERE ojt_student_id=? AND template_id=?");
-    $stmt->bind_param("ii", $ojt_student_id, $template_id);
+
+    $current_status = requirement_status($conn, $ojt_student_id, $template_id);
+    $is_section_submitted = section_is_submitted($conn, $ojt_student_id, $requirement_section);
+    $can_edit_rejected = $current_status === 'rejected';
+
+    if ($is_section_submitted && !$can_edit_rejected) {
+        echo json_encode(['error' => 'Cannot edit requirements while this section is submitted. Unsubmit first.']);
+        exit();
+    }
+
+    $next_status = $can_edit_rejected ? 'rejected' : 'pending';
+    $stmt = $conn->prepare("UPDATE ojt_requirement_submissions SET file_url=NULL, file_name=NULL, cloudinary_public_id=NULL, file_type=NULL, status=?, updated_at=NOW() WHERE ojt_student_id=? AND template_id=?");
+    $stmt->bind_param("sii", $next_status, $ojt_student_id, $template_id);
     if (!$stmt->execute()) {
         echo json_encode(['error' => 'DB error: ' . $stmt->error]);
         exit();
     }
     $stmt->close();
-    echo json_encode(['success' => true]);
-    ob_end_flush();
+    echo json_encode(['success' => true, 'template_id' => $template_id, 'section' => $requirement_section]);
     exit();
 }
 $api_key = '183859447426441';
@@ -107,30 +147,7 @@ function uploadToCloudinarySimple($filePath, $folder, $publicId = null) {
     return json_decode($response, true);
 }
 
-session_start();
-
-if (!isset($_SESSION['student_id'])) {
-    echo json_encode(['error' => 'Not authenticated']);
-    exit();
-}
-
-$student_id = $_SESSION['student_id'];
-$requirement_key = $_POST['requirement'] ?? null;
-$action = $_POST['action'] ?? 'upload';
-
-if (!$requirement_key || strpos($requirement_key, 'requirement_') !== 0) {
-    echo json_encode(['error' => 'Missing or invalid requirement key']);
-    exit();
-}
-$template_id = intval(str_replace('requirement_', '', $requirement_key));
-if ($template_id <= 0) {
-    echo json_encode(['error' => 'Invalid template id']);
-    exit();
-}
-
-
 // Determine folder based on section (pre or post)
-$requirement_section = $_POST['section'] ?? 'pre'; // 'pre' or 'post'
 if ($requirement_section === 'post') {
     $folder = "HTA Files/OJT Requirements/$student_id/Post Requirements";
 } else {
@@ -170,6 +187,18 @@ if ($action === 'upload' && isset($_FILES['file'])) {
             echo json_encode(['error' => 'Student OJT record not found']);
             exit();
         }
+
+        $current_status = requirement_status($conn, $ojt_student_id, $template_id);
+        $is_section_submitted = section_is_submitted($conn, $ojt_student_id, $requirement_section);
+        $can_edit_rejected = $current_status === 'rejected';
+
+        if ($is_section_submitted && !$can_edit_rejected) {
+            echo json_encode(['error' => 'Cannot edit requirements while this section is submitted. Unsubmit first.']);
+            exit();
+        }
+
+        $next_status = $can_edit_rejected ? 'submitted' : 'pending';
+
         $stmt = $conn->prepare("SELECT id FROM ojt_requirement_submissions WHERE ojt_student_id=? AND template_id=?");
         $stmt->bind_param("ii", $ojt_student_id, $template_id);
         if (!$stmt->execute()) {
@@ -179,8 +208,8 @@ if ($action === 'upload' && isset($_FILES['file'])) {
         $stmt->store_result();
         if ($stmt->num_rows > 0) {
             $stmt->close();
-            $stmt2 = $conn->prepare("UPDATE ojt_requirement_submissions SET file_url=?, cloudinary_public_id=?, file_name=?, file_type=?, status='Pending', updated_at=?, student_id_ref=0 WHERE ojt_student_id=? AND template_id=?");
-            $stmt2->bind_param("ssssssi", $url, $public_id, $file_name, $file_type, $now, $ojt_student_id, $template_id);
+            $stmt2 = $conn->prepare("UPDATE ojt_requirement_submissions SET file_url=?, cloudinary_public_id=?, file_name=?, file_type=?, status=?, updated_at=?, student_id_ref=0 WHERE ojt_student_id=? AND template_id=?");
+            $stmt2->bind_param("ssssssii", $url, $public_id, $file_name, $file_type, $next_status, $now, $ojt_student_id, $template_id);
             if (!$stmt2->execute()) {
                 echo json_encode(['error' => 'DB error: ' . $stmt2->error]);
                 exit();
@@ -188,8 +217,8 @@ if ($action === 'upload' && isset($_FILES['file'])) {
             $stmt2->close();
         } else {
             $stmt->close();
-            $stmt2 = $conn->prepare("INSERT INTO ojt_requirement_submissions (ojt_student_id, template_id, student_id_ref, file_url, cloudinary_public_id, file_name, file_type, status, created_at, updated_at) VALUES (?, ?, 0, ?, ?, ?, ?, 'Pending', ?, ?)");
-            $stmt2->bind_param("iissssss", $ojt_student_id, $template_id, $url, $public_id, $file_name, $file_type, $now, $now);
+            $stmt2 = $conn->prepare("INSERT INTO ojt_requirement_submissions (ojt_student_id, template_id, student_id_ref, file_url, cloudinary_public_id, file_name, file_type, status, created_at, updated_at) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt2->bind_param("iisssssss", $ojt_student_id, $template_id, $url, $public_id, $file_name, $file_type, $next_status, $now, $now);
             if (!$stmt2->execute()) {
                 echo json_encode(['error' => 'DB error: ' . $stmt2->error]);
                 exit();
@@ -198,8 +227,10 @@ if ($action === 'upload' && isset($_FILES['file'])) {
         }
         echo json_encode([
             'success' => true,
+            'template_id' => $template_id,
+            'section' => $requirement_section,
             'url' => $url,
-            'status' => 'Pending',
+            'status' => $next_status,
             'file_name' => $file_name,
             'file_type' => $file_type
         ]);
