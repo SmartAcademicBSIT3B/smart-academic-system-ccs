@@ -4,9 +4,9 @@ REM This script starts a PHP development server with better error handling
 
 setlocal enabledelayedexpansion
 
-set websiteDir=c:\Users\PLPASIG\smart-academic-system-ccs\website\THESIS_CAPSTONE
-set port=8000
-set alt_port=8001
+set "websiteDir=%~dp0website\THESIS_CAPSTONE"
+set "targetPage=index.php"
+set "port="
 
 echo.
 echo ========================================
@@ -39,11 +39,12 @@ if not exist "%websiteDir%" (
 )
 
 echo Website Directory: %websiteDir%
+echo Start Page: %targetPage%
 echo.
 
-REM Check if landingpage.php exists
-if not exist "%websiteDir%\landingpage.php" (
-    echo [ERROR] landingpage.php not found in %websiteDir%
+REM Check if target page exists
+if not exist "%websiteDir%\%targetPage%" (
+    echo [ERROR] %targetPage% not found in %websiteDir%
     pause
     exit /b 1
 )
@@ -51,32 +52,39 @@ if not exist "%websiteDir%\landingpage.php" (
 echo [OK] All checks passed!
 echo.
 
-REM Check if port 8000 is available
-echo Checking if port %port% is available...
-netstat -ano | findstr :%port% >nul 2>&1
-if %errorlevel% equ 0 (
-    echo [WARNING] Port %port% is already in use
-    echo Using alternate port %alt_port% instead...
-    set port=%alt_port%
+REM Find first available port
+echo Checking available ports (8000, 8001, 8002)...
+for %%P in (8000 8001 8002) do (
+    netstat -ano | findstr /r /c:":%%P .*LISTENING" >nul 2>&1
+    if errorlevel 1 (
+        set "port=%%P"
+        goto :portFound
+    )
 )
 
-set url=http://localhost:%port%/landingpage.php
+echo [ERROR] No available ports found in 8000, 8001, or 8002
+pause
+exit /b 1
+
+:portFound
+
+set "url=http://localhost:!port!/%targetPage%"
 
 echo.
 echo ========================================
-echo Server URL: %url%
+echo Server URL: !url!
 echo ========================================
 echo.
-echo Starting PHP Development Server on port %port%...
+echo Starting PHP Development Server on port !port!...
 echo Press Ctrl+C to stop the server
 echo.
 
 cd /d "%websiteDir%"
 
 REM Open browser
-start "" "%url%"
+start "" "!url!"
 
 REM Start PHP server with additional options
-php -S localhost:%port% -t .
+php -S localhost:!port! -t .
 
 pause

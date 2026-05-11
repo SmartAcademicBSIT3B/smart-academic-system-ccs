@@ -68,7 +68,7 @@
         <!-- RIGHT SIDE -->
         <div class="right-section">
           <div class="chart-box">
-            <h4>Population Per Section</h4>
+            <h4>Statistics of Deployed 4th Year per Section</h4>
             <canvas id="pieChart2"></canvas>
           </div>
 
@@ -188,7 +188,7 @@
           let preDeploymentCount = 0;
           let pendingRequirementsCount = 0;
           const schoolYearMap = {};
-          const sectionMap = {};
+          const deployedSectionMap = {};
           const deploymentFieldMap = {};
 
           for (const student of students) {
@@ -208,12 +208,13 @@
             if (isBsit && isFourthYear) bsitPopulation += 1;
             if (isBscs && isFourthYear) bscsPopulation += 1;
 
-            if ((isBsit || isBscs) && isFourthYear) {
-              sectionMap[section] = (sectionMap[section] || 0) + 1;
-            }
-
             if (normalizedStatus === "deployed") {
               deployedCount += 1;
+
+              if (isFourthYear) {
+                deployedSectionMap[section] =
+                  (deployedSectionMap[section] || 0) + 1;
+              }
 
               const schoolYear = toSchoolYearLabel(student?.created_at);
               if (schoolYear) {
@@ -274,7 +275,8 @@
                 { label: "In Progress", value: completion.inProgress },
                 { label: "Pending", value: completion.pending },
               ],
-              populationPerSection: toEntriesByValueDesc(sectionMap),
+              deployedPerSection: toEntriesByValueDesc(deployedSectionMap),
+              populationPerSection: toEntriesByValueDesc(deployedSectionMap),
               deploymentStatus: [
                 { label: "Deployed", value: deployedCount },
                 { label: "Pre-Deployment", value: preDeploymentCount },
@@ -436,7 +438,10 @@
             options: circularOptions(),
           });
 
-          const sectionRows = toArray(charts.populationPerSection);
+          const preferredSectionRows = toArray(charts.deployedPerSection);
+          const sectionRows = preferredSectionRows.length
+            ? preferredSectionRows
+            : toArray(charts.populationPerSection);
           renderChart("pieChart2", {
             type: "pie",
             data: {
@@ -516,7 +521,9 @@
 
         function normalizeStatus(value) {
           const status = normalizeText(value).toLowerCase();
-          if (status === "ojt complete") return "deployed";
+          if (status === "ojt complete" || status.includes("deployed")) {
+            return "deployed";
+          }
           return status;
         }
 

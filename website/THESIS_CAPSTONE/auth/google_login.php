@@ -10,7 +10,9 @@ session_start();
 // 3. Enable Google+ API
 // 4. Go to "Credentials" > "Create Credentials" > "OAuth 2.0 Client ID"
 // 5. Choose "Web Application"
-// 6. Add Authorized Redirect URIs: http://localhost/THESIS_CAPSTONE/auth/google_login.php
+// 6. Add Authorized Redirect URIs matching your runtime URL, for example:
+//    - http://localhost:8000/auth/google_login.php (PHP built-in server)
+//    - http://localhost/THESIS_CAPSTONE/auth/google_login.php (XAMPP/htdocs setup)
 // 7. Copy your Client ID and Client Secret below
 
 $client_id = '676458007174-m7nomcu3gvlnqsmpb73v4uoee7q324ld.apps.googleusercontent.com';
@@ -18,7 +20,8 @@ $client_secret = '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';
 
 // Build redirect URI dynamically so it matches the actual request host and scheme
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$redirect_uri = $scheme . '://' . $_SERVER['HTTP_HOST'] . '/THESIS_CAPSTONE/auth/google_login.php';
+$script_path = $_SERVER['SCRIPT_NAME'] ?? '/auth/google_login.php';
+$redirect_uri = $scheme . '://' . $_SERVER['HTTP_HOST'] . $script_path;
 
 // ============================================
 // STEP 1: Check if returning from Google with authorization code

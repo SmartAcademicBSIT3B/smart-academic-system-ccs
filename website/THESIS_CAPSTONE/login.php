@@ -96,7 +96,7 @@ if (isset($_SESSION['student_id'])) {
 
                 <div class="or">OR</div>
 
-                <button class="google" onclick="loginWithGoogle()">
+                <button type="button" class="google" onclick="loginWithGoogle()">
                     <img src="./images/google.png"> Continue with PLP Account
                 </button>
 

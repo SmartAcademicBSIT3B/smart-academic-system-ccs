@@ -48,7 +48,9 @@ function getProgramFromSection(sectionName) {
 function normalizeStudentStatus(status) {
   const normalized = normalizeUpper(status);
   if (!normalized) return "";
-  if (normalized === "OJT COMPLETE") return "DEPLOYED";
+  if (normalized === "OJT COMPLETE" || normalized.includes("DEPLOYED")) {
+    return "DEPLOYED";
+  }
   return normalized;
 }
 
@@ -125,7 +127,7 @@ router.get("/dashboard-summary", requireAuth, async (req, res) => {
     let pendingRequirementsCount = 0;
     const schoolYearMap = {};
     const deployedFieldMap = {};
-    const sectionMap = {};
+    const deployedSectionMap = {};
 
     for (const student of students) {
       const sectionName = normalizeText(student.section) || "Unassigned";
@@ -138,12 +140,13 @@ router.get("/dashboard-summary", requireAuth, async (req, res) => {
       if (program === "BSIT" && isFourthYear) bsitPopulation += 1;
       if (program === "BSCS" && isFourthYear) bscsPopulation += 1;
 
-      if (program && isFourthYear) {
-        sectionMap[sectionName] = (sectionMap[sectionName] || 0) + 1;
-      }
-
       if (isDeployed) {
         deployedCount += 1;
+
+        if (isFourthYear) {
+          deployedSectionMap[sectionName] =
+            (deployedSectionMap[sectionName] || 0) + 1;
+        }
 
         const schoolYearLabel = toSchoolYearLabel(student.created_at);
         if (schoolYearLabel) {
@@ -207,7 +210,8 @@ router.get("/dashboard-summary", requireAuth, async (req, res) => {
           { label: "In Progress", value: completionCounts.inProgress },
           { label: "Pending", value: completionCounts.pending },
         ],
-        populationPerSection: toSortedEntryArray(sectionMap),
+        deployedPerSection: toSortedEntryArray(deployedSectionMap),
+        populationPerSection: toSortedEntryArray(deployedSectionMap),
         deploymentStatus: [
           { label: "Deployed", value: deployedCount },
           { label: "Pre-Deployment", value: preDeploymentCount },
