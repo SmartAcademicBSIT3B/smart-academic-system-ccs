@@ -8,18 +8,53 @@ if (!$conn) {
     die("Database connection failed");
 }
 
+$isAjax = (
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest' ||
+    strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false
+);
+
+function respondLoginError($message, $redirect, $extra = []) {
+    global $isAjax;
+
+    if ($isAjax) {
+        header('Content-Type: application/json');
+        echo json_encode(array_merge([
+            'success' => false,
+            'message' => $message
+        ], $extra));
+        exit();
+    }
+
+    header("Location: " . $redirect);
+    exit();
+}
+
+function respondLoginSuccess($redirect) {
+    global $isAjax;
+
+    if ($isAjax) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'redirect' => $redirect
+        ]);
+        exit();
+    }
+
+    header("Location: " . $redirect);
+    exit();
+}
+
 // Validate and sanitize input
 $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 
 if (empty($email) || empty($password)) {
-    header("Location: ../login.php?error=Email and password are required");
-    exit();
+    respondLoginError('Email and password are required', '../login.php?error=Email and password are required');
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    header("Location: ../login.php?error=Invalid email format");
-    exit();
+    respondLoginError('Invalid email format', '../login.php?error=Invalid email format');
 }
 
 // Brute force protection logic
@@ -34,22 +69,23 @@ $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
     // Email not found
-    header("Location: ../login.php?error=Invalid Email or Password");
-    exit();
+    respondLoginError('Invalid Email or Password', '../login.php?error=Invalid Email or Password');
 }
 
 $row = $result->fetch_assoc();
 
 // Check if account is locked
 if (!empty($row['locked_until']) && strtotime($row['locked_until']) > time()) {
-    header("Location: ../login.php?error=locked&email=" . urlencode($email));
-    exit();
+    respondLoginError(
+        'Your account is temporarily locked. Please reactivate via OTP.',
+        '../login.php?error=locked&email=' . urlencode($email),
+        ['locked' => true, 'email' => $email]
+    );
 }
 
 // Check if account is inactive
 if ($row['status'] !== 'active') {
-    header("Location: ../login.php?error=Account is not active.");
-    exit();
+    respondLoginError('Account is not active.', '../login.php?error=Account is not active.');
 }
 
 // Hash the password using SHA-256 and compare
@@ -68,8 +104,7 @@ if ($hashedPassword === $row['password']) {
     $_SESSION['email'] = $row['email'];
 
     // Redirect to main menu
-    header("Location: ../html/mainmenu.php");
-    exit();
+    respondLoginSuccess('../html/mainmenu.php');
 } else {
     // Failed login: increment failed_attempts
     $failed_attempts = (int)$row['failed_attempts'] + 1;
@@ -87,11 +122,14 @@ if ($hashedPassword === $row['password']) {
     $updateStmt->close();
 
     if ($lock) {
-        header("Location: ../login.php?error=Account locked after 5 failed attempts. Please reactivate via OTP.");
+        respondLoginError(
+            'Account locked after 5 failed attempts. Please reactivate via OTP.',
+            '../login.php?error=Account locked after 5 failed attempts. Please reactivate via OTP.',
+            ['locked' => true, 'email' => $email]
+        );
     } else {
-        header("Location: ../login.php?error=Invalid Email or Password");
+        respondLoginError('Invalid Email or Password', '../login.php?error=Invalid Email or Password');
     }
-    exit();
 }
 
 $stmt->close();

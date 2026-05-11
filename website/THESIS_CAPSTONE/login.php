@@ -20,7 +20,7 @@ if (isset($_SESSION['student_id'])) {
 <link rel="stylesheet" href="css/login.css">
 </head>
 
-<body>
+<body class="page-transition">
 
 <div class="login-page">
 
@@ -38,7 +38,7 @@ if (isset($_SESSION['student_id'])) {
                 <img src="./images/PASIG.png">
             </div>
 
-            <a href="landingpage.php" class="back-btn">
+            <a href="landingpage.php" class="back-btn" data-page-nav="landing">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                  <path d="M15 18L9 12L15 6"
               stroke="currentColor"
@@ -65,12 +65,12 @@ if (isset($_SESSION['student_id'])) {
             <h2>Login</h2>
 
             <!-- ✅ ERROR DISPLAY -->
-            <?php if (isset($_GET['error'])): ?>
-                <p style="color:red;"><?php echo $_GET['error']; ?></p>
-            <?php endif; ?>
+            <p id="loginError" class="login-error"<?php if (!isset($_GET['error'])): ?> style="display:none;"<?php endif; ?>>
+                <?php if (isset($_GET['error'])): ?><?php echo htmlspecialchars($_GET['error']); ?><?php endif; ?>
+            </p>
 
             <!-- ✅ FORM ADDED -->
-            <form action="auth/login.php" method="POST" onsubmit="validateLoginEmail(event)">
+            <form id="loginForm" action="auth/login.php" method="POST" onsubmit="handleLoginSubmit(event)">
 
                 <label>Email Address</label>
                 <input type="email" id="loginEmail" name="email" required oninput="validateEmailTyping(this)">
@@ -170,6 +170,25 @@ if (isset($_SESSION['student_id'])) {
 </div>
 
 <script>
+window.addEventListener('DOMContentLoaded', function() {
+    document.body.classList.add('page-ready');
+});
+
+function navigateWithFade(url) {
+    document.body.classList.add('page-exit');
+    setTimeout(function() {
+        window.location.href = url;
+    }, 280);
+}
+
+document.addEventListener('click', function(event) {
+    const pageNav = event.target.closest('[data-page-nav="landing"]');
+    if (pageNav) {
+        event.preventDefault();
+        navigateWithFade('landingpage.php');
+    }
+});
+
 // Show reactivation modal if error=locked in URL
 window.addEventListener('DOMContentLoaded', function() {
     const params = new URLSearchParams(window.location.search);
@@ -534,7 +553,70 @@ window.onclick = function(event) {
 
 function loginWithGoogle() {
     // Redirect to Google OAuth handler
-    window.location.href = 'auth/google_login.php';
+    navigateWithFade('auth/google_login.php');
+}
+
+function showLoginError(message) {
+    const errorEl = document.getElementById('loginError');
+    if (!errorEl) return;
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+}
+
+function clearLoginError() {
+    const errorEl = document.getElementById('loginError');
+    if (!errorEl) return;
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+}
+
+async function handleLoginSubmit(event) {
+    event.preventDefault();
+
+    clearLoginError();
+
+    if (!validateLoginEmail()) {
+        return false;
+    }
+
+    const form = document.getElementById('loginForm');
+    const submitButton = form.querySelector('.login-btn');
+    const originalText = submitButton.textContent;
+
+    submitButton.disabled = true;
+    submitButton.textContent = 'LOGGING IN...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: new URLSearchParams(formData)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            navigateWithFade(data.redirect || 'html/mainmenu.php');
+            return true;
+        }
+
+        showLoginError(data.message || 'Invalid Email or Password');
+
+        if (data.locked) {
+            openReactivateModal(data.email || document.getElementById('loginEmail').value || '');
+        }
+    } catch (error) {
+        showLoginError('Unable to log in right now. Please try again.');
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+    }
+
+    return false;
 }
 
 // Validate email as user types - show tooltip on wrong domain
@@ -549,11 +631,10 @@ function validateEmailTyping(input) {
 }
 
 // Validate login email domain on form submit
-function validateLoginEmail(event) {
+function validateLoginEmail() {
     const email = document.getElementById('loginEmail').value;
 
     if (!email.endsWith('@plpasig.edu.ph')) {
-        event.preventDefault();
         // Show native tooltip popup
         const emailInput = document.getElementById('loginEmail');
         emailInput.setCustomValidity('Only plpasig.edu.ph email addresses are allowed');
