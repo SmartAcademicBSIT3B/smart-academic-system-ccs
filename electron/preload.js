@@ -177,6 +177,65 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("updateOjtAttendance", payload),
   deleteOjtAttendance: (id) => ipcRenderer.invoke("deleteOjtAttendance", id),
 
+  // ── OJT Student Schedules ────────────────────────────────────────────────
+  getOjtStudentSchedules: async (studentId) => {
+    try {
+      return await ipcRenderer.invoke("getOjtStudentSchedules", studentId);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          schedules: [],
+          message:
+            "Schedule handlers are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
+  createOjtStudentSchedule: async (payload) => {
+    try {
+      return await ipcRenderer.invoke("createOjtStudentSchedule", payload);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message:
+            "Schedule handlers are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
+  updateOjtStudentSchedule: async (payload) => {
+    try {
+      return await ipcRenderer.invoke("updateOjtStudentSchedule", payload);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message:
+            "Schedule handlers are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
+  deleteOjtStudentSchedule: async (id) => {
+    try {
+      return await ipcRenderer.invoke("deleteOjtStudentSchedule", id);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message:
+            "Schedule handlers are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
+
   // ── OJT Weekly Reports ─────────────────────────────────────────────────────
   getOjtWeeklyReports: (studentId) =>
     ipcRenderer.invoke("getOjtWeeklyReports", studentId),

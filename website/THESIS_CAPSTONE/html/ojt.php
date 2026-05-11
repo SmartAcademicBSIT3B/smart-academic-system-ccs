@@ -347,33 +347,69 @@ $can_access_dtr = all_pre_requirements_approved($profile_student_id);
 
 <nav class="tabs">
 <button class="tab active" data-target="prePanel">PRE REQUIREMENTS</button>
+<button class="tab" data-target="attendancePanel" <?php if (!$can_access_dtr) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>>DAILY TIME RECORD</button>
 <button class="tab" data-target="weeklyPanel">WEEKLY REPORTS</button>
 <button class="tab" data-target="postPanel">POST REQUIREMENTS</button>
-<button class="tab" data-target="attendancePanel" <?php if (!$can_access_dtr) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>>DAILY TIME RECORD</button>
+
 </nav>
 
-<!-- SCHEDULE MODAL -->
-<?php if ($can_access_dtr && empty($_COOKIE['schedule_modal_shown'])): ?>
-<div id="scheduleModal" class="modal" style="display:flex;">
-  <div class="modal-content">
-    <h3>Set Your OJT Schedule</h3>
-    <form id="scheduleForm">
-      <label>Days (e.g. Mon-Fri): <input name="days" required></label><br>
-      <label>Time In: <input type="time" name="time_in" required></label><br>
-      <label>Time Out: <input type="time" name="time_out" required></label><br>
-      <button type="submit" class="submit-btn">Save Schedule</button>
-    </form>
-  </div>
+<div id="scheduleModal" class="modal" style="display:none;" aria-hidden="true">
+    <div class="modal-content">
+        <h3>Set Your OJT Schedule</h3>
+        <p class="schedule-note">Daily Record requires a schedule so the system can auto-detect late, present, and absent status.</p>
+        <form id="scheduleForm">
+            <label>OJT Start Date <input type="date" name="start_date" required></label>
+            <label>Schedule Days</label>
+            <div class="schedule-days-grid">
+                <label class="schedule-day-item"><input type="checkbox" name="days[]" value="Monday"> Monday</label>
+                <label class="schedule-day-item"><input type="checkbox" name="days[]" value="Tuesday"> Tuesday</label>
+                <label class="schedule-day-item"><input type="checkbox" name="days[]" value="Wednesday"> Wednesday</label>
+                <label class="schedule-day-item"><input type="checkbox" name="days[]" value="Thursday"> Thursday</label>
+                <label class="schedule-day-item"><input type="checkbox" name="days[]" value="Friday"> Friday</label>
+                <label class="schedule-day-item"><input type="checkbox" name="days[]" value="Saturday"> Saturday</label>
+                <label class="schedule-day-item"><input type="checkbox" name="days[]" value="Sunday"> Sunday</label>
+            </div>
+            <label>Time In <input type="time" name="time_in" required></label>
+            <label>Time Out <input type="time" name="time_out" required></label>
+            <div class="modal-inline-actions">
+                <button type="button" id="scheduleSkipBtn" class="app-modal-btn secondary">Cancel</button>
+                <button type="submit" class="submit-btn">Save Schedule</button>
+            </div>
+        </form>
+    </div>
 </div>
-<script>
-document.getElementById('scheduleForm').onsubmit = function(e) {
-  e.preventDefault();
-  // Save schedule via AJAX (stub)
-  document.getElementById('scheduleModal').style.display = 'none';
-  document.cookie = 'schedule_modal_shown=1;path=/;max-age=31536000';
-};
-</script>
-<?php endif; ?>
+
+<div id="attendanceModal" class="modal" style="display:none;" aria-hidden="true">
+    <div class="modal-content">
+        <h3 id="attendanceModalTitle">Add Attendance Record</h3>
+        <form id="attendanceForm">
+            <input type="hidden" name="id" value="">
+            <label>Date <input type="date" name="attendance_date" required></label>
+            <label>Time In <input type="time" name="time_in"></label>
+            <label>Proof File <input type="file" name="proof_file" accept="image/*,.pdf"></label>
+            <label>Notes <input type="text" name="notes" placeholder="Optional notes"></label>
+            <div class="modal-inline-actions">
+                <button type="button" id="attendanceCancelBtn" class="app-modal-btn secondary">Cancel</button>
+                <button type="submit" class="submit-btn">Save Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="weeklyModal" class="modal" style="display:none;" aria-hidden="true">
+    <div class="modal-content">
+        <h3 id="weeklyModalTitle">Add Weekly Report</h3>
+        <form id="weeklyForm">
+            <label>Week Number <input type="number" name="week_number" min="1" readonly required></label>
+            <label>Week Start Date <input type="date" name="week_start_date" required></label>
+            <label>Report File (Image/PDF) <input type="file" name="file" accept="image/*,.pdf"></label>
+            <div class="modal-inline-actions">
+                <button type="button" id="weeklyCancelBtn" class="app-modal-btn secondary">Cancel</button>
+                <button type="submit" class="submit-btn">Save Report</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <section class="panel tab-panel active" id="prePanel" data-tab="pre">
     <div class="panel-loading">Loading pre requirements...</div>
@@ -414,17 +450,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const loadedPanels = new Set();
 
     let selectedRequirementUpload = null;
-    let selectedWeekUpload = null;
 
     const requirementFileInput = document.createElement("input");
     requirementFileInput.type = "file";
     requirementFileInput.style.display = "none";
     document.body.appendChild(requirementFileInput);
-
-    const weeklyFileInput = document.createElement("input");
-    weeklyFileInput.type = "file";
-    weeklyFileInput.style.display = "none";
-    document.body.appendChild(weeklyFileInput);
 
     const appModal = document.getElementById("appModal");
     const appModalTitle = document.getElementById("appModalTitle");
@@ -432,6 +462,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const appModalList = document.getElementById("appModalList");
     const appModalOk = document.getElementById("appModalOk");
     const appModalCancel = document.getElementById("appModalCancel");
+    const scheduleModal = document.getElementById("scheduleModal");
+    const scheduleForm = document.getElementById("scheduleForm");
+    const scheduleSkipBtn = document.getElementById("scheduleSkipBtn");
+    const attendanceModal = document.getElementById("attendanceModal");
+    const attendanceForm = document.getElementById("attendanceForm");
+    const attendanceModalTitle = document.getElementById("attendanceModalTitle");
+    const attendanceCancelBtn = document.getElementById("attendanceCancelBtn");
+    const weeklyModal = document.getElementById("weeklyModal");
+    const weeklyForm = document.getElementById("weeklyForm");
+    const weeklyModalTitle = document.getElementById("weeklyModalTitle");
+    const weeklyCancelBtn = document.getElementById("weeklyCancelBtn");
+    let scheduleCheckInFlight = false;
 
     function escapeHtml(text) {
         return String(text || "")
@@ -530,10 +572,107 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             return JSON.parse(text);
         } catch (_e) {
+            const cleaned = String(text || "").trim();
             return {
                 success: false,
-                error: "Unexpected server response. Please refresh and try again.",
+                error: cleaned && !cleaned.startsWith("<") ? cleaned : `Server returned HTTP ${response.status}.`,
             };
+        }
+    }
+
+    function getLocalDateString(date = new Date()) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+
+    function getLocalTimeString(date = new Date()) {
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
+    }
+
+    function showScheduleModal() {
+        if (!scheduleModal) return;
+        if (scheduleForm && scheduleForm.elements && scheduleForm.elements.start_date && !scheduleForm.elements.start_date.value) {
+            scheduleForm.elements.start_date.value = getLocalDateString();
+        }
+        scheduleModal.style.display = "flex";
+        scheduleModal.setAttribute("aria-hidden", "false");
+    }
+
+    function hideScheduleModal() {
+        if (!scheduleModal) return;
+        scheduleModal.style.display = "none";
+        scheduleModal.setAttribute("aria-hidden", "true");
+    }
+
+    function openAttendanceModal(record) {
+        if (!attendanceModal || !attendanceForm) return;
+        const isEdit = !!(record && record.id);
+        attendanceModalTitle.textContent = isEdit ? "Edit Attendance Record" : "Add Attendance Record";
+        attendanceForm.reset();
+
+        attendanceForm.elements.id.value = isEdit ? String(record.id) : "";
+        attendanceForm.elements.attendance_date.value = record && record.attendance_date ? record.attendance_date : getLocalDateString();
+        attendanceForm.elements.time_in.value = record && record.time_in ? record.time_in : getLocalTimeString();
+        attendanceForm.elements.notes.value = record && record.notes ? record.notes : "";
+        const proofInput = attendanceForm.elements.proof_file;
+        if (proofInput) {
+            proofInput.value = "";
+        }
+
+        attendanceModal.style.display = "flex";
+        attendanceModal.setAttribute("aria-hidden", "false");
+    }
+
+    function hideAttendanceModal() {
+        if (!attendanceModal) return;
+        attendanceModal.style.display = "none";
+        attendanceModal.setAttribute("aria-hidden", "true");
+    }
+
+    function openWeeklyModal(options) {
+        if (!weeklyModal || !weeklyForm) return;
+        const opts = options || {};
+        const weekNumber = Number(opts.weekNumber || 0);
+        const weekStartDate = (opts.weekStartDate || "").toString().trim();
+        const hasExisting = !!opts.hasExisting;
+
+        weeklyForm.reset();
+        weeklyModalTitle.textContent = hasExisting ? `Update Weekly Report (Week ${weekNumber})` : "Add Weekly Report";
+        weeklyForm.elements.week_number.value = weekNumber > 0 ? String(weekNumber) : "";
+        weeklyForm.elements.week_start_date.value = weekStartDate || getLocalDateString();
+        weeklyForm.elements.file.value = "";
+
+        weeklyModal.style.display = "flex";
+        weeklyModal.setAttribute("aria-hidden", "false");
+    }
+
+    function hideWeeklyModal() {
+        if (!weeklyModal) return;
+        weeklyModal.style.display = "none";
+        weeklyModal.setAttribute("aria-hidden", "true");
+    }
+
+    async function ensureScheduleBeforeAttendance() {
+        if (scheduleCheckInFlight) return;
+        scheduleCheckInFlight = true;
+        try {
+            const response = await fetch("../php/ojt_schedule.php?action=get");
+            const data = await parseJsonSafely(response);
+            if (!data.success) {
+                await showAlert(data.error || "Unable to check OJT schedule.", "Daily Time Record");
+                return;
+            }
+            if (!data.has_schedule) {
+                showScheduleModal();
+            }
+        } catch (_err) {
+            await showAlert("Unable to check OJT schedule.", "Daily Time Record");
+        } finally {
+            scheduleCheckInFlight = false;
         }
     }
 
@@ -613,6 +752,9 @@ document.addEventListener("DOMContentLoaded", function () {
         setActiveTab(panelId);
         await loadPanel(panelId, false);
         const tabKey = tabKeyFromPanel(panelId);
+        if (tabKey === "attendance") {
+            await ensureScheduleBeforeAttendance();
+        }
         const params = new URLSearchParams(window.location.search);
         params.set("tab", tabKey);
         const newUrl = `${window.location.pathname}?${params.toString()}`;
@@ -652,30 +794,136 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    weeklyFileInput.addEventListener("change", async function (event) {
-        const file = event.target.files && event.target.files[0];
-        if (!file || selectedWeekUpload === null) return;
+    if (scheduleSkipBtn) {
+        scheduleSkipBtn.addEventListener("click", function () {
+            hideScheduleModal();
+        });
+    }
 
-        const formData = new FormData();
-        formData.append("week_number", selectedWeekUpload);
-        formData.append("action", "upload");
-        formData.append("file", file);
+    if (weeklyCancelBtn) {
+        weeklyCancelBtn.addEventListener("click", function () {
+            hideWeeklyModal();
+        });
+    }
 
-        try {
-            const response = await fetch("../php/ojt_weekly_upload.php", { method: "POST", body: formData });
-            const data = await parseJsonSafely(response);
-            if (!data.success) {
-                await showAlert(data.error || "Upload failed", "Upload Failed");
-            } else {
-                await refreshSection("weekly");
+    if (weeklyForm) {
+        weeklyForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const formData = new FormData(weeklyForm);
+            const weekNumber = Number(formData.get("week_number") || 0);
+            const weekStartDate = String(formData.get("week_start_date") || "").trim();
+
+            if (!weekNumber || weekNumber < 1) {
+                await showAlert("Week number is required.", "Weekly Reports");
+                return;
             }
-        } catch (_err) {
-            await showAlert("Upload failed", "Upload Failed");
-        } finally {
-            selectedWeekUpload = null;
-            weeklyFileInput.value = "";
-        }
-    });
+            if (!weekStartDate) {
+                await showAlert("Week start date is required.", "Weekly Reports");
+                return;
+            }
+
+            formData.set("week_number", String(weekNumber));
+            formData.set("week_start_date", weekStartDate);
+
+            try {
+                const response = await fetch("../php/ojt_weekly_upload.php?action=save", {
+                    method: "POST",
+                    body: formData,
+                });
+                const data = await parseJsonSafely(response);
+                if (!data.success) {
+                    await showAlert(data.error || "Failed to save weekly report.", "Weekly Reports");
+                    return;
+                }
+
+                hideWeeklyModal();
+                await refreshSection("weekly");
+            } catch (_err) {
+                await showAlert("Failed to save weekly report.", "Weekly Reports");
+            }
+        });
+    }
+
+    if (scheduleForm) {
+        scheduleForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const formData = new FormData(scheduleForm);
+
+            const days = formData.getAll("days[]");
+            const startDate = (formData.get("start_date") || "").toString().trim();
+            if (!startDate) {
+                await showAlert("Please select your OJT start date.", "Schedule Required");
+                return;
+            }
+            if (!days.length) {
+                await showAlert("Please select at least one day.", "Schedule Required");
+                return;
+            }
+
+            try {
+                const response = await fetch("../php/ojt_schedule.php?action=save", {
+                    method: "POST",
+                    body: formData,
+                });
+                const data = await parseJsonSafely(response);
+                if (!data.success) {
+                    await showAlert(data.error || "Failed to save schedule.", "Schedule");
+                    return;
+                }
+                hideScheduleModal();
+                await refreshSection("attendance");
+                await showAlert("OJT schedule saved.", "Schedule");
+            } catch (_err) {
+                await showAlert("Failed to save schedule.", "Schedule");
+            }
+        });
+    }
+
+    if (attendanceCancelBtn) {
+        attendanceCancelBtn.addEventListener("click", function () {
+            hideAttendanceModal();
+        });
+    }
+
+    if (attendanceForm) {
+        attendanceForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const formData = new FormData(attendanceForm);
+            const attendanceDateInput = attendanceForm.elements.attendance_date;
+            const timeInInput = attendanceForm.elements.time_in;
+            const notesInput = attendanceForm.elements.notes;
+            const attendanceDate = attendanceDateInput ? String(attendanceDateInput.value || "").trim() : "";
+
+            if (!attendanceDate) {
+                await showAlert("Please choose an attendance date before saving.", "Attendance");
+                return;
+            }
+
+            formData.set("attendance_date", attendanceDate);
+            if (timeInInput) {
+                formData.set("time_in", String(timeInInput.value || "").trim());
+            }
+            if (notesInput) {
+                formData.set("notes", String(notesInput.value || "").trim());
+            }
+
+            try {
+                const response = await fetch("../php/ojt_attendance_manage.php?action=save", {
+                    method: "POST",
+                    body: formData,
+                });
+                const data = await parseJsonSafely(response);
+                if (!data.success) {
+                    await showAlert(data.error || "Failed to save attendance record.", "Attendance");
+                    return;
+                }
+                hideAttendanceModal();
+                await refreshSection("attendance");
+            } catch (_err) {
+                await showAlert("Failed to save attendance record.", "Attendance");
+            }
+        });
+    }
 
     function getIncompleteRequirements(section) {
         const panelId = panelIdFromSection(section);
@@ -788,63 +1036,169 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const weeklyUploadBtn = event.target.closest(".upload-weekly-btn[data-week-number]");
-        if (weeklyUploadBtn) {
-            selectedWeekUpload = weeklyUploadBtn.dataset.weekNumber;
-            weeklyFileInput.click();
+        const weeklyAddBtn = event.target.closest("#weeklyAddBtn[data-next-week]");
+        if (weeklyAddBtn) {
+            openWeeklyModal({
+                weekNumber: Number(weeklyAddBtn.dataset.nextWeek || 1),
+                weekStartDate: getLocalDateString(),
+                hasExisting: false,
+            });
             return;
         }
 
-        const weeklyRemoveBtn = event.target.closest(".remove-weekly-btn[data-week-number]");
-        if (weeklyRemoveBtn) {
-            const weekNumber = weeklyRemoveBtn.dataset.weekNumber;
-            const shouldRemoveWeekly = await showConfirm(
-                `Remove uploaded file for week ${weekNumber}?`,
-                "Remove Weekly File",
-                "Remove",
+        const weeklyReplaceBtn = event.target.closest(".weekly-replace-btn[data-week-number]");
+        if (weeklyReplaceBtn) {
+            openWeeklyModal({
+                weekNumber: Number(weeklyReplaceBtn.dataset.weekNumber || 0),
+                weekStartDate: (weeklyReplaceBtn.dataset.weekStart || "").trim(),
+                hasExisting: true,
+            });
+            return;
+        }
+
+        const weeklyDeleteBtn = event.target.closest(".weekly-delete-btn[data-week-number]");
+        if (weeklyDeleteBtn) {
+            const weekNumber = String(weeklyDeleteBtn.dataset.weekNumber || "").trim();
+            if (!weekNumber) return;
+
+            const shouldDeleteWeek = await showConfirm(
+                `Delete weekly report for week ${weekNumber}?`,
+                "Delete Weekly Report",
+                "Delete",
                 "Cancel",
             );
-            if (!shouldRemoveWeekly) return;
-            const params = new URLSearchParams({ week_number: weekNumber, action: "remove" });
+            if (!shouldDeleteWeek) return;
+
+            const params = new URLSearchParams({ action: "delete", week_number: weekNumber });
             const response = await fetch("../php/ojt_weekly_upload.php", { method: "POST", body: params });
             const data = await parseJsonSafely(response);
             if (!data.success) {
-                await showAlert(data.error || "Remove failed", "Remove Failed");
+                await showAlert(data.error || "Failed to delete weekly report.", "Weekly Reports");
             } else {
                 await refreshSection("weekly");
             }
             return;
         }
 
-        const weeklySubmitBtn = event.target.closest(".submit-weekly-btn[data-week-number]");
-        if (weeklySubmitBtn) {
-            const weekNumber = weeklySubmitBtn.dataset.weekNumber;
-            const shouldSubmitWeekly = await showConfirm(
-                `Submit file for week ${weekNumber}? You will not be able to edit after submitting.`,
-                "Submit Weekly File",
-                "Submit",
+        if (event.target.id === "attendanceAddBtn") {
+            openAttendanceModal({
+                id: "",
+                attendance_date: getLocalDateString(),
+                time_in: getLocalTimeString(),
+                notes: "",
+            });
+            return;
+        }
+
+        const attendanceTimeoutBtn = event.target.closest(".attendance-timeout-btn[data-record-id]");
+        if (attendanceTimeoutBtn) {
+            const shouldSetTimeout = await showConfirm(
+                "Set time out to the current time?",
+                "Set Time Out",
+                "Set Now",
                 "Cancel",
             );
-            if (!shouldSubmitWeekly) return;
-            const params = new URLSearchParams({ week_number: weekNumber, action: "submit" });
-            const response = await fetch("../php/ojt_weekly_upload.php", { method: "POST", body: params });
+            if (!shouldSetTimeout) return;
+
+            const params = new URLSearchParams({
+                id: attendanceTimeoutBtn.dataset.recordId,
+            });
+            const response = await fetch("../php/ojt_attendance_manage.php?action=timeout", {
+                method: "POST",
+                body: params,
+            });
             const data = await parseJsonSafely(response);
             if (!data.success) {
-                await showAlert(data.error || "Submit failed", "Submit Failed");
+                await showAlert(data.error || "Failed to set time out.", "Attendance");
             } else {
-                await refreshSection("weekly");
+                await refreshSection("attendance");
             }
             return;
         }
 
-        if (event.target.id === "inBtn") {
-            await showAlert("IN recorded! (stub)", "Daily Time Record");
+        const attendanceProofReplaceBtn = event.target.closest(".attendance-proof-replace-btn[data-record-id]");
+        if (attendanceProofReplaceBtn) {
+            const row = attendanceProofReplaceBtn.closest("tr");
+            const proofInput = row ? row.querySelector('.attendance-proof-input[data-record-id]') : null;
+            if (proofInput) {
+                proofInput.click();
+            }
             return;
         }
 
-        if (event.target.id === "outBtn") {
-            await showAlert("OUT recorded! (stub)", "Daily Time Record");
+        const attendanceNotesSaveBtn = event.target.closest(".attendance-notes-save-btn[data-record-id]");
+        if (attendanceNotesSaveBtn) {
+            const row = attendanceNotesSaveBtn.closest("tr");
+            const notesInput = row ? row.querySelector('.attendance-note-input[data-record-id]') : null;
+            const recordId = String(attendanceNotesSaveBtn.dataset.recordId || "").trim();
+            const attendanceDate = String(attendanceNotesSaveBtn.dataset.date || "").trim();
+            const timeIn = String(attendanceNotesSaveBtn.dataset.timeIn || "").trim();
+            const notesValue = notesInput ? String(notesInput.value || "").trim() : "";
+
+            if (!recordId || !attendanceDate) {
+                await showAlert("Unable to save note for this attendance row.", "Attendance");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.set("id", recordId);
+            formData.set("attendance_date", attendanceDate);
+            formData.set("time_in", timeIn);
+            formData.set("notes", notesValue);
+
+            const response = await fetch("../php/ojt_attendance_manage.php?action=save", {
+                method: "POST",
+                body: formData,
+            });
+            const data = await parseJsonSafely(response);
+            if (!data.success) {
+                await showAlert(data.error || "Failed to save attendance notes.", "Attendance");
+            } else {
+                await refreshSection("attendance");
+            }
+            return;
         }
+    });
+
+    document.addEventListener("change", async function (event) {
+        const proofInput = event.target.closest('.attendance-proof-input[data-record-id]');
+        if (!proofInput) return;
+
+        const file = proofInput.files && proofInput.files[0];
+        if (!file) return;
+
+        const row = proofInput.closest("tr");
+        const notesInput = row ? row.querySelector('.attendance-note-input[data-record-id]') : null;
+
+        const recordId = String(proofInput.dataset.recordId || "").trim();
+        const attendanceDate = String(proofInput.dataset.date || "").trim();
+        const timeIn = String(proofInput.dataset.timeIn || "").trim();
+        const notesValue = notesInput ? String(notesInput.value || "").trim() : "";
+
+        if (!recordId || !attendanceDate) {
+            await showAlert("Unable to update proof for this attendance row.", "Attendance");
+            proofInput.value = "";
+            return;
+        }
+
+        const formData = new FormData();
+        formData.set("id", recordId);
+        formData.set("attendance_date", attendanceDate);
+        formData.set("time_in", timeIn);
+        formData.set("notes", notesValue);
+        formData.set("proof_file", file);
+
+        const response = await fetch("../php/ojt_attendance_manage.php?action=save", {
+            method: "POST",
+            body: formData,
+        });
+        const data = await parseJsonSafely(response);
+        if (!data.success) {
+            await showAlert(data.error || "Failed to upload attendance proof.", "Attendance");
+        } else {
+            await refreshSection("attendance");
+        }
+        proofInput.value = "";
     });
 
     const params = new URLSearchParams(window.location.search);

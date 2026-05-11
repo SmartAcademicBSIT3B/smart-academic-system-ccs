@@ -487,6 +487,25 @@
         text-decoration: underline;
       }
 
+      .attendance-timeout-btn {
+        width: auto;
+        min-width: 72px;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 7px;
+        border: 1px solid rgba(157, 198, 255, 0.22);
+        background: rgba(157, 198, 255, 0.08);
+        color: var(--primary-text);
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .attendance-timeout-btn:hover {
+        background: rgba(157, 198, 255, 0.16);
+        color: var(--accent-blue);
+      }
+
       /* â”€â”€ Weekly report cards â”€â”€ */
       .weekly-grid {
         display: grid;
@@ -1570,9 +1589,34 @@
           <section class="panel tab-panel" id="attendancePanel">
             <div class="panel-header">
               <h2 class="panel-title">ATTENDANCE RECORD</h2>
-              <button class="add-req-btn" onclick="openAddAttendanceModal()">
-                + Add Record
-              </button>
+              <div class="panel-header-actions">
+                <button
+                  class="panel-refresh-btn"
+                  title="Refresh attendance"
+                  onclick="loadAttendance()"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path
+                      d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0 0 20.49 15"
+                    ></path>
+                  </svg>
+                </button>
+                <button class="add-req-btn" onclick="openScheduleModal()">
+                  See Schedule
+                </button>
+                <button class="add-req-btn" onclick="openAddAttendanceModal()">
+                  + Add Record
+                </button>
+              </div>
             </div>
             <div class="att-summary-row" id="attSummary"></div>
             <div class="attendance-table-wrap">
@@ -1786,6 +1830,121 @@
             onclick="saveAttendance()"
           >
             Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STUDENT SCHEDULE MODAL ─────────────────────────────────────────── -->
+    <div class="modal-overlay" id="scheduleModal">
+      <div class="modal-box" style="max-width: 860px">
+        <div
+          class="modal-title"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+          "
+        >
+          <span>Student OJT Schedule</span>
+          <button class="add-req-btn" onclick="openAddScheduleEditor()">
+            + Add Schedule
+          </button>
+        </div>
+
+        <div class="attendance-table-wrap" style="margin-bottom: 14px">
+          <table class="att-table">
+            <thead>
+              <tr>
+                <th>START DATE</th>
+                <th>DAY</th>
+                <th>TIME IN</th>
+                <th>TIME OUT</th>
+                <th>ACTIVE</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody">
+              <tr>
+                <td
+                  colspan="6"
+                  style="color: var(--secondary-text); padding: 14px 0"
+                >
+                  Loading...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          id="scheduleEditor"
+          style="
+            display: none;
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+          "
+        >
+          <div
+            class="modal-title"
+            id="scheduleEditorTitle"
+            style="font-size: 13px; margin-bottom: 10px"
+          >
+            Add Schedule Row
+          </div>
+          <input type="hidden" id="scheduleEditId" value="" />
+
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 10px;
+            "
+          >
+            <div class="form-field" style="margin-bottom: 0">
+              <label class="form-label">Start Date</label>
+              <input
+                type="date"
+                class="form-input"
+                id="scheduleStartDateInput"
+              />
+            </div>
+            <div class="form-field" style="margin-bottom: 0">
+              <label class="form-label">Day</label>
+              <select class="form-select" id="scheduleDayInput">
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+              </select>
+            </div>
+            <div class="form-field" style="margin-bottom: 0">
+              <label class="form-label">Time In</label>
+              <input type="time" class="form-input" id="scheduleTimeInInput" />
+            </div>
+            <div class="form-field" style="margin-bottom: 0">
+              <label class="form-label">Time Out</label>
+              <input type="time" class="form-input" id="scheduleTimeOutInput" />
+            </div>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 12px">
+            <button class="modal-cancel-btn" onclick="cancelScheduleEditor()">
+              Cancel
+            </button>
+            <button class="modal-save-btn" onclick="saveScheduleRow()">
+              Save
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 14px">
+          <button class="modal-cancel-btn" onclick="closeScheduleModal()">
+            Close
           </button>
         </div>
       </div>
@@ -3326,6 +3485,191 @@
 
               showToast("Record deleted.", "success");
               await loadAttendance();
+            } catch (err) {
+              showToast(err.message, "error");
+            }
+          },
+        );
+      }
+
+      // ── Student Schedule ──────────────────────────────────────────────────
+      let scheduleRecordsCache = [];
+
+      function fmtClock(value) {
+        if (!value) return "—";
+        const raw = String(value);
+        if (/^\d{2}:\d{2}(:\d{2})?$/.test(raw)) {
+          return raw.slice(0, 5);
+        }
+        const dt = new Date(raw);
+        if (isNaN(dt.getTime())) return esc(raw);
+        return dt.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+      }
+
+      async function loadStudentSchedules() {
+        try {
+          const r = await window.electronAPI.getOjtStudentSchedules(STUDENT_ID);
+          if (!r?.success)
+            throw new Error(r?.message || "Failed to load schedules.");
+          renderStudentSchedules(r.schedules || []);
+        } catch (err) {
+          document.getElementById("scheduleBody").innerHTML =
+            `<tr><td colspan="6" style="color:#ff5252;padding:14px 0;">${esc(err.message)}</td></tr>`;
+        }
+      }
+
+      function renderStudentSchedules(rows) {
+        scheduleRecordsCache = Array.isArray(rows) ? rows : [];
+        const body = document.getElementById("scheduleBody");
+        if (!body) return;
+
+        if (!scheduleRecordsCache.length) {
+          body.innerHTML =
+            '<tr><td colspan="6" style="color:var(--secondary-text);padding:14px 0;">No schedule rows yet.</td></tr>';
+          return;
+        }
+
+        body.innerHTML = scheduleRecordsCache
+          .map((row) => {
+            return `
+            <tr>
+              <td>${row.start_date ? fmtDate(row.start_date) : "—"}</td>
+              <td>${esc(row.day_of_week || "—")}</td>
+              <td>${fmtClock(row.time_in)}</td>
+              <td>${fmtClock(row.time_out)}</td>
+              <td>${Number(row.is_active) === 0 ? "No" : "Yes"}</td>
+              <td>
+                <button class="icon-btn" title="Edit schedule" onclick="editScheduleRow(${Number(row.id)})">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z"/></svg>
+                </button>
+                <button class="icon-btn danger" title="Delete schedule" onclick="deleteScheduleRow(${Number(row.id)})">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3,4 13,4"/><path d="M6 4V2h4v2"/><rect x="4" y="4" width="8" height="9" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11"/><line x1="10" y1="7" x2="10" y2="11"/></svg>
+                </button>
+              </td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      function openScheduleModal() {
+        document.getElementById("scheduleModal").classList.add("open");
+        cancelScheduleEditor();
+        loadStudentSchedules();
+      }
+
+      function closeScheduleModal() {
+        document.getElementById("scheduleModal").classList.remove("open");
+      }
+
+      function openAddScheduleEditor() {
+        document.getElementById("scheduleEditorTitle").textContent =
+          "Add Schedule Row";
+        document.getElementById("scheduleEditId").value = "";
+        document.getElementById("scheduleStartDateInput").value = new Date()
+          .toISOString()
+          .slice(0, 10);
+        document.getElementById("scheduleDayInput").value = "Monday";
+        document.getElementById("scheduleTimeInInput").value = "";
+        document.getElementById("scheduleTimeOutInput").value = "";
+        document.getElementById("scheduleEditor").style.display = "block";
+      }
+
+      function cancelScheduleEditor() {
+        document.getElementById("scheduleEditor").style.display = "none";
+        document.getElementById("scheduleEditId").value = "";
+      }
+
+      function editScheduleRow(id) {
+        const row = scheduleRecordsCache.find(
+          (x) => Number(x.id) === Number(id),
+        );
+        if (!row) return;
+
+        document.getElementById("scheduleEditorTitle").textContent =
+          "Edit Schedule Row";
+        document.getElementById("scheduleEditId").value = String(row.id || "");
+        document.getElementById("scheduleStartDateInput").value = row.start_date
+          ? String(row.start_date).slice(0, 10)
+          : "";
+        document.getElementById("scheduleDayInput").value =
+          row.day_of_week || "Monday";
+        document.getElementById("scheduleTimeInInput").value = row.time_in
+          ? String(row.time_in).slice(0, 5)
+          : "";
+        document.getElementById("scheduleTimeOutInput").value = row.time_out
+          ? String(row.time_out).slice(0, 5)
+          : "";
+        document.getElementById("scheduleEditor").style.display = "block";
+      }
+
+      async function saveScheduleRow() {
+        const editId = document.getElementById("scheduleEditId").value;
+        const startDate = document
+          .getElementById("scheduleStartDateInput")
+          .value.trim();
+        const day = document.getElementById("scheduleDayInput").value;
+        const timeIn = document.getElementById("scheduleTimeInInput").value;
+        const timeOut = document.getElementById("scheduleTimeOutInput").value;
+
+        if (!startDate || !day || !timeIn || !timeOut) {
+          showToast(
+            "Start date, day, time in, and time out are required.",
+            "error",
+          );
+          return;
+        }
+
+        if (timeOut <= timeIn) {
+          showToast("Time out must be later than time in.", "error");
+          return;
+        }
+
+        try {
+          const payload = {
+            student_id: STUDENT_ID,
+            start_date: startDate,
+            day_of_week: day,
+            time_in: timeIn,
+            time_out: timeOut,
+            is_active: 1,
+          };
+
+          let r;
+          if (editId) {
+            r = await window.electronAPI.updateOjtStudentSchedule({
+              id: Number(editId),
+              ...payload,
+            });
+          } else {
+            r = await window.electronAPI.createOjtStudentSchedule(payload);
+          }
+
+          if (!r?.success)
+            throw new Error(r?.message || "Failed to save schedule row.");
+
+          showToast("Schedule saved.", "success");
+          cancelScheduleEditor();
+          await loadStudentSchedules();
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      async function deleteScheduleRow(id) {
+        openConfirm(
+          "Delete Schedule",
+          "Are you sure you want to delete this schedule row?",
+          async () => {
+            try {
+              const r = await window.electronAPI.deleteOjtStudentSchedule(id);
+              if (!r?.success)
+                throw new Error(r?.message || "Failed to delete schedule row.");
+              showToast("Schedule row deleted.", "success");
+              await loadStudentSchedules();
             } catch (err) {
               showToast(err.message, "error");
             }

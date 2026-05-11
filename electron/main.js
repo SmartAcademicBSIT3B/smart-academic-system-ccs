@@ -2632,6 +2632,55 @@ ipcMain.handle("deleteOjtAttendance", async (event, id) => {
   }
 });
 
+// ── OJT Student Schedules IPC handlers ─────────────────────────────────────
+
+ipcMain.handle("getOjtStudentSchedules", async (event, studentId) => {
+  try {
+    return await api.get(
+      `/ojt-student-schedules/${encodeURIComponent(studentId)}`,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch student schedules.",
+    };
+  }
+});
+
+ipcMain.handle("createOjtStudentSchedule", async (event, payload) => {
+  try {
+    return await api.post("/ojt-student-schedules", payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to create schedule.",
+    };
+  }
+});
+
+ipcMain.handle("updateOjtStudentSchedule", async (event, payload) => {
+  try {
+    const id = payload?.id;
+    return await api.patch(`/ojt-student-schedules/${id}`, payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to update schedule.",
+    };
+  }
+});
+
+ipcMain.handle("deleteOjtStudentSchedule", async (event, id) => {
+  try {
+    return await api.del(`/ojt-student-schedules/${id}`);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to delete schedule.",
+    };
+  }
+});
+
 // ── OJT Weekly Reports IPC handlers ──────────────────────────────────────────
 
 ipcMain.handle("getOjtWeeklyReports", async (event, studentId) => {
