@@ -1,8 +1,25 @@
 const express = require("express");
 const { query } = require("../db/connect");
 const { requireAuth } = require("../middleware/auth");
+const {
+  sendOjtDeploymentStatusEmail,
+  formatStatusLabel,
+} = require("../services/deployment-email");
 
 const router = express.Router();
+
+function normalizeStatus(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function shouldSendDeploymentEmail(previousStatus, nextStatus) {
+  const previous = normalizeStatus(previousStatus);
+  const next = normalizeStatus(nextStatus);
+  if (!next || previous === next) return false;
+  return next === "deployed" || next === "ojt complete";
+}
 
 const DEPT_HEADER = "x-department";
 function getDept(req) {
@@ -290,7 +307,7 @@ router.patch("/student/:studentId/status", requireAuth, async (req, res) => {
     }
 
     const existing = await query(
-      "SELECT id, status FROM ojt_students WHERE student_id = ? AND department = ? LIMIT 1",
+      "SELECT id, student_id, name, email, status FROM ojt_students WHERE student_id = ? AND department = ? LIMIT 1",
       [studentId, dept],
     );
     if (!existing.length)
@@ -314,11 +331,34 @@ router.patch("/student/:studentId/status", requireAuth, async (req, res) => {
       [dbId, oldStatus, newStatus, req.user?.id || null, notes],
     );
 
+    let emailSent = false;
+    let emailError = null;
+    if (shouldSendDeploymentEmail(oldStatus, newStatus)) {
+      try {
+        await sendOjtDeploymentStatusEmail({
+          email: existing[0].email,
+          studentName: existing[0].name,
+          studentId: existing[0].student_id,
+          status: newStatus,
+          previousStatus: oldStatus,
+        });
+        emailSent = true;
+      } catch (mailError) {
+        emailError = mailError.message || "Failed to send deployment email.";
+        console.error("updateStudentStatus deployment email error:", mailError);
+      }
+    }
+
     return res.json({
       success: true,
-      message: "Status updated.",
+      message: emailError
+        ? "Status updated, but email notification could not be sent."
+        : "Status updated.",
       old_status: oldStatus,
       new_status: newStatus,
+      status_label: formatStatusLabel(newStatus),
+      email_sent: emailSent,
+      email_error: emailError,
     });
   } catch (error) {
     console.error("updateStudentStatus error:", error);

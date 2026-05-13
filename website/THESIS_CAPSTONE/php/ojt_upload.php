@@ -71,6 +71,54 @@ function requirement_status($conn, $ojt_student_id, $template_id) {
     return strtolower(trim((string)($row['status'] ?? 'pending')));
 }
 
+function requirement_has_uploaded_file($conn, $ojt_student_id, $template_id) {
+    $sql = "SELECT file_url
+            FROM ojt_requirement_submissions
+            WHERE ojt_student_id = ? AND template_id = ?
+            LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('ii', $ojt_student_id, $template_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+    return trim((string)($row['file_url'] ?? '')) !== '';
+}
+
+function requirement_is_overdue($conn, $ojt_student_id, $template_id, $requirement_section) {
+    $sql = "SELECT t.deadline, s.deadline_override
+            FROM ojt_requirement_templates t
+            LEFT JOIN ojt_requirement_submissions s
+              ON s.template_id = t.id AND s.ojt_student_id = ?
+            WHERE t.id = ? AND LOWER(t.type) = ?
+            LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('iis', $ojt_student_id, $template_id, $requirement_section);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+
+    if (!$row) {
+        return false;
+    }
+
+    $override = trim((string)($row['deadline_override'] ?? ''));
+    $templateDeadline = trim((string)($row['deadline'] ?? ''));
+    $effectiveDeadline = $override !== '' ? $override : $templateDeadline;
+    if ($effectiveDeadline === '') {
+        return false;
+    }
+
+    $deadlineTs = strtotime(substr($effectiveDeadline, 0, 10));
+    if (!$deadlineTs) {
+        return false;
+    }
+
+    $todayTs = strtotime(date('Y-m-d'));
+    return $deadlineTs < $todayTs;
+}
+
 // --- REMOVE LOGIC ---
 if ($action === 'remove') {
     $conn = include('config.php');
@@ -93,9 +141,13 @@ if ($action === 'remove') {
     $current_status = requirement_status($conn, $ojt_student_id, $template_id);
     $is_section_submitted = section_is_submitted($conn, $ojt_student_id, $requirement_section);
     $can_edit_rejected = $current_status === 'rejected';
+    $has_uploaded_file = requirement_has_uploaded_file($conn, $ojt_student_id, $template_id);
+    $is_verified_locked = in_array($current_status, ['verified', 'approved'], true);
 
-    if ($is_section_submitted && !$can_edit_rejected) {
-        echo json_encode(['error' => 'Cannot edit requirements while this section is submitted. Unsubmit first.']);
+    // Upload exception: allow adding/replacing files even while section is submitted.
+    // Keep verified requirements protected from edits.
+    if ($is_verified_locked && !$can_edit_rejected) {
+        echo json_encode(['error' => 'This requirement is already verified and can no longer be edited.']);
         exit();
     }
 
@@ -160,6 +212,45 @@ if ($action === 'upload' && isset($_FILES['file'])) {
         echo json_encode(['error' => 'File upload error']);
         exit();
     }
+
+    $conn = include('config.php');
+    if (!$conn) {
+        echo json_encode(['error' => 'Database connection failed']);
+        exit();
+    }
+
+    $ojt_student_id = null;
+    $stmt = $conn->prepare("SELECT id FROM ojt_students WHERE student_id = ? LIMIT 1");
+    $stmt->bind_param("s", $student_id);
+    if (!$stmt->execute()) {
+        echo json_encode(['error' => 'DB error: ' . $stmt->error]);
+        exit();
+    }
+    $stmt->bind_result($ojt_student_id);
+    $stmt->fetch();
+    $stmt->close();
+    if (!$ojt_student_id) {
+        echo json_encode(['error' => 'Student OJT record not found']);
+        exit();
+    }
+
+    $current_status = requirement_status($conn, $ojt_student_id, $template_id);
+    $is_section_submitted = section_is_submitted($conn, $ojt_student_id, $requirement_section);
+    $can_edit_rejected = $current_status === 'rejected';
+    $is_verified_locked = in_array($current_status, ['verified', 'approved'], true);
+
+    // Keep verified requirements immutable, but allow uploads for other rows
+    // even when the section is already submitted.
+    if ($is_verified_locked && !$can_edit_rejected) {
+        echo json_encode(['error' => 'This requirement is already verified and can no longer be edited.']);
+        exit();
+    }
+
+    if (requirement_is_overdue($conn, $ojt_student_id, $template_id, $requirement_section)) {
+        echo json_encode(['error' => 'This requirement is past its deadline and no longer accepts uploads.']);
+        exit();
+    }
+
     $publicId = $requirement_key . '_' . uniqid();
     $result = uploadToCloudinarySimple($file['tmp_name'], $folder, $publicId);
     if (isset($result['secure_url'])) {
@@ -168,36 +259,12 @@ if ($action === 'upload' && isset($_FILES['file'])) {
         $file_name = $file['name'];
         $file_type = $file['type'];
         $now = date('Y-m-d H:i:s');
-        $conn = include('config.php');
-        if (!$conn) {
-            echo json_encode(['error' => 'Database connection failed']);
-            exit();
-        }
-        $ojt_student_id = null;
-        $stmt = $conn->prepare("SELECT id FROM ojt_students WHERE student_id = ? LIMIT 1");
-        $stmt->bind_param("s", $student_id);
-        if (!$stmt->execute()) {
-            echo json_encode(['error' => 'DB error: ' . $stmt->error]);
-            exit();
-        }
-        $stmt->bind_result($ojt_student_id);
-        $stmt->fetch();
-        $stmt->close();
-        if (!$ojt_student_id) {
-            echo json_encode(['error' => 'Student OJT record not found']);
-            exit();
-        }
 
-        $current_status = requirement_status($conn, $ojt_student_id, $template_id);
-        $is_section_submitted = section_is_submitted($conn, $ojt_student_id, $requirement_section);
-        $can_edit_rejected = $current_status === 'rejected';
-
-        if ($is_section_submitted && !$can_edit_rejected) {
-            echo json_encode(['error' => 'Cannot edit requirements while this section is submitted. Unsubmit first.']);
-            exit();
-        }
-
-        $next_status = $can_edit_rejected ? 'submitted' : 'pending';
+        // If this section is already submitted, newly uploaded requirements
+        // should immediately join the submitted state instead of reverting to pending.
+        $next_status = ($can_edit_rejected || $is_section_submitted)
+            ? 'submitted'
+            : 'pending';
 
         $stmt = $conn->prepare("SELECT id FROM ojt_requirement_submissions WHERE ojt_student_id=? AND template_id=?");
         $stmt->bind_param("ii", $ojt_student_id, $template_id);

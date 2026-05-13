@@ -168,33 +168,8 @@ if ($conn) {
     $stmt->close();
     $conn->close();
 }
-// Check if all pre requirements are approved
-function all_pre_requirements_approved($student_id) {
-    if (!$student_id) return false;
-    $conn = include("../php/config.php");
-    if (!$conn) return false;
-    $ojt_student_id = null;
-    $stmt = $conn->prepare("SELECT id FROM ojt_students WHERE student_id = ? LIMIT 1");
-    $stmt->bind_param("s", $student_id);
-    $stmt->execute();
-    $stmt->bind_result($ojt_student_id);
-    $stmt->fetch();
-    $stmt->close();
-    if (!$ojt_student_id) return false;
-    $sql = "SELECT COUNT(*) as cnt FROM ojt_requirement_templates WHERE type='pre' AND is_required=1";
-    $total = $conn->query($sql)->fetch_assoc()['cnt'];
-    $sql2 = "SELECT COUNT(*) as cnt FROM ojt_requirement_submissions WHERE ojt_student_id=? AND LOWER(status) IN ('approved','verified')";
-    $stmt2 = $conn->prepare($sql2);
-    $stmt2->bind_param("i", $ojt_student_id);
-    $stmt2->execute();
-    $stmt2->bind_result($approved);
-    $stmt2->fetch();
-    $stmt2->close();
-    $conn->close();
-    return $approved >= $total && $total > 0;
-}
-$profile_student_id = $student_data['student_id'] ?? ($_SESSION['student_id'] ?? null);
-$can_access_dtr = all_pre_requirements_approved($profile_student_id);
+$student_status_label = strtolower(trim((string)($student_data['display_ojt_status'] ?? '')));
+$can_access_progress_tabs = $student_status_label === 'deployed';
 
 ?>
 
@@ -347,9 +322,9 @@ $can_access_dtr = all_pre_requirements_approved($profile_student_id);
 
 <nav class="tabs">
 <button class="tab active" data-target="prePanel">PRE REQUIREMENTS</button>
-<button class="tab" data-target="attendancePanel" <?php if (!$can_access_dtr) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>>DAILY TIME RECORD</button>
-<button class="tab" data-target="weeklyPanel">WEEKLY REPORTS</button>
-<button class="tab" data-target="postPanel">POST REQUIREMENTS</button>
+<button class="tab" data-target="attendancePanel" <?php if (!$can_access_progress_tabs) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>>DAILY TIME RECORD</button>
+<button class="tab" data-target="weeklyPanel" <?php if (!$can_access_progress_tabs) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>>WEEKLY REPORTS</button>
+<button class="tab" data-target="postPanel" <?php if (!$can_access_progress_tabs) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>>POST REQUIREMENTS</button>
 
 </nav>
 
@@ -1203,6 +1178,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const params = new URLSearchParams(window.location.search);
     const urlTab = params.get("tab");
+    const autoSubmit = params.get("autoSubmit") === "1";
     let initialPanelId = panelIdFromSection(urlTab || "pre");
 
     const initialTabButton = document.querySelector(`[data-target="${initialPanelId}"]`);
@@ -1211,6 +1187,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     activatePanel(initialPanelId);
+
+    if (autoSubmit) {
+        window.setTimeout(() => {
+            const submitButton = document.querySelector('.req-submit-toggle[data-section][data-action="submit"]');
+            if (submitButton) {
+                submitButton.click();
+            }
+        }, 350);
+    }
 });
 </script>
 

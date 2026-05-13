@@ -92,14 +92,52 @@
         background: rgba(0, 200, 83, 0.12);
         color: #00c853;
       }
+      .deadline-slot {
+        min-height: 18px;
+        display: flex;
+        align-items: center;
+      }
+      .deadline-badge.placeholder {
+        visibility: hidden;
+      }
 
       /* â”€â”€ Requirements list â”€â”€ */
       .req-meta {
         display: flex;
-        gap: 6px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        margin-bottom: 6px;
+      }
+      .req-label-wrap {
+        display: flex;
         align-items: center;
+        gap: 6px;
         flex-wrap: wrap;
-        margin-bottom: 4px;
+      }
+      .req-template-delete-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 82, 82, 0.3);
+        background: rgba(255, 82, 82, 0.08);
+        color: #ff8a80;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .req-template-delete-btn:hover {
+        background: rgba(255, 82, 82, 0.16);
+        border-color: rgba(255, 82, 82, 0.5);
+      }
+      .req-template-delete-btn svg {
+        width: 11px;
+        height: 11px;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        fill: none;
       }
       .req-actions {
         display: flex;
@@ -162,6 +200,37 @@
       .add-req-btn:hover {
         border-color: var(--accent-blue);
         color: var(--accent-blue);
+      }
+
+      .deadline-editor-list {
+        margin: 10px 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 340px;
+        overflow-y: auto;
+      }
+
+      .deadline-editor-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 180px;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: var(--secondary-bg);
+      }
+
+      .deadline-editor-name {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--primary-text);
+      }
+
+      .deadline-editor-name .required {
+        color: #ffb23f;
+        font-weight: 700;
       }
 
       /* â”€â”€ Partner autocomplete â”€â”€ */
@@ -1566,6 +1635,13 @@
                 <button class="add-req-btn" onclick="openAddReqModal('pre')">
                   + Add Requirement
                 </button>
+                <button
+                  class="add-req-btn"
+                  type="button"
+                  onclick="openEditDeadlinesModal('pre')"
+                >
+                  Edit Deadlines
+                </button>
               </div>
             </div>
             <div class="requirements-grid" id="preGrid">
@@ -1692,6 +1768,13 @@
                 <button class="add-req-btn" onclick="openAddReqModal('post')">
                   + Add Requirement
                 </button>
+                <button
+                  class="add-req-btn"
+                  type="button"
+                  onclick="openEditDeadlinesModal('post')"
+                >
+                  Edit Deadlines
+                </button>
               </div>
             </div>
             <div class="requirements-grid" id="postGrid">
@@ -1763,6 +1846,30 @@
             onclick="saveNewRequirement()"
           >
             Add
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="editDeadlinesModal">
+      <div class="modal-box" style="max-width: 680px">
+        <div class="modal-title" id="editDeadlinesTitle">
+          Edit Requirement Deadlines
+        </div>
+        <p style="font-size: 12px; color: var(--secondary-text)">
+          Update deadline dates for the selected requirement set.
+        </p>
+        <div class="deadline-editor-list" id="deadlineEditorList"></div>
+        <div class="modal-actions">
+          <button class="modal-cancel-btn" onclick="closeEditDeadlinesModal()">
+            Cancel
+          </button>
+          <button
+            class="modal-save-btn"
+            id="editDeadlinesSaveBtn"
+            onclick="saveEditedDeadlines()"
+          >
+            Save Deadlines
           </button>
         </div>
       </div>
@@ -2056,6 +2163,37 @@
       </div>
     </div>
 
+    <div class="modal-overlay" id="deleteReqModal">
+      <div class="modal-box" style="max-width: 390px">
+        <div class="modal-title">Delete Requirement</div>
+        <p
+          id="deleteReqMsg"
+          style="
+            font-size: 13px;
+            color: var(--primary-text);
+            margin-bottom: 20px;
+            line-height: 1.6;
+          "
+        ></p>
+        <div class="modal-actions">
+          <button
+            class="modal-cancel-btn"
+            onclick="closeDeleteRequirementModal()"
+          >
+            Cancel
+          </button>
+          <button
+            class="modal-save-btn"
+            id="deleteReqOkBtn"
+            onclick="confirmDeleteRequirement()"
+            style="background: #ff5252"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div
       class="modal-overlay"
       id="fileViewerModal"
@@ -2213,6 +2351,8 @@
       let weeklyFilePath = null;
       let certificateFilePath = null;
       let certificatesCache = [];
+      let currentDeadlineEditType = "pre";
+      const requirementItemsCache = { pre: [], post: [] };
 
       function buildCoordinatorNotification(
         activityType,
@@ -2420,6 +2560,13 @@
           ok: `due in ${badge.days}d`,
         };
         return `<span class="deadline-badge ${esc(badge.status)}">${labels[badge.status] || ""}</span>`;
+      }
+
+      function toDateInputValue(value) {
+        const text = String(value || "").trim();
+        if (!text) return "";
+        const datePart = text.slice(0, 10);
+        return /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : "";
       }
 
       function isCapstoneApprovedFromStudentProfile() {
@@ -2742,7 +2889,9 @@
           });
           if (!r?.success)
             throw new Error(r?.message || "Failed to load requirements.");
-          renderRequirementsGrid(type, r.requirements || []);
+          const items = Array.isArray(r.requirements) ? r.requirements : [];
+          requirementItemsCache[type] = items;
+          renderRequirementsGrid(type, items);
         } catch (err) {
           grid.innerHTML = `<div style="color:#ff5252;font-size:13px;">${esc(err.message)}</div>`;
         }
@@ -2761,7 +2910,12 @@
         grid.innerHTML = requirements
           .map((item) => {
             const { template: t, submission: sub } = item;
+            const templateName = String(t?.name || "Requirement");
+            const encodedTemplateName = encodeURIComponent(templateName);
             const badge = deadlineBadgeHtml(t.deadline_badge);
+            const badgeSlot =
+              badge ||
+              '<span class="deadline-badge placeholder">due in 00d</span>';
             const isRequired =
               Number(t?.is_required) === 1 || t?.is_required === true;
             const submissionStatus = String(sub?.status || "")
@@ -2817,8 +2971,17 @@
             return `
             <div class="req" data-template-id="${esc(t.id)}" data-submission-id="${esc(sub?.id || "")}" data-cloudinary-public-id="${esc(sub?.cloudinary_public_id || "")}" data-file-url="${esc(sub?.file_url || "")}" data-is-required="${isRequired ? "true" : "false"}" data-submission-status="${esc(submissionStatus)}">
               <div class="req-meta">
-                <span class="req-label">${esc(t.name.toUpperCase())}${isRequired ? " • REQUIRED" : ""}</span>
-                ${badge}
+                <div class="deadline-slot">${badgeSlot}</div>
+                <div class="req-label-wrap">
+                  <span class="req-label">${esc(templateName.toUpperCase())}${isRequired ? " • REQUIRED" : ""}</span>
+                  <button
+                    class="req-template-delete-btn"
+                    title="Delete requirement"
+                    onclick="event.stopPropagation(); openDeleteRequirementModal('${esc(t.id)}','${encodedTemplateName}','${type}')"
+                  >
+                    <svg viewBox="0 0 16 16"><polyline points="2,4 3.5,4 13.5,4"></polyline><path d="M12.5 4v8.5a1.1 1.1 0 0 1-1.1 1.1H4.6a1.1 1.1 0 0 1-1.1-1.1V4"></path><path d="M5.8 4V2.9c0-.4.3-.7.7-.7h3c.4 0 .7.3.7.7V4"></path><line x1="6.5" y1="6.2" x2="6.5" y2="11.3"></line><line x1="9.5" y1="6.2" x2="9.5" y2="11.3"></line></svg>
+                  </button>
+                </div>
               </div>
               <div class="req-actions">${containerHtml}</div>
               ${
@@ -3204,6 +3367,133 @@
       }
       function closeAddReqModal() {
         document.getElementById("addReqModal").classList.remove("open");
+      }
+
+      async function openEditDeadlinesModal(type) {
+        if (type !== "pre" && type !== "post") return;
+        currentDeadlineEditType = type;
+        document.getElementById("editDeadlinesTitle").textContent =
+          "Edit " +
+          (type === "pre" ? "Pre" : "Post") +
+          " Requirement Deadlines";
+        const list = document.getElementById("deadlineEditorList");
+        list.innerHTML =
+          '<div style="color:var(--secondary-text);font-size:13px;">Loading requirements…</div>';
+        document.getElementById("editDeadlinesModal").classList.add("open");
+
+        try {
+          const r = await window.electronAPI.getStudentRequirements({
+            studentId: STUDENT_ID,
+            type,
+          });
+          if (!r?.success)
+            throw new Error(r?.message || "Failed to load requirements.");
+          const items = Array.isArray(r.requirements) ? r.requirements : [];
+          requirementItemsCache[type] = items;
+          renderDeadlineEditorList(items);
+        } catch (err) {
+          list.innerHTML = `<div style="color:#ff5252;font-size:13px;">${esc(err.message)}</div>`;
+        }
+      }
+
+      function closeEditDeadlinesModal() {
+        document.getElementById("editDeadlinesModal").classList.remove("open");
+      }
+
+      function renderDeadlineEditorList(items) {
+        const list = document.getElementById("deadlineEditorList");
+        if (!Array.isArray(items) || !items.length) {
+          list.innerHTML =
+            '<div style="color:var(--secondary-text);font-size:13px;">No requirements found.</div>';
+          return;
+        }
+
+        list.innerHTML = items
+          .map((item) => {
+            const template = item?.template || {};
+            const templateId = template?.id;
+            const name = String(template?.name || "Unnamed Requirement");
+            const isRequired =
+              Number(template?.is_required) === 1 ||
+              template?.is_required === true;
+            const dateValue = toDateInputValue(template?.deadline);
+
+            return `
+              <div class="deadline-editor-row">
+                <div class="deadline-editor-name">
+                  ${esc(name)} ${isRequired ? '<span class="required">• REQUIRED</span>' : ""}
+                </div>
+                <input
+                  type="date"
+                  class="form-input deadline-editor-date"
+                  data-template-id="${esc(templateId)}"
+                  data-original-date="${esc(dateValue)}"
+                  value="${esc(dateValue)}"
+                />
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function saveEditedDeadlines() {
+        const saveBtn = document.getElementById("editDeadlinesSaveBtn");
+        const inputs = Array.from(
+          document.querySelectorAll(
+            "#deadlineEditorList .deadline-editor-date",
+          ),
+        );
+        if (!inputs.length) {
+          closeEditDeadlinesModal();
+          return;
+        }
+
+        const changes = inputs
+          .map((input) => {
+            const nextDeadline = String(input.value || "").trim();
+            const originalDeadline = String(
+              input.dataset.originalDate || "",
+            ).trim();
+            return {
+              templateId: Number(input.dataset.templateId),
+              nextDeadline,
+              originalDeadline,
+            };
+          })
+          .filter(
+            (change) =>
+              Number.isInteger(change.templateId) &&
+              change.templateId > 0 &&
+              change.nextDeadline !== change.originalDeadline,
+          );
+
+        if (!changes.length) {
+          showToast("No deadline changes to save.", "info");
+          closeEditDeadlinesModal();
+          return;
+        }
+
+        saveBtn.disabled = true;
+        try {
+          for (const change of changes) {
+            const update =
+              await window.electronAPI.updateOjtRequirementTemplate({
+                id: change.templateId,
+                deadline: change.nextDeadline || null,
+              });
+            if (!update?.success) {
+              throw new Error(update?.message || "Failed to save deadline.");
+            }
+          }
+
+          closeEditDeadlinesModal();
+          await loadRequirements(currentDeadlineEditType);
+          showToast("Requirement deadlines updated.", "success");
+        } catch (err) {
+          showToast(err.message, "error");
+        } finally {
+          saveBtn.disabled = false;
+        }
       }
 
       async function saveNewRequirement() {
@@ -4399,6 +4689,56 @@
       let editingSubmissionType = null;
       let deletingSubmissionId = null;
       let deletingSubmissionType = null;
+      let deletingTemplateId = null;
+      let deletingTemplateType = null;
+      let deletingTemplateName = "";
+
+      function openDeleteRequirementModal(templateId, encodedName, type) {
+        deletingTemplateId = parseInt(templateId, 10);
+        deletingTemplateType = type;
+        deletingTemplateName = decodeURIComponent(String(encodedName || ""));
+        document.getElementById("deleteReqMsg").textContent =
+          `Delete ${deletingTemplateName || "this requirement"}? This action cannot be undone.`;
+        document.getElementById("deleteReqModal").classList.add("open");
+      }
+
+      function closeDeleteRequirementModal() {
+        document.getElementById("deleteReqModal").classList.remove("open");
+        deletingTemplateId = null;
+        deletingTemplateType = null;
+        deletingTemplateName = "";
+      }
+
+      async function confirmDeleteRequirement() {
+        if (!Number.isInteger(deletingTemplateId) || deletingTemplateId <= 0)
+          return;
+
+        const templateId = deletingTemplateId;
+        const reqType = deletingTemplateType || "pre";
+        const reqName = deletingTemplateName || "Requirement";
+        const btn = document.getElementById("deleteReqOkBtn");
+        btn.disabled = true;
+
+        try {
+          const result =
+            await window.electronAPI.deleteOjtRequirementTemplate(templateId);
+          if (!result?.success)
+            throw new Error(result?.message || "Failed to delete requirement.");
+
+          closeDeleteRequirementModal();
+          await loadRequirements(reqType);
+          showToast("Requirement deleted.", "success");
+          notifyParentOfCoordinatorActivity(
+            "requirement",
+            `deleted a ${reqType} requirement from the table`,
+            { file_name: reqName },
+          );
+        } catch (err) {
+          showToast(err.message, "error");
+        } finally {
+          btn.disabled = false;
+        }
+      }
 
       function toggleEditMode(submissionId, type) {
         const reqDiv = document.querySelector(

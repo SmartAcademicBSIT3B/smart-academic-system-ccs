@@ -96,6 +96,43 @@ function requirement_section_state($conn, $ojt_student_id, $section) {
     ];
 }
 
+function requirement_deadline_badge($deadlineValue) {
+    $raw = trim((string)$deadlineValue);
+    if ($raw === '') {
+        return null;
+    }
+
+    $deadlineTs = strtotime(substr($raw, 0, 10));
+    if (!$deadlineTs) {
+        return null;
+    }
+
+    $todayTs = strtotime(date('Y-m-d'));
+    $diffDays = (int)ceil(($deadlineTs - $todayTs) / 86400);
+
+    if ($diffDays < 0) {
+        return [
+            'status' => 'overdue',
+            'label' => abs($diffDays) . 'd overdue',
+            'is_overdue' => true,
+        ];
+    }
+
+    if ($diffDays <= 3) {
+        return [
+            'status' => 'soon',
+            'label' => 'due in ' . $diffDays . 'd',
+            'is_overdue' => false,
+        ];
+    }
+
+    return [
+        'status' => 'ok',
+        'label' => 'due in ' . $diffDays . 'd',
+        'is_overdue' => false,
+    ];
+}
+
 function get_schedule_for_date($conn, $ojt_student_id, $attendance_date) {
     $ts = strtotime((string)$attendance_date);
     if (!$ts) return null;
@@ -276,7 +313,7 @@ if ($tab === 'pre' || $tab === 'post') {
     $has_verified = (bool)$state['has_verified'];
 
     $templates = [];
-    $tplStmt = $conn->prepare("SELECT id, name FROM ojt_requirement_templates WHERE type = ? AND is_required = 1 ORDER BY display_order ASC, id ASC");
+    $tplStmt = $conn->prepare("SELECT id, name, deadline FROM ojt_requirement_templates WHERE type = ? AND is_required = 1 ORDER BY display_order ASC, id ASC");
     $tplStmt->bind_param('s', $section);
     $tplStmt->execute();
     $tplRes = $tplStmt->get_result();
@@ -286,7 +323,7 @@ if ($tab === 'pre' || $tab === 'post') {
     $tplStmt->close();
 
     $submissions = [];
-    $subStmt = $conn->prepare('SELECT template_id, file_url, file_name, status, notes FROM ojt_requirement_submissions WHERE ojt_student_id = ?');
+    $subStmt = $conn->prepare('SELECT template_id, file_url, file_name, status, notes, deadline_override FROM ojt_requirement_submissions WHERE ojt_student_id = ?');
     $subStmt->bind_param('i', $ojt_student_id);
     $subStmt->execute();
     $subRes = $subStmt->get_result();
@@ -317,13 +354,33 @@ if ($tab === 'pre' || $tab === 'post') {
         $status_label = normalized_status_label($status ?? 'pending');
         $is_rejected = $status_raw === 'rejected';
         $is_row_verified = in_array($status_raw, ['approved', 'verified'], true);
-        $is_locked = $is_row_verified || ($is_section_submitted && !$is_rejected);
+        $has_uploaded_file = trim((string)($file_url ?? '')) !== '';
+        $template_deadline = trim((string)($req['deadline'] ?? ''));
+        $override_deadline = trim((string)($submission['deadline_override'] ?? ''));
+        $effective_deadline = $override_deadline !== '' ? $override_deadline : $template_deadline;
+        $deadline_badge = requirement_deadline_badge($effective_deadline);
+        $is_overdue = (bool)($deadline_badge['is_overdue'] ?? false);
+
+        // If the student already uploaded this requirement, do not surface overdue
+        // indicator/lock in the card even if the deadline has passed.
+        if ($has_uploaded_file && $is_overdue) {
+            $is_overdue = false;
+            $deadline_badge = null;
+        }
+
+        $is_locked_by_submit = $is_section_submitted && !$is_rejected && $has_uploaded_file;
+        $is_locked = $is_row_verified || $is_locked_by_submit || $is_overdue;
         $label_class = $is_locked ? 'req-label' : 'req-label req-label-upload';
         $label_data_key = $is_locked ? '' : ' data-requirement-key="' . htmlspecialchars($key) . '"';
         $label_title = $is_locked ? '' : ' title="Click to replace/upload file"';
 
         echo '<div class="req" data-requirement-key="' . htmlspecialchars($key) . '">';
+        echo '<div class="req-meta">';
         echo '<div class="' . $label_class . '"' . $label_data_key . $label_title . '>' . htmlspecialchars((string)($req['name'] ?? 'Requirement')) . '</div>';
+        if ($deadline_badge) {
+            echo '<span class="deadline-badge ' . htmlspecialchars((string)$deadline_badge['status']) . '">' . htmlspecialchars((string)$deadline_badge['label']) . '</span>';
+        }
+        echo '</div>';
         echo '<div class="req-actions">';
 
         if (!empty($file_url)) {
@@ -340,8 +397,8 @@ if ($tab === 'pre' || $tab === 'post') {
             }
             echo '</div>';
         } else {
-            if ($is_locked) {
-                echo '<button class="upload-btn" disabled title="Unsubmit first to edit">Locked after submit</button>';
+            if ($is_overdue) {
+                echo '<button class="upload-btn" disabled title="Deadline passed">Deadline passed</button>';
             } else {
                 echo '<button class="upload-btn" data-requirement-key="' . htmlspecialchars($key) . '">Upload File</button>';
             }
@@ -349,6 +406,9 @@ if ($tab === 'pre' || $tab === 'post') {
 
         echo '</div>';
         echo '<div class="req-status">Status: <span class="status-label status-' . $status_class . '">' . htmlspecialchars($status_label) . '</span></div>';
+        if ($is_overdue) {
+            echo '<div class="req-deadline-lock">Past deadline - upload disabled.</div>';
+        }
         if ($status_raw === 'rejected') {
             $commentText = $notes !== '' ? $notes : 'No rejection comment provided yet.';
             echo '<div class="req-comment"><strong>Comment:</strong> ' . nl2br(htmlspecialchars($commentText)) . '</div>';

@@ -86,15 +86,6 @@ $profile_image_url = $student_profile['profile_image_url'] ?? '';
 
     </ul>
 
-    <div class="bottom-menu">
-        <li class="menu-item" onclick="loadPage('system_settings.php', this)">
-            <div class="menu-left">
-                <i data-lucide="settings"></i>
-                <span>System Settings</span>
-            </div>
-        </li>
-    </div>
-
 </div>
 
 <!-- SIDEBAR BACKDROP -->
@@ -124,8 +115,6 @@ $profile_image_url = $student_profile['profile_image_url'] ?? '';
 
             <div class="profile-menu">
                 <button onclick="openProfileModal()">My Profile</button>
-                <button onclick="toggleNotifModal(event)">Notifications</button>
-
                 <button onclick="window.location.href='../auth/logout.php'">
                     Logout
                 </button>
