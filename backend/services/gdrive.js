@@ -171,7 +171,10 @@ async function resolveCanonicalPublicUrl(drive, fileId) {
       fields: "id,webViewLink",
       supportsAllDrives: true,
     });
-    return String(data?.webViewLink || "").trim() || buildCanonicalDriveViewUrl(normalizedId);
+    return (
+      String(data?.webViewLink || "").trim() ||
+      buildCanonicalDriveViewUrl(normalizedId)
+    );
   } catch (error) {
     const metadataError = new Error(
       "File uploaded to Google Drive, but its public link could not be resolved.",
