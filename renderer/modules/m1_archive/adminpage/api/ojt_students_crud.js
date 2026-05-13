@@ -480,6 +480,7 @@
 
   function normalizeOjtStatus(value) {
     const normalized = asText(value).toLowerCase();
+    if (normalized === "ojt complete") return "OJT Complete";
     if (normalized === "deployed") return "Deployed";
     if (normalized === "pre-deployment") return "Pre-Deployment";
     if (normalized === "pending requirements") return "Pending Requirements";
@@ -488,6 +489,7 @@
 
   function ojtStatusDotClass(statusValue) {
     const status = normalizeOjtStatus(statusValue);
+    if (status === "OJT Complete") return "ojt-dot-ojt-complete";
     if (status === "Deployed") return "ojt-dot-deployed";
     if (status === "Pre-Deployment") return "ojt-dot-pre-deployment";
     return "ojt-dot-pending-requirements";
@@ -497,7 +499,7 @@
     const status = normalizeOjtStatus(value);
     const dotClass = ojtStatusDotClass(status);
 
-    return `<div class="ojt-status-control"><span class="ojt-status-dot ${dotClass}"></span><select class="${esc(selectClass)}"><option ${status === "Pending Requirements" ? "selected" : ""}>Pending Requirements</option><option ${status === "Pre-Deployment" ? "selected" : ""}>Pre-Deployment</option><option ${status === "Deployed" ? "selected" : ""}>Deployed</option></select></div>`;
+    return `<div class="ojt-status-control"><span class="ojt-status-dot ${dotClass}"></span><select class="${esc(selectClass)}"><option ${status === "Pending Requirements" ? "selected" : ""}>Pending Requirements</option><option ${status === "Pre-Deployment" ? "selected" : ""}>Pre-Deployment</option><option ${status === "Deployed" ? "selected" : ""}>Deployed</option><option ${status === "OJT Complete" ? "selected" : ""}>OJT Complete</option></select></div>`;
   }
 
   function renderOjtStatusBadge(value) {

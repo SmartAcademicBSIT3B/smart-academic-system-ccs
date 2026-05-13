@@ -375,6 +375,10 @@
   background: #49b676;
 }
 
+.ojt-dot-ojt-complete {
+  background: #64b5f6;
+}
+
 .ojt-status-control {
   display: inline-flex;
   align-items: center;

@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="3;url=landingpage.php">
-<title>Smart Academic System CCS</title>
+<title>CTA HTE Website</title>
+<link rel="icon" type="image/x-icon" href="images/PLPLOGO.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -176,11 +177,11 @@ body {
 </style>
 </head>
 <body>
-<div class="shell" role="status" aria-live="polite" aria-label="Loading Smart Academic System CCS">
+<div class="shell" role="status" aria-live="polite" aria-label="CTA HTE Website Loading">
     <div class="header">
         <img src="images/PLPLOGO.png" class="logo" alt="PLP Logo">
         <div>
-            <h1 class="title">SMART ACADEMIC SYSTEM CCS</h1>
+            <h1 class="title">Thesis/Capstone Archiving and Host Training Establishment (HTE)</h1>
             <p class="subtitle">Preparing your Thesis and OJT portal...</p>
         </div>
     </div>

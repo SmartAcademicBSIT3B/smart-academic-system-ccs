@@ -137,6 +137,12 @@ body {
   background: rgba(47, 150, 24, 0.3);
 }
 
+.status-pill.ojt-complete {
+  color: #d9ecff;
+  border-color: rgba(100, 181, 246, 0.68);
+  background: rgba(100, 181, 246, 0.28);
+}
+
 .status-pill.pre-deployment {
   color: #fff2c2;
   border-color: rgba(209, 155, 0, 0.65);

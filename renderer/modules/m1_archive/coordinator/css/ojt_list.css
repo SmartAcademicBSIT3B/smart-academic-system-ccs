@@ -147,6 +147,15 @@ body {
   margin-right: 8px;
 }
 
+.status.ojt-complete::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #64b5f6;
+  margin-right: 8px;
+}
+
 .status.pre-deployment::before {
   content: "";
   width: 10px;

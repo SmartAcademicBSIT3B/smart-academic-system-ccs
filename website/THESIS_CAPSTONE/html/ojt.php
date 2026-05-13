@@ -29,7 +29,10 @@ function normalize_ojt_status($status) {
     if ($normalized === '') {
         return 'Pending Requirements';
     }
-    if (strpos($normalized, 'deploy') !== false || strpos($normalized, 'complete') !== false) {
+    if (strpos($normalized, 'complete') !== false) {
+        return 'OJT Complete';
+    }
+    if (strpos($normalized, 'deploy') !== false) {
         return 'Deployed';
     }
     if (strpos($normalized, 'pre') !== false) {
@@ -43,7 +46,10 @@ function normalize_ojt_status($status) {
 
 function status_css_class($status) {
     $normalized = strtolower(trim((string)$status));
-    if (strpos($normalized, 'deploy') !== false || strpos($normalized, 'complete') !== false) {
+    if (strpos($normalized, 'complete') !== false) {
+        return 'ojt-complete';
+    }
+    if (strpos($normalized, 'deploy') !== false) {
         return 'deployed';
     }
     if (strpos($normalized, 'pre') !== false) {
@@ -169,7 +175,7 @@ if ($conn) {
     $conn->close();
 }
 $student_status_label = strtolower(trim((string)($student_data['display_ojt_status'] ?? '')));
-$can_access_progress_tabs = $student_status_label === 'deployed';
+$can_access_progress_tabs = in_array($student_status_label, ['deployed', 'ojt complete'], true);
 
 ?>
 

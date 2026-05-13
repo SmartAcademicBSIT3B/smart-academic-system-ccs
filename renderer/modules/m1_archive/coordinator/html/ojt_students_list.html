@@ -93,6 +93,7 @@
         const s = String(status || "")
           .toLowerCase()
           .trim();
+        if (s.includes("complete")) return "ojt-complete";
         if (s === "deployed") return "deployed";
         if (s.includes("pre")) return "pre-deployment";
         return "pending";
