@@ -74,7 +74,7 @@ $profile_image_url = $student_profile['profile_image_url'] ?? '';
         <li class="menu-item" onclick="loadPage('thesiscap_submission.php', this)">
             <div class="menu-left">
                 <i data-lucide="archive"></i>
-                <span>Thesis/Capstone Archives</span>
+                <span>My Thesis/Capstone Archive</span>
             </div>
         </li>
         <li class="menu-item" onclick="loadPage('ojt.php', this)">

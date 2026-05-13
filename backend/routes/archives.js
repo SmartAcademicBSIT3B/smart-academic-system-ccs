@@ -164,6 +164,19 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
           message: `Google Drive authorization is required. Please authorize via /api/gdrive/auth-url.`,
         });
       }
+      if (
+        driveError?.code === "PUBLIC_PERMISSION_FAILED" ||
+        driveError?.code === "PUBLIC_LINK_RESOLVE_FAILED" ||
+        driveError?.code === "INVALID_FILE_ID"
+      ) {
+        console.error("Drive upload could not produce a public file:", driveError);
+        return res.status(502).json({
+          success: false,
+          message:
+            driveError.message ||
+            "The PDF was uploaded to Google Drive, but it could not be made public.",
+        });
+      }
       console.error(
         "Drive upload failed, proceeding without file URL:",
         driveError,

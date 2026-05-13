@@ -131,6 +131,57 @@ async function resolveFolderId(drive, folderPath) {
   return parentId;
 }
 
+function buildCanonicalDriveViewUrl(fileId) {
+  const normalizedId = extractFileId(fileId);
+  if (!normalizedId) return "";
+  return `https://drive.google.com/file/d/${normalizedId}/view`;
+}
+
+async function ensurePublicReadPermission(drive, fileId) {
+  try {
+    await drive.permissions.create({
+      fileId,
+      requestBody: { role: "reader", type: "anyone" },
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+  } catch (error) {
+    const permissionError = new Error(
+      "File uploaded to Google Drive, but public sharing could not be enabled.",
+    );
+    permissionError.code = "PUBLIC_PERMISSION_FAILED";
+    permissionError.cause = error;
+    throw permissionError;
+  }
+}
+
+async function resolveCanonicalPublicUrl(drive, fileId) {
+  const normalizedId = extractFileId(fileId);
+  if (!normalizedId) {
+    const invalidIdError = new Error(
+      "Google Drive returned an invalid file identifier.",
+    );
+    invalidIdError.code = "INVALID_FILE_ID";
+    throw invalidIdError;
+  }
+
+  try {
+    const { data } = await drive.files.get({
+      fileId: normalizedId,
+      fields: "id,webViewLink",
+      supportsAllDrives: true,
+    });
+    return String(data?.webViewLink || "").trim() || buildCanonicalDriveViewUrl(normalizedId);
+  } catch (error) {
+    const metadataError = new Error(
+      "File uploaded to Google Drive, but its public link could not be resolved.",
+    );
+    metadataError.code = "PUBLIC_LINK_RESOLVE_FAILED";
+    metadataError.cause = error;
+    throw metadataError;
+  }
+}
+
 async function uploadFile(fileBuffer, fileName, mimeType, targetFolderPath) {
   const drive = getDriveClient();
   const folderId = await resolveFolderId(drive, targetFolderPath);
@@ -146,14 +197,9 @@ async function uploadFile(fileBuffer, fileName, mimeType, targetFolderPath) {
     includeItemsFromAllDrives: true,
   });
 
-  await drive.permissions.create({
-    fileId: file.id,
-    requestBody: { role: "reader", type: "anyone" },
-    supportsAllDrives: true,
-    includeItemsFromAllDrives: true,
-  });
+  await ensurePublicReadPermission(drive, file.id);
 
-  return `https://drive.google.com/uc?export=view&id=${file.id}`;
+  return resolveCanonicalPublicUrl(drive, file.id);
 }
 
 async function deleteFileByUrl(fileUrl) {

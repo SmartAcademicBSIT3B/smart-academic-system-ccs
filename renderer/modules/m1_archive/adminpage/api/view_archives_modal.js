@@ -381,7 +381,9 @@
     const filePath = String(archive.file_path || "").trim();
     if (!filePath) return null;
     if (filePath.includes("drive.google.com")) {
-      const match = filePath.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      const match =
+        filePath.match(/\/d\/([a-zA-Z0-9_-]+)/) ||
+        filePath.match(/[?&]id=([a-zA-Z0-9_-]+)/);
       if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
     }
     return filePath || null;

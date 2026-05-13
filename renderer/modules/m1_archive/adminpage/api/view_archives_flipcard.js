@@ -67,7 +67,9 @@
       return [filePath];
     }
 
-    const idMatch = filePath.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    const idMatch =
+      filePath.match(/\/d\/([a-zA-Z0-9_-]+)/) ||
+      filePath.match(/[?&]id=([a-zA-Z0-9_-]+)/);
     if (!idMatch) {
       return [filePath];
     }
