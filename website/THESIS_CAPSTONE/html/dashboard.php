@@ -34,7 +34,7 @@ if ($conn) {
     $stmt->close();
 
     // Get linked thesis/capstone
-    $stmt = $conn->prepare("SELECT id, title, advisor, status, file_path FROM archives WHERE LOWER(authors) LIKE ? LIMIT 1");
+    $stmt = $conn->prepare("SELECT id, title, advisor, status, file_path, type FROM archives WHERE LOWER(authors) LIKE ? LIMIT 1");
     $search_name = "%$student_name%";
     $stmt->bind_param("s", $search_name);
     $stmt->execute();
@@ -97,9 +97,10 @@ if ($conn) {
     if (!isset($ojt_department) || !$ojt_department) {
         $ojt_department = 'CCS';
     }
-    $stmt = $conn->prepare("SELECT name, deadline FROM ojt_requirement_templates WHERE is_required = 1 AND deadline IS NOT NULL AND (department = ? OR department IS NULL OR department = '') ORDER BY deadline ASC, id ASC");
+    $calendarStudentId = (int)($ojt_student_id ?? 0);
+    $stmt = $conn->prepare("SELECT rt.name, rt.deadline FROM ojt_requirement_templates rt LEFT JOIN ojt_requirement_submissions rs ON rs.template_id = rt.id AND rs.ojt_student_id = ? WHERE rt.is_required = 1 AND rt.deadline IS NOT NULL AND (rt.department = ? OR rt.department IS NULL OR rt.department = '') AND (rs.file_url IS NULL OR TRIM(rs.file_url) = '') ORDER BY rt.deadline ASC, rt.id ASC");
     if ($stmt) {
-        $stmt->bind_param("s", $ojt_department);
+        $stmt->bind_param("is", $calendarStudentId, $ojt_department);
         $stmt->execute();
         $result = $stmt->get_result();
         while ($row = $result->fetch_assoc()) {
@@ -115,8 +116,9 @@ if ($conn) {
         $stmt->close();
     } else {
         // Legacy schema fallback where department column may not exist yet.
-        $fallbackStmt = $conn->prepare("SELECT name, deadline FROM ojt_requirement_templates WHERE is_required = 1 AND deadline IS NOT NULL ORDER BY deadline ASC, id ASC");
+        $fallbackStmt = $conn->prepare("SELECT rt.name, rt.deadline FROM ojt_requirement_templates rt LEFT JOIN ojt_requirement_submissions rs ON rs.template_id = rt.id AND rs.ojt_student_id = ? WHERE rt.is_required = 1 AND rt.deadline IS NOT NULL AND (rs.file_url IS NULL OR TRIM(rs.file_url) = '') ORDER BY rt.deadline ASC, rt.id ASC");
         if ($fallbackStmt) {
+            $fallbackStmt->bind_param("i", $calendarStudentId);
             $fallbackStmt->execute();
             $result = $fallbackStmt->get_result();
             while ($row = $result->fetch_assoc()) {
@@ -142,7 +144,7 @@ $progress_percent = $progress_data['progress_percent'];
 $remaining_hours = $progress_data['remaining_hours'];
 $thesis_status_lower = strtolower($thesis_data['status'] ?? '');
 $thesis_status_text = strtoupper($thesis_data['status'] ?? 'No Document');
-$thesis_status_pill = ($thesis_status_lower === 'pending' || $thesis_status_lower === 'in-review' || $thesis_status_lower === 'for-review') ? 'Review' : ucfirst($thesis_data['status'] ?? 'Pending');
+$thesis_status_pill = $thesis_data['type'] ?? 'Document';
 $is_deployed = strpos(strtolower((string)$ojt_status), 'deploy') !== false || strpos(strtolower((string)$ojt_status), 'complete') !== false;
 
 if (!$thesis_data) {
@@ -224,7 +226,11 @@ if (!$thesis_data) {
                         <span class="progress-value"><?= $progress_percent ?>%</span>
                     </div>
                     <p>Remaining Time:</p>
-                    <strong><?= $remaining_hours ?> hours</strong>
+                    <?php if ($remaining_hours <= 0): ?>
+                        <strong style="color: white; font-weight: 700;">OJT Complete</strong>
+                    <?php else: ?>
+                        <strong><?= $remaining_hours ?> hours</strong>
+                    <?php endif; ?>
                     <button type="button" onclick="window.parent.document.getElementById('content-frame').src='ojt.php?tab=attendance'">
                         <i class="fa-solid fa-right-to-bracket"></i> TIME IN
                     </button>
@@ -235,6 +241,15 @@ if (!$thesis_data) {
             <?php if ($show_requirements_card): ?>
             <article class="panel req-card">
                 <h4>OJT Requirements <?php if ($is_deployed && $progress_percent >= 100): ?>(Post-Requirements)<?php endif; ?></h4>
+                <?php 
+                  $ojt_status_lower = strtolower(trim((string)$ojt_status));
+                  $is_ojt_complete = strpos($ojt_status_lower, 'ojt complete') !== false;
+                  if ($is_ojt_complete): 
+                ?>
+                <div style="margin-bottom: 15px; padding: 12px 14px; background: rgba(15, 92, 18, 0.08); border-radius: 8px; border-left: 3px solid #0f5c12;">
+                  <p style="color: white; font-weight: 600; margin: 0; font-size: 14px;">All OJT requirements completed successfully.</p>
+                </div>
+                <?php endif; ?>
                 <?php if (!empty($ojt_requirements)): ?>
                     <p class="req-notice">
                         There are files not submitted.
@@ -242,9 +257,9 @@ if (!$thesis_data) {
                     </p>
                 <?php endif; ?>
                 <div id="requirementsList">
-                    <?php if (empty($ojt_requirements)): ?>
+                    <?php if (empty($ojt_requirements) && !$is_ojt_complete): ?>
                         <p class="no-requirements">No requirements to display</p>
-                    <?php else: ?>
+                    <?php elseif (!empty($ojt_requirements)): ?>
                         <?php foreach ($ojt_requirements as $req): ?>
                             <div class="req-item status-<?= strtolower($req['status']) ?>">
                                 <p><?= htmlspecialchars($req['name']) ?></p>
@@ -304,6 +319,12 @@ if (!$thesis_data) {
         return `${year}-${pad(monthIndex + 1)}-${pad(day)}`;
     }
 
+    function closeOpenDeadlinePopovers() {
+        document.querySelectorAll('.calendar-cell.open').forEach((cell) => {
+            cell.classList.remove('open');
+        });
+    }
+
     function renderCalendar() {
         const year = activeDate.getFullYear();
         const month = activeDate.getMonth();
@@ -332,13 +353,60 @@ if (!$thesis_data) {
             const current = new Date(year, month, day);
             const eventList = events[keyFor(year, month, day)] || [];
 
-            eventList.slice(0, 2).forEach((eventItem) => {
+            if (eventList.length === 1) {
+                const eventItem = eventList[0];
                 const eventTag = document.createElement('div');
                 eventTag.className = `calendar-event ${eventItem.cls}`;
                 eventTag.textContent = eventItem.text;
                 eventTag.title = eventItem.text;
                 cell.appendChild(eventTag);
-            });
+            } else if (eventList.length > 1) {
+                cell.classList.add('has-multiple-deadlines');
+
+                const countTrigger = document.createElement('button');
+                countTrigger.type = 'button';
+                countTrigger.className = 'calendar-deadline-count';
+                countTrigger.textContent = String(eventList.length);
+                countTrigger.title = `${eventList.length} deadlines on this date`;
+                countTrigger.setAttribute('aria-label', `${eventList.length} deadlines on this date`);
+
+                const popover = document.createElement('div');
+                popover.className = 'calendar-deadline-popover';
+
+                const popoverTitle = document.createElement('div');
+                popoverTitle.className = 'calendar-deadline-popover-title';
+                popoverTitle.textContent = 'Deadlines';
+                popover.appendChild(popoverTitle);
+
+                const list = document.createElement('ul');
+                list.className = 'calendar-deadline-list';
+                eventList.forEach((eventItem) => {
+                    const item = document.createElement('li');
+                    item.textContent = eventItem.text;
+                    list.appendChild(item);
+                });
+                popover.appendChild(list);
+
+                countTrigger.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const isOpen = cell.classList.contains('open');
+                    closeOpenDeadlinePopovers();
+                    if (!isOpen) {
+                        cell.classList.add('open');
+                    }
+                });
+
+                cell.addEventListener('mouseenter', () => {
+                    cell.classList.add('open');
+                });
+
+                cell.addEventListener('mouseleave', () => {
+                    cell.classList.remove('open');
+                });
+
+                cell.appendChild(countTrigger);
+                cell.appendChild(popover);
+            }
 
             if (current.getTime() === today.getTime()) {
                 const dot = document.createElement('div');
@@ -352,12 +420,18 @@ if (!$thesis_data) {
 
     prevBtn.addEventListener('click', () => {
         activeDate = new Date(activeDate.getFullYear(), activeDate.getMonth() - 1, 1);
+        closeOpenDeadlinePopovers();
         renderCalendar();
     });
 
     nextBtn.addEventListener('click', () => {
         activeDate = new Date(activeDate.getFullYear(), activeDate.getMonth() + 1, 1);
+        closeOpenDeadlinePopovers();
         renderCalendar();
+    });
+
+    document.addEventListener('click', () => {
+        closeOpenDeadlinePopovers();
     });
 
     renderCalendar();
