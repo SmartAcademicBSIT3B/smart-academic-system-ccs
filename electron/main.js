@@ -1189,6 +1189,21 @@ ipcMain.handle("getAppSettings", async () => {
   }
 });
 
+ipcMain.handle("getApiBaseUrl", async () => {
+  try {
+    return {
+      success: true,
+      baseUrl: api.getBaseUrl(),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to get API base URL.",
+      baseUrl: null,
+    };
+  }
+});
+
 ipcMain.handle("getConfigurationSetupStatus", async () => {
   try {
     const settings = await loadAppSettings();
@@ -2245,7 +2260,15 @@ ipcMain.handle("getCoordinatorNotifications", async (event, params = {}) => {
       5,
       Math.min(100, parseInt(params?.limit || "20", 10)),
     );
-    const qs = `?minutes_back=${encodeURIComponent(minutesBack)}&limit=${encodeURIComponent(limit)}`;
+    const since = String(params?.since || "").trim();
+    const queryParts = [
+      `minutes_back=${encodeURIComponent(minutesBack)}`,
+      `limit=${encodeURIComponent(limit)}`,
+    ];
+    if (since) {
+      queryParts.push(`since=${encodeURIComponent(since)}`);
+    }
+    const qs = `?${queryParts.join("&")}`;
     return await api.get(`/ojt-coordinator/notifications${qs}`);
   } catch (error) {
     return {

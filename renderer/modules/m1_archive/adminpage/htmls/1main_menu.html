@@ -682,6 +682,19 @@
       let coordinatorNotifications = [];
       let localCoordinatorNotifications = [];
       let notificationPollInterval = null;
+      let notificationCursor = null;
+
+      function bumpNotificationCursor(candidateTimestamp) {
+        if (!candidateTimestamp) return;
+        const candidateMs = new Date(candidateTimestamp).getTime();
+        if (!Number.isFinite(candidateMs)) return;
+        const currentMs = notificationCursor
+          ? new Date(notificationCursor).getTime()
+          : Number.NaN;
+        if (!Number.isFinite(currentMs) || candidateMs > currentMs) {
+          notificationCursor = new Date(candidateMs).toISOString();
+        }
+      }
 
       async function fetchCoordinatorNotifications() {
         const role = getCurrentRole();
@@ -697,8 +710,9 @@
 
         try {
           const data = await window.electronAPI.getCoordinatorNotifications({
-            minutesBack: 30,
+            minutesBack: 720,
             limit: 20,
+            since: notificationCursor,
           });
 
           if (!data?.success) {
@@ -713,6 +727,7 @@
             coordinatorNotifications = mergeCoordinatorNotifications(
               data.notifications,
             );
+            bumpNotificationCursor(data.last_cursor);
             renderNotifications();
           }
         } catch (error) {
@@ -798,7 +813,12 @@
         }
         notificationPollInterval = setInterval(() => {
           fetchCoordinatorNotifications();
-        }, 30000);
+        }, 10000);
+
+        // Connect to WebSocket for real-time notifications
+        if (!notificationWebSocket) {
+          connectNotificationWebSocket();
+        }
       }
 
       function stopNotificationPolling() {
@@ -806,7 +826,127 @@
           clearInterval(notificationPollInterval);
           notificationPollInterval = null;
         }
+        disconnectNotificationWebSocket();
         updateNotificationBadge();
+      }
+
+      // ════════════════════════════════════════════════════════════════
+      // WEBSOCKET FOR REAL-TIME NOTIFICATIONS
+      // ════════════════════════════════════════════════════════════════
+
+      let notificationWebSocket = null;
+      let wsReconnectAttempts = 0;
+      const WS_MAX_RECONNECT_ATTEMPTS = 5;
+      const WS_RECONNECT_DELAY = 3000; // 3 seconds
+
+      function connectNotificationWebSocket() {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const dept = localStorage.getItem("selectedDepartment") || "CCS";
+        const email = String(user.email || "").trim();
+
+        if (!email) {
+          console.warn("[WebSocket] Cannot connect: no user email");
+          return;
+        }
+
+        // Get the API base URL from Electron IPC
+        if (
+          !window.electronAPI ||
+          typeof window.electronAPI.getApiBaseUrl !== "function"
+        ) {
+          console.warn(
+            "[WebSocket] Electron API not available, using fallback",
+          );
+          connectWebSocketWithUrl("ws://localhost:3000", email, dept);
+          return;
+        }
+
+        window.electronAPI
+          .getApiBaseUrl()
+          .then((result) => {
+            if (result.success && result.baseUrl) {
+              // Convert HTTP/HTTPS to WS/WSS
+              const wsUrl = result.baseUrl
+                .replace(/^https:/, "wss:")
+                .replace(/^http:/, "ws:");
+              connectWebSocketWithUrl(wsUrl, email, dept);
+            } else {
+              console.warn("[WebSocket] Failed to get API URL, using fallback");
+              connectWebSocketWithUrl("ws://localhost:3000", email, dept);
+            }
+          })
+          .catch((error) => {
+            console.error("[WebSocket] Error getting API URL:", error);
+            connectWebSocketWithUrl("ws://localhost:3000", email, dept);
+          });
+      }
+
+      function connectWebSocketWithUrl(baseWsUrl, email, dept) {
+        try {
+          const wsUrl = `${baseWsUrl}/notifications?dept=${encodeURIComponent(dept)}&email=${encodeURIComponent(email)}`;
+
+          console.log("[WebSocket] Connecting to:", wsUrl);
+          notificationWebSocket = new WebSocket(wsUrl);
+
+          notificationWebSocket.addEventListener("open", () => {
+            console.log("[WebSocket] Connected successfully");
+            wsReconnectAttempts = 0;
+          });
+
+          notificationWebSocket.addEventListener("message", (event) => {
+            try {
+              const msg = JSON.parse(event.data);
+              if (msg.type === "notification" && msg.data) {
+                console.log("[WebSocket] Received notification:", msg.data);
+                prependCoordinatorNotification(msg.data);
+                bumpNotificationCursor(msg.data.timestamp);
+              } else if (msg.type === "connected") {
+                console.log("[WebSocket] Server confirmed connection");
+              }
+            } catch (error) {
+              console.error("[WebSocket] Failed to parse message:", error);
+            }
+          });
+
+          notificationWebSocket.addEventListener("close", () => {
+            console.log("[WebSocket] Disconnected");
+            notificationWebSocket = null;
+            attemptWebSocketReconnect();
+          });
+
+          notificationWebSocket.addEventListener("error", (error) => {
+            console.error("[WebSocket] Error:", error);
+          });
+        } catch (error) {
+          console.error("[WebSocket] Failed to create WebSocket:", error);
+        }
+      }
+
+      function attemptWebSocketReconnect() {
+        if (wsReconnectAttempts >= WS_MAX_RECONNECT_ATTEMPTS) {
+          console.warn(
+            "[WebSocket] Max reconnection attempts reached, using polling only",
+          );
+          return;
+        }
+
+        wsReconnectAttempts++;
+        console.log(
+          `[WebSocket] Attempting to reconnect (${wsReconnectAttempts}/${WS_MAX_RECONNECT_ATTEMPTS})...`,
+        );
+
+        setTimeout(() => {
+          if (!notificationWebSocket) {
+            connectNotificationWebSocket();
+          }
+        }, WS_RECONNECT_DELAY);
+      }
+
+      function disconnectNotificationWebSocket() {
+        if (notificationWebSocket) {
+          notificationWebSocket.close();
+          notificationWebSocket = null;
+        }
       }
 
       applyRoleAccess();

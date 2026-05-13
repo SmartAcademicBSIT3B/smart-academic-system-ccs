@@ -70,6 +70,36 @@ function ensure_weekly_reports_columns($conn) {
     return true;
 }
 
+/**
+ * Emit real-time notification to coordinators
+ */
+function emitWeeklyReportNotification($student_id, $student_name, $dept, $week_number, $status) {
+    // Determine backend API URL (should work in both dev and production)
+    $backend_url = getenv('API_BASE_URL') ?: 'http://localhost:3000';
+    $notification_url = $backend_url . '/api/ojt-coordinator/emit-notification';
+    
+    $payload = [
+        'type' => 'weekly_report',
+        'student_id' => $student_id,
+        'student_name' => $student_name,
+        'department' => $dept,
+        'week_number' => $week_number,
+        'status' => $status
+    ];
+    
+    // Send notification asynchronously (non-blocking)
+    $ch = curl_init($notification_url);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 3); // Short timeout for async call
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+    
+    @curl_exec($ch);
+    curl_close($ch);
+}
+
 function uploadWeeklyReportToCloudinary($tmpPath, $student_id, $fileName) {
     if (!function_exists('curl_init')) {
         return ['error' => 'cURL is not enabled on the server.'];
@@ -154,10 +184,11 @@ if (!ensure_weekly_reports_table($conn) || !ensure_weekly_reports_columns($conn)
 
 $ojt_student_id = null;
 $department = 'CCS';
-$stmt = $conn->prepare('SELECT id, department FROM ojt_students WHERE student_id = ? LIMIT 1');
+$student_name = '';
+$stmt = $conn->prepare('SELECT id, department, name FROM ojt_students WHERE student_id = ? LIMIT 1');
 $stmt->bind_param('s', $student_id);
 $stmt->execute();
-$stmt->bind_result($ojt_student_id, $department);
+$stmt->bind_result($ojt_student_id, $department, $student_name);
 $stmt->fetch();
 $stmt->close();
 
@@ -256,6 +287,11 @@ if ($action === 'save') {
         $stmt->bind_param('isissssssss', $ojt_student_id, $student_id, $week_number, $week_start_date, $file_url, $cloudinary_public_id, $folder_path, $file_name, $status, $submitted_at, $department);
         $stmt->execute();
         $stmt->close();
+    }
+
+    // Emit real-time notification if file was uploaded
+    if ($file_url !== '') {
+        emitWeeklyReportNotification($student_id, $student_name, $department, $week_number, $status);
     }
 
     $conn->close();

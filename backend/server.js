@@ -3,6 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const path = require("node:path");
 const fs = require("node:fs");
+const http = require("node:http");
+const WebSocket = require("ws");
 
 const authRoutes = require("./routes/auth");
 const archiveRoutes = require("./routes/archives");
@@ -22,6 +24,7 @@ const gdriveRoutes = require("./routes/gdrive");
 const uploadRoutes = require("./routes/upload");
 const proxyRoutes = require("./routes/proxy");
 const { syncAllArchiveOjtLinks } = require("./helpers/archive-ojt-link");
+const notificationService = require("./services/notifications");
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -152,7 +155,54 @@ function startArchiveOjtLinkScheduler() {
   );
 }
 
-app.listen(PORT, () => {
+// ── WebSocket Setup ───────────────────────────────────────────────────────────
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server, path: "/notifications" });
+
+wss.on("connection", (ws, req) => {
+  // Extract query parameters for authentication
+  const url = new URL(req.url, "http://localhost");
+  const dept = url.searchParams.get("dept") || "CCS";
+  const coordinatorEmail = url.searchParams.get("email") || "";
+
+  console.log(`[WebSocket] New connection: ${coordinatorEmail} (${dept})`);
+
+  if (!coordinatorEmail) {
+    console.warn("[WebSocket] Connection rejected: missing email");
+    ws.close(1008, "Missing coordinator email");
+    return;
+  }
+
+  // Register the client
+  const unregister = notificationService.registerClient(
+    dept,
+    coordinatorEmail,
+    ws,
+  );
+
+  // Send connection acknowledgment
+  ws.send(
+    JSON.stringify({
+      type: "connected",
+      message: "Connected to notification service",
+    }),
+  );
+
+  // Handle disconnect
+  ws.on("close", () => {
+    console.log(`[WebSocket] Disconnected: ${coordinatorEmail} (${dept})`);
+    unregister();
+  });
+
+  ws.on("error", (error) => {
+    console.error(`[WebSocket] Error for ${coordinatorEmail}:`, error);
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`Smart Academic Backend running on port ${PORT}`);
+  console.log(
+    `WebSocket notifications available at ws://localhost:${PORT}/notifications`,
+  );
   startArchiveOjtLinkScheduler();
 });

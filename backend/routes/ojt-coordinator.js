@@ -508,6 +508,10 @@ router.get("/capstone-approval/:studentId", requireAuth, async (req, res) => {
 router.get("/notifications", requireAuth, async (req, res) => {
   try {
     const { email, dept } = await resolveCoordinatorEmail(req);
+    const sinceRaw = String(req.query.since || "").trim();
+    const sinceDate = sinceRaw ? new Date(sinceRaw) : null;
+    const hasSince =
+      sinceDate instanceof Date && !Number.isNaN(sinceDate.getTime());
     const minutesBack = Math.max(
       1,
       parseInt(req.query.minutes_back || "30", 10),
@@ -566,6 +570,7 @@ router.get("/notifications", requireAuth, async (req, res) => {
 
     // Time window for "recent" activities
     const cutoffTime = new Date(Date.now() - minutesBack * 60 * 1000);
+    const windowStart = hasSince ? sinceDate : cutoffTime;
 
     // Fetch requirement submissions
     const reqPlaceholders = studentIds.map(() => "?").join(",");
@@ -574,14 +579,16 @@ router.get("/notifications", requireAuth, async (req, res) => {
          'requirement' AS activity_type,
          ors.ojt_student_id,
          ors.status,
+         LOWER(COALESCE(ort.type, 'pre')) AS requirement_type,
          ors.created_at,
          ors.updated_at,
          ors.file_name
        FROM ojt_requirement_submissions ors
+       LEFT JOIN ojt_requirement_templates ort ON ort.id = ors.template_id
        WHERE ors.ojt_student_id IN (${reqPlaceholders})
          AND ors.updated_at >= ?
        ORDER BY ors.updated_at DESC`,
-      [...studentIds, cutoffTime],
+      [...studentIds, windowStart],
     );
 
     // Fetch attendance records
@@ -597,7 +604,7 @@ router.get("/notifications", requireAuth, async (req, res) => {
        WHERE oa.ojt_student_id IN (${reqPlaceholders})
          AND oa.updated_at >= ?
        ORDER BY oa.updated_at DESC`,
-      [...studentIds, cutoffTime],
+      [...studentIds, windowStart],
     );
 
     // Fetch weekly reports
@@ -614,7 +621,7 @@ router.get("/notifications", requireAuth, async (req, res) => {
        WHERE owr.ojt_student_id IN (${reqPlaceholders})
          AND owr.updated_at >= ?
        ORDER BY owr.updated_at DESC`,
-      [...studentIds, cutoffTime],
+      [...studentIds, windowStart],
     );
 
     // Aggregate and format notifications
@@ -623,15 +630,17 @@ router.get("/notifications", requireAuth, async (req, res) => {
     // Add requirement notifications
     requirements.forEach((req) => {
       const student = studentMap[req.ojt_student_id];
+      if (!student) return;
+      const reqType = req.requirement_type === "post" ? "post" : "pre";
       let message = "";
       if (req.status === "submitted" || req.status === "pending") {
-        message = `submitted a requirement file`;
+        message = `submitted a ${reqType}-requirement file`;
       } else if (req.status === "verified") {
-        message = `requirement was verified`;
+        message = `${reqType}-requirement was verified`;
       } else if (req.status === "rejected") {
-        message = `requirement was rejected`;
+        message = `${reqType}-requirement was rejected`;
       } else {
-        message = `updated a requirement`;
+        message = `updated a ${reqType}-requirement`;
       }
 
       notifications.push({
@@ -649,6 +658,7 @@ router.get("/notifications", requireAuth, async (req, res) => {
     // Add attendance notifications
     attendance.forEach((att) => {
       const student = studentMap[att.ojt_student_id];
+      if (!student) return;
       const dateStr = att.attendance_date
         ? new Date(att.attendance_date).toLocaleDateString()
         : "Unknown date";
@@ -668,6 +678,7 @@ router.get("/notifications", requireAuth, async (req, res) => {
     // Add weekly report notifications
     weeklyReports.forEach((report) => {
       const student = studentMap[report.ojt_student_id];
+      if (!student) return;
       let message = "";
       if (report.status === "submitted" || report.status === "pending") {
         message = `submitted week ${report.week_number} report`;
@@ -694,13 +705,128 @@ router.get("/notifications", requireAuth, async (req, res) => {
     // Sort by timestamp (most recent first) and limit
     notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const result = notifications.slice(0, limit);
+    const lastCursor = result.length ? result[0].timestamp : null;
 
-    return res.json({ success: true, notifications: result });
+    return res.json({
+      success: true,
+      notifications: result,
+      last_cursor: lastCursor,
+    });
   } catch (error) {
     console.error("getNotifications error:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch notifications.",
+    });
+  }
+});
+
+// ── POST /api/ojt-coordinator/emit-notification ────────────────────────────────
+// Emits a real-time notification to all coordinators in a department
+// Called by PHP scripts (ojt_upload.php, ojt_weekly_upload.php) to trigger real-time notifications
+router.post("/emit-notification", async (req, res) => {
+  try {
+    const notificationService = require("../services/notifications");
+
+    const dept = String(req.body.department || "CCS").trim();
+    const type = String(req.body.type || "")
+      .trim()
+      .toLowerCase();
+
+    if (!type) {
+      return res.status(400).json({
+        success: false,
+        message: "Notification type is required (requirement or weekly_report)",
+      });
+    }
+
+    const studentId = String(req.body.student_id || "").trim();
+    const studentName = String(req.body.student_name || "").trim();
+
+    if (!studentId || !studentName) {
+      return res.status(400).json({
+        success: false,
+        message: "student_id and student_name are required",
+      });
+    }
+
+    // Get student OJT ID
+    const student = await query(
+      "SELECT id FROM ojt_students WHERE student_id = ? AND department = ? LIMIT 1",
+      [studentId, dept],
+    );
+
+    if (!student.length) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    const ojtStudentId = student[0].id;
+
+    if (type === "requirement") {
+      const section = String(req.body.section || "pre")
+        .trim()
+        .toLowerCase();
+      const fileName = String(req.body.file_name || "").trim();
+      const status = String(req.body.status || "submitted")
+        .trim()
+        .toLowerCase();
+
+      await notificationService.emitRequirementUpload(
+        dept,
+        ojtStudentId,
+        studentId,
+        studentName,
+        section,
+        fileName,
+        status,
+      );
+
+      return res.json({
+        success: true,
+        message: "Requirement upload notification emitted",
+      });
+    } else if (type === "weekly_report") {
+      const weekNumber = parseInt(req.body.week_number || 0, 10);
+      const status = String(req.body.status || "submitted")
+        .trim()
+        .toLowerCase();
+      const hasFeedback = req.body.has_feedback === true;
+
+      if (weekNumber < 1) {
+        return res.status(400).json({
+          success: false,
+          message: "Valid week_number is required",
+        });
+      }
+
+      await notificationService.emitWeeklyReportSubmission(
+        dept,
+        ojtStudentId,
+        studentId,
+        studentName,
+        weekNumber,
+        status,
+        hasFeedback,
+      );
+
+      return res.json({
+        success: true,
+        message: "Weekly report notification emitted",
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid notification type",
+      });
+    }
+  } catch (error) {
+    console.error("emitNotification error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to emit notification.",
     });
   }
 });

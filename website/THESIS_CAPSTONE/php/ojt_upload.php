@@ -206,6 +206,37 @@ if ($requirement_section === 'post') {
     $folder = "HTA Files/OJT Requirements/$student_id/Pre Requirements";
 }
 
+/**
+ * Emit real-time notification to coordinators
+ */
+function emitNotification($status, $section, $student_id, $student_name, $dept, $file_name) {
+    // Determine backend API URL (should work in both dev and production)
+    $backend_url = getenv('API_BASE_URL') ?: 'http://localhost:3000';
+    $notification_url = $backend_url . '/api/ojt-coordinator/emit-notification';
+    
+    $payload = [
+        'type' => 'requirement',
+        'section' => $section,
+        'student_id' => $student_id,
+        'student_name' => $student_name,
+        'department' => $dept,
+        'status' => $status,
+        'file_name' => $file_name
+    ];
+    
+    // Send notification asynchronously (non-blocking)
+    $ch = curl_init($notification_url);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 3); // Short timeout for async call
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+    
+    @curl_exec($ch);
+    curl_close($ch);
+}
+
 if ($action === 'upload' && isset($_FILES['file'])) {
     $file = $_FILES['file'];
     if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -233,6 +264,17 @@ if ($action === 'upload' && isset($_FILES['file'])) {
         echo json_encode(['error' => 'Student OJT record not found']);
         exit();
     }
+
+    // Get student name and department for notifications
+    $student_name = '';
+    $student_dept = 'CCS';
+    $stmt = $conn->prepare("SELECT name, department FROM ojt_students WHERE id = ? LIMIT 1");
+    $stmt->bind_param("i", $ojt_student_id);
+    if ($stmt->execute()) {
+        $stmt->bind_result($student_name, $student_dept);
+        $stmt->fetch();
+    }
+    $stmt->close();
 
     $current_status = requirement_status($conn, $ojt_student_id, $template_id);
     $is_section_submitted = section_is_submitted($conn, $ojt_student_id, $requirement_section);
@@ -292,6 +334,10 @@ if ($action === 'upload' && isset($_FILES['file'])) {
             }
             $stmt2->close();
         }
+        
+        // Emit real-time notification to coordinators
+        emitNotification($next_status, $requirement_section, $student_id, $student_name, $student_dept, $file_name);
+        
         echo json_encode([
             'success' => true,
             'template_id' => $template_id,
