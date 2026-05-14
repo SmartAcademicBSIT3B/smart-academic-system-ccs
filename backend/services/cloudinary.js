@@ -68,6 +68,34 @@ async function uploadPartnerLogo(fileBuffer, fileName, _mimeType, partnerId) {
   return url;
 }
 
+async function uploadDepartmentLogo(
+  fileBuffer,
+  fileName,
+  _mimeType,
+  departmentId,
+  departmentCode,
+) {
+  const publicSeed = departmentId || departmentCode || fileName || "department";
+  const publicId = `department_${sanitizePublicId(String(publicSeed))}_logo`;
+
+  const result = await uploadStream(fileBuffer, {
+    folder:
+      process.env.CLOUDINARY_DEPARTMENT_LOGO_FOLDER ||
+      "CTA Files/Department Logo",
+    public_id: publicId,
+    resource_type: "image",
+    overwrite: true,
+    invalidate: true,
+    use_filename: false,
+    unique_filename: false,
+  });
+
+  const url = result?.secure_url || result?.url || "";
+  if (!url)
+    throw new Error("Cloudinary upload succeeded but no URL was returned.");
+  return url;
+}
+
 async function deleteByUrl(assetUrl) {
   const raw = String(assetUrl || "").trim();
   if (!raw) return;
@@ -167,6 +195,7 @@ async function deleteByPublicId(publicId) {
 module.exports = {
   uploadProfileImage,
   uploadPartnerLogo,
+  uploadDepartmentLogo,
   deleteByUrl,
   deleteByPublicId,
   uploadOjtFile,

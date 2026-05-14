@@ -226,6 +226,232 @@ body {
   font-size: 13px;
 }
 
+.department-manager-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.department-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.department-card-head > div {
+  min-width: 0;
+}
+
+.department-card-head p {
+  margin-top: 4px;
+}
+
+.department-form-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.department-logo-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.department-logo-preview {
+  width: 100%;
+  height: 180px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.department-logo-placeholder {
+  color: var(--secondary-text);
+  font-size: 12px;
+}
+
+.department-table-logo {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 10px;
+  padding: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.department-row-actions {
+  gap: 8px;
+}
+
+.department-list-card,
+.department-form-card,
+.department-sections-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.department-fields {
+  min-width: 0;
+}
+
+.department-fields label,
+.department-fields input {
+  min-width: 0;
+}
+
+.department-logo-actions {
+  flex-wrap: wrap;
+}
+
+.department-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 152px;
+  height: 42px;
+  white-space: nowrap;
+}
+
+.department-form-card > .inline-actions {
+  align-items: center;
+}
+
+.department-form-card .danger-btn.department-action-btn {
+  margin-top: 0;
+}
+
+.thesis-link-table-wrap.department-table-wrap,
+.thesis-link-table-wrap.department-sections-wrap {
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.department-table {
+  width: 100%;
+  table-layout: fixed;
+  min-width: 0;
+  border-collapse: collapse;
+}
+
+.department-table th,
+.department-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  text-align: left;
+}
+
+.department-table th + th,
+.department-table td + td {
+  border-left: 1px solid rgba(157, 198, 255, 0.18);
+}
+
+.department-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #20252d;
+  color: var(--accent-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 11px;
+}
+
+.department-table tr:last-child td {
+  border-bottom: none;
+}
+
+.department-table th,
+.department-table td {
+  width: auto;
+}
+
+.department-table th:nth-child(1),
+.department-table td:nth-child(1) {
+  width: 22%;
+}
+
+.department-table th:nth-child(2),
+.department-table td:nth-child(2) {
+  width: 39%;
+}
+
+.department-table th:nth-child(3),
+.department-table td:nth-child(3) {
+  width: 39%;
+}
+
+.department-table th:nth-child(2),
+.department-table td:nth-child(2),
+.department-table th:nth-child(3),
+.department-table td:nth-child(3) {
+  text-align: center;
+}
+
+.department-row-actions .tiny-btn {
+  width: 50px;
+  min-width: 50px;
+  padding: 0;
+  height: 30px;
+}
+
+.department-row-actions {
+  justify-content: center;
+}
+
+.department-table-wrap::-webkit-scrollbar,
+.department-sections-wrap::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.department-table-wrap::-webkit-scrollbar-track,
+.department-sections-wrap::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.department-table-wrap::-webkit-scrollbar-thumb,
+.department-sections-wrap::-webkit-scrollbar-thumb {
+  background: rgba(157, 198, 255, 0.6);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.06);
+}
+
+.department-table-wrap::-webkit-scrollbar-thumb:hover,
+.department-sections-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(157, 198, 255, 0.8);
+}
+
+.department-section-input {
+  width: 100%;
+}
+
+.department-sections-card {
+  margin-top: 14px;
+}
+
+.active-row {
+  background: rgba(157, 198, 255, 0.08);
+}
+
+@media (max-width: 1100px) {
+  .department-manager-grid,
+  .department-form-layout,
+  .general-header-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .general-header-layout {
   display: grid;
   grid-template-columns: minmax(300px, 1fr) 2fr;

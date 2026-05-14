@@ -258,6 +258,38 @@ async function handleProfileImageUpload(req, res) {
   }
 }
 
+async function handleDepartmentLogoUpload(req, res) {
+  try {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded." });
+    }
+
+    const departmentId = String(req.body.departmentId || "").trim();
+    const departmentCode = String(req.body.departmentCode || "").trim();
+    const fileName = String(
+      req.body.fileName || req.file.originalname || "department-logo.jpg",
+    );
+    const mimeType = req.file.mimetype || "image/jpeg";
+
+    const url = await cloudinaryService.uploadDepartmentLogo(
+      req.file.buffer,
+      fileName,
+      mimeType,
+      departmentId,
+      departmentCode,
+    );
+
+    return res.json({ success: true, path: url });
+  } catch (error) {
+    console.error("Department logo upload error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: error.message || "Upload failed." });
+  }
+}
+
 router.post(
   "/setup-profile-image",
   upload.single("file"),
@@ -270,6 +302,14 @@ router.post(
   requireAuth,
   upload.single("file"),
   handleProfileImageUpload,
+);
+
+// ── POST /api/upload/department-logo ─────────────────────────────────────────
+router.post(
+  "/department-logo",
+  requireAuth,
+  upload.single("file"),
+  handleDepartmentLogoUpload,
 );
 
 // ── POST /api/upload/partner-logo ─────────────────────────────────────────────

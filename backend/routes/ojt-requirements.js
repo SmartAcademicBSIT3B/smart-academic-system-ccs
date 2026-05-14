@@ -121,6 +121,19 @@ async function ensureTables() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS ojt_requirements_settings_activity (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      department VARCHAR(120) NOT NULL,
+      activity_type VARCHAR(80) NOT NULL,
+      actor_user_id INT NULL,
+      actor_name VARCHAR(180) NULL,
+      details_json JSON NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_orsa_dept_type_time (department, activity_type, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
   tablesPrepared = true;
 }
 
@@ -267,6 +280,36 @@ function toManagerSettingsResponse(row = {}) {
       50,
     ),
   };
+}
+
+async function logSettingsActivity(req, activityType, details = null) {
+  try {
+    const dept = getDept(req);
+    const actorUserId = Number.parseInt(req.user?.id, 10);
+    const actorName = String(req.user?.name || req.user?.email || "").trim();
+    const detailsJson =
+      details && typeof details === "object" ? JSON.stringify(details) : null;
+
+    await query(
+      `INSERT INTO ojt_requirements_settings_activity (
+        department,
+        activity_type,
+        actor_user_id,
+        actor_name,
+        details_json
+      ) VALUES (?, ?, ?, ?, ?)`,
+      [
+        dept,
+        String(activityType || "unknown"),
+        Number.isInteger(actorUserId) ? actorUserId : null,
+        actorName || null,
+        detailsJson,
+      ],
+    );
+  } catch (error) {
+    // Non-fatal: activity logging should not block settings updates.
+    console.error("logSettingsActivity error:", error);
+  }
 }
 
 // ── Seed defaults ─────────────────────────────────────────────────────────────
@@ -518,6 +561,9 @@ router.get("/settings", requireAuth, async (req, res) => {
     const dept = getDept(req);
     await ensureTables();
     const row = await ensureManagerSettingsRow(dept);
+    await logSettingsActivity(req, "manager_settings_updated", {
+      settings: toManagerSettingsResponse(row),
+    });
     return res.json({
       success: true,
       settings: toManagerSettingsResponse(row),
@@ -650,6 +696,11 @@ router.post("/department-hours", requireAuth, async (req, res) => {
        LIMIT 1`,
       [result.insertId],
     );
+    await logSettingsActivity(req, "department_hours_created", {
+      id: rows[0]?.id || result.insertId,
+      section_prefix: sectionPrefix,
+      required_hours: requiredHours,
+    });
     return res.status(201).json({ success: true, hour: rows[0] });
   } catch (error) {
     console.error("createDepartmentHours error:", error);
@@ -706,6 +757,11 @@ router.patch("/department-hours/:id", requireAuth, async (req, res) => {
         .status(404)
         .json({ success: false, message: "Entry not found." });
     }
+    await logSettingsActivity(req, "department_hours_updated", {
+      id,
+      section_prefix: sectionPrefix,
+      required_hours: requiredHours,
+    });
     return res.json({ success: true, hour: rows[0] });
   } catch (error) {
     console.error("updateDepartmentHours error:", error);
@@ -731,6 +787,7 @@ router.delete("/department-hours/:id", requireAuth, async (req, res) => {
        WHERE id = ? AND department = ?`,
       [id, dept],
     );
+    await logSettingsActivity(req, "department_hours_deleted", { id });
     return res.json({ success: true });
   } catch (error) {
     console.error("deleteDepartmentHours error:", error);

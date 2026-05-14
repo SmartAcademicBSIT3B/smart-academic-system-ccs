@@ -18,7 +18,12 @@ function normalizeDepartment(value) {
 
 function getRequestDepartment(req) {
   return normalizeDepartment(
-    req?.headers?.["x-department"] || req?.user?.department_code || "CCS",
+    req?.body?.department ||
+      req?.body?.department_code ||
+      req?.query?.department ||
+      req?.headers?.["x-department"] ||
+      req?.user?.department_code ||
+      "CCS",
   );
 }
 

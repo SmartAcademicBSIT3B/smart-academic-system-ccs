@@ -1341,6 +1341,43 @@ ipcMain.handle("getDepartments", async () => {
   }
 });
 
+ipcMain.handle("createDepartment", async (event, payload = {}) => {
+  try {
+    return await api.post("/meta/departments", payload);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to create department.",
+    };
+  }
+});
+
+ipcMain.handle("updateDepartment", async (event, payload = {}) => {
+  try {
+    const id = payload?.id;
+    return await api.patch(
+      `/meta/departments/${encodeURIComponent(id)}`,
+      payload,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to update department.",
+    };
+  }
+});
+
+ipcMain.handle("deleteDepartment", async (event, id) => {
+  try {
+    return await api.del(`/meta/departments/${encodeURIComponent(id)}`);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to delete department.",
+    };
+  }
+});
+
 ipcMain.handle("getAppSettings", async () => {
   try {
     const settings = await loadAppSettings();
@@ -1700,6 +1737,40 @@ ipcMain.handle("selectExternalPartnerLogo", async () => {
   }
 });
 
+ipcMain.handle("selectDepartmentLogo", async () => {
+  try {
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    const { canceled, filePaths } = await dialog.showOpenDialog(focusedWindow, {
+      title: "Select department logo",
+      properties: ["openFile"],
+      filters: [
+        { name: "Images", extensions: ["jpg", "jpeg", "png", "gif", "webp"] },
+      ],
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return { success: false, canceled: true };
+    }
+
+    const selectedPath = filePaths[0];
+    const ext = path.extname(selectedPath).toLowerCase();
+    const mimeMap = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+    };
+    const mimeType = mimeMap[ext] || "image/jpeg";
+    const fileName = `department_logo_${Date.now()}_${path.basename(selectedPath)}`;
+
+    return { success: true, localPath: selectedPath, fileName, mimeType };
+  } catch (error) {
+    console.error("Select department logo error:", error);
+    return { success: false, message: "Could not open file picker." };
+  }
+});
+
 ipcMain.handle(
   "uploadProfileImage",
   async (event, { localPath, fileName, mimeType, userId }) => {
@@ -1754,6 +1825,31 @@ ipcMain.handle(
       );
     } catch (error) {
       console.error("Partner logo upload error:", error);
+      return {
+        success: false,
+        message: error.message || "Upload failed. Please try again.",
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  "uploadDepartmentLogo",
+  async (
+    event,
+    { localPath, fileName, mimeType, departmentId, departmentCode },
+  ) => {
+    try {
+      const fileBuffer = await fs.readFile(localPath);
+      return await api.postFile(
+        "/upload/department-logo",
+        fileBuffer,
+        fileName,
+        mimeType,
+        { departmentId, departmentCode },
+      );
+    } catch (error) {
+      console.error("Department logo upload error:", error);
       return {
         success: false,
         message: error.message || "Upload failed. Please try again.",

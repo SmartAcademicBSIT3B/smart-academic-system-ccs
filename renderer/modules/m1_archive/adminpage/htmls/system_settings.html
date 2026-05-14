@@ -451,28 +451,146 @@
             <div id="department" class="settings-section">
               <h3>Department</h3>
               <div class="section-description">
-                Manage organizational details used across forms and records.
+                Add, edit, and delete departments, logos, and sections.
               </div>
 
-              <div class="setting-grid two-column">
-                <label>
-                  Active Department
-                  <select>
-                    <option selected>College of Computer Studies</option>
-                    <option>College of Engineering</option>
-                    <option>College of Business</option>
-                    <option>College of Education</option>
-                  </select>
-                </label>
-                <label>
-                  Default Academic Program
-                  <input type="text" value="BSIT" />
-                </label>
-                <label class="full-width">
-                  Department Head
-                  <input type="text" placeholder="Enter department head name" />
-                </label>
+              <div class="department-manager-grid">
+                <div class="general-card department-list-card">
+                  <div class="department-card-head">
+                    <div>
+                      <h4>Departments</h4>
+                      <p>Choose a department to edit or delete.</p>
+                    </div>
+                    <button
+                      type="button"
+                      class="cancel-btn"
+                      onclick="startNewDepartment()"
+                    >
+                      Add Department
+                    </button>
+                  </div>
+
+                  <div class="thesis-link-table-wrap department-table-wrap">
+                    <table class="department-table">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Logo</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="departmentTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="general-card department-form-card">
+                  <div class="department-card-head">
+                    <div>
+                      <h4 id="departmentFormTitle">New Department</h4>
+                      <p>Update the selected department details.</p>
+                    </div>
+                  </div>
+
+                  <div class="department-form-layout">
+                    <div class="department-logo-panel">
+                      <img
+                        id="departmentLogoPreview"
+                        class="department-logo-preview"
+                        src="../../images/CCSLOGO.png"
+                        alt="Department logo preview"
+                      />
+                      <div class="inline-actions department-logo-actions">
+                        <button
+                          type="button"
+                          class="cancel-btn department-action-btn"
+                          onclick="chooseDepartmentLogoFromSettings()"
+                        >
+                          Choose Logo
+                        </button>
+                        <button
+                          type="button"
+                          class="cancel-btn department-action-btn"
+                          onclick="clearDepartmentLogoSelection()"
+                        >
+                          Clear Logo
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="setting-grid two-column department-fields">
+                      <label class="full-width">
+                        Department Name
+                        <input id="departmentNameInput" type="text" />
+                      </label>
+                      <label>
+                        Department Code
+                        <input
+                          id="departmentCodeInput"
+                          type="text"
+                          maxlength="20"
+                        />
+                      </label>
+                      <label class="full-width">
+                        Logo URL
+                        <input
+                          id="departmentLogoUrlInput"
+                          type="text"
+                          readonly
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="inline-actions">
+                    <button
+                      type="button"
+                      class="save-btn department-action-btn"
+                      onclick="saveDepartmentFromSettings()"
+                    >
+                      Save Department
+                    </button>
+                    <button
+                      type="button"
+                      class="danger-btn department-action-btn"
+                      onclick="deleteDepartmentFromSettings()"
+                    >
+                      Delete Department
+                    </button>
+                  </div>
+                </div>
               </div>
+
+              <div class="general-card department-sections-card">
+                <div class="department-card-head">
+                  <div>
+                    <h4>Sections</h4>
+                    <p id="departmentSectionsContext">
+                      Select a department to manage sections.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="addDepartmentSectionRow()"
+                  >
+                    Add Section
+                  </button>
+                </div>
+                <div class="thesis-link-table-wrap department-sections-wrap">
+                  <table class="thesis-link-table department-sections-table">
+                    <thead>
+                      <tr>
+                        <th>Section Name</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="departmentSectionsBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div id="departmentStatusMessage" class="general-status"></div>
             </div>
 
             <!-- ================= BACKUP AND RESTORE ================= -->
@@ -503,7 +621,7 @@
                   Create Backup Now
                 </button>
                 <button type="button" class="save-btn">
-                  Restore from File
+                  class="cancel-btn department-action-btn"
                 </button>
               </div>
             </div>
@@ -585,6 +703,16 @@
       };
       let ojtSettingsState = { ...DEFAULT_OJT_MANAGER_SETTINGS };
       let ojtDeletedHoursIds = [];
+      let departmentManagerState = {
+        departments: [],
+        selectedDepartmentId: null,
+        selectedDepartmentCode: "",
+        selectedDepartmentLogoPath: "",
+        selectedDepartmentLogoLocalPath: "",
+        selectedDepartmentLogoMimeType: "image/jpeg",
+        sections: [],
+        deletedSectionIds: [],
+      };
 
       document.querySelectorAll(".settings-menu li").forEach((item) => {
         item.onclick = () => {
@@ -605,6 +733,9 @@
             }
             if (section.id === "ojt-requirements") {
               loadOjtRequirementsSettings();
+            }
+            if (section.id === "department") {
+              loadDepartmentSettings();
             }
           }
         };
@@ -1436,6 +1567,524 @@
         el.classList.toggle("error", Boolean(isError));
       }
 
+      function showDepartmentStatus(message, isError = false) {
+        const el = document.getElementById("departmentStatusMessage");
+        if (!el) return;
+        el.textContent = message || "";
+        el.classList.toggle("error", Boolean(isError));
+      }
+
+      function normalizeDepartmentRow(row = {}) {
+        return {
+          id: Number.parseInt(row.id, 10) || null,
+          department_name: String(row.department_name || "").trim(),
+          department_code: String(row.department_code || "")
+            .trim()
+            .toUpperCase(),
+          logo_url: String(row.logo_url || "").trim(),
+        };
+      }
+
+      function normalizeSectionRow(row = {}) {
+        return {
+          id: Number.parseInt(row.id, 10) || null,
+          section_name: String(
+            row.section_name || row.sections_name || "",
+          ).trim(),
+        };
+      }
+
+      function renderDepartmentLogoPreview() {
+        const img = document.getElementById("departmentLogoPreview");
+        const logoUrlInput = document.getElementById("departmentLogoUrlInput");
+        const logoPath =
+          departmentManagerState.selectedDepartmentLogoPath ||
+          departmentManagerState.selectedDepartmentLogoLocalPath ||
+          "";
+
+        if (logoUrlInput) {
+          logoUrlInput.value =
+            departmentManagerState.selectedDepartmentLogoPath;
+        }
+        if (img) {
+          img.src = logoPath || "../../images/CCSLOGO.png";
+        }
+      }
+
+      function fillDepartmentForm(row = null) {
+        const departmentNameInput = document.getElementById(
+          "departmentNameInput",
+        );
+        const departmentCodeInput = document.getElementById(
+          "departmentCodeInput",
+        );
+        const formTitle = document.getElementById("departmentFormTitle");
+
+        departmentManagerState.selectedDepartmentId = row?.id || null;
+        departmentManagerState.selectedDepartmentCode = String(
+          row?.department_code || "",
+        ).trim();
+        departmentManagerState.selectedDepartmentLogoPath = String(
+          row?.logo_url || "",
+        ).trim();
+        departmentManagerState.selectedDepartmentLogoLocalPath = "";
+        departmentManagerState.selectedDepartmentLogoMimeType = "image/jpeg";
+
+        if (departmentNameInput)
+          departmentNameInput.value = row?.department_name || "";
+        if (departmentCodeInput)
+          departmentCodeInput.value = row?.department_code || "";
+        if (formTitle) {
+          formTitle.textContent = row?.id
+            ? "Edit Department"
+            : "New Department";
+        }
+
+        renderDepartmentLogoPreview();
+      }
+
+      function renderDepartmentTable() {
+        const body = document.getElementById("departmentTableBody");
+        if (!body) return;
+
+        const rows = Array.isArray(departmentManagerState.departments)
+          ? departmentManagerState.departments
+          : [];
+
+        if (!rows.length) {
+          body.innerHTML = `
+            <tr>
+              <td colspan="3" class="thesis-link-empty">No departments found.</td>
+            </tr>`;
+          return;
+        }
+
+        body.innerHTML = rows
+          .map((row) => {
+            const isSelected =
+              Number.parseInt(row.id, 10) ===
+              Number.parseInt(departmentManagerState.selectedDepartmentId, 10);
+            const logoHtml = row.logo_url
+              ? `<img class="department-table-logo" src="${toFileUrl(row.logo_url)}" alt="${escapeHtml(row.department_name || "Department")}" />`
+              : `<span class="department-logo-placeholder">No logo</span>`;
+            return `
+              <tr class="${isSelected ? "active-row" : ""}">
+                <td>${escapeHtml(row.department_code || "-")}</td>
+                <td>${logoHtml}</td>
+                <td>
+                  <div class="inline-actions department-row-actions">
+                    <button type="button" class="tiny-btn" onclick="selectDepartmentForEditing(${row.id})">Edit</button>
+                  </div>
+                </td>
+              </tr>`;
+          })
+          .join("");
+      }
+
+      function renderDepartmentSections() {
+        const body = document.getElementById("departmentSectionsBody");
+        const context = document.getElementById("departmentSectionsContext");
+        if (!body) return;
+
+        const code = String(
+          departmentManagerState.selectedDepartmentCode || "",
+        ).trim();
+        if (context) {
+          context.textContent = code
+            ? `Managing sections for ${code}.`
+            : "Select a department to manage sections.";
+        }
+
+        if (!code) {
+          body.innerHTML = `
+            <tr>
+              <td colspan="2" class="thesis-link-empty">Save or select a department to manage its sections.</td>
+            </tr>`;
+          return;
+        }
+
+        const rows = Array.isArray(departmentManagerState.sections)
+          ? departmentManagerState.sections
+          : [];
+
+        if (!rows.length) {
+          body.innerHTML = `
+            <tr>
+              <td colspan="2" class="thesis-link-empty">No sections found for this department.</td>
+            </tr>`;
+          return;
+        }
+
+        body.innerHTML = rows
+          .map(
+            (row) => `
+              <tr ${row.id ? `data-id="${row.id}"` : ""}>
+                <td>
+                  <input
+                    class="department-section-input"
+                    data-field="section_name"
+                    type="text"
+                    value="${escapeHtml(row.section_name || "")}" />
+                </td>
+                <td>
+                  <button type="button" class="tiny-btn" onclick="removeDepartmentSectionRow(this)">Remove</button>
+                </td>
+              </tr>`,
+          )
+          .join("");
+      }
+
+      function addDepartmentSectionRow(row = {}) {
+        const body = document.getElementById("departmentSectionsBody");
+        if (!body) return;
+
+        const tr = document.createElement("tr");
+        if (row.id) tr.dataset.id = String(row.id);
+        tr.innerHTML = `
+          <td>
+            <input class="department-section-input" data-field="section_name" type="text" value="${escapeHtml(row.section_name || "")}" placeholder="Section A" />
+          </td>
+          <td>
+            <button type="button" class="tiny-btn" onclick="removeDepartmentSectionRow(this)">Remove</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      }
+
+      function removeDepartmentSectionRow(button) {
+        const row = button?.closest("tr");
+        if (!row) return;
+        const id = Number.parseInt(row.dataset.id, 10);
+        if (Number.isInteger(id)) {
+          departmentManagerState.deletedSectionIds.push(id);
+        }
+        row.remove();
+      }
+
+      function collectDepartmentSectionRows() {
+        return Array.from(
+          document.querySelectorAll("#departmentSectionsBody tr"),
+        ).map((row) => ({
+          id: Number.parseInt(row.dataset.id, 10) || null,
+          section_name: String(
+            row.querySelector('[data-field="section_name"]')?.value || "",
+          ).trim(),
+        }));
+      }
+
+      async function loadDepartmentSections(departmentCode = "") {
+        const code = String(departmentCode || "")
+          .trim()
+          .toUpperCase();
+        departmentManagerState.selectedDepartmentCode = code;
+        departmentManagerState.deletedSectionIds = [];
+
+        if (!electronAPI || !code) {
+          departmentManagerState.sections = [];
+          renderDepartmentSections();
+          renderDepartmentTable();
+          return;
+        }
+
+        const result = await electronAPI.getSections(code);
+        if (!result?.success) {
+          showDepartmentStatus(
+            result?.message || "Failed to load sections.",
+            true,
+          );
+          departmentManagerState.sections = [];
+          renderDepartmentSections();
+          return;
+        }
+
+        departmentManagerState.sections = Array.isArray(result.sections)
+          ? result.sections.map(normalizeSectionRow)
+          : [];
+        renderDepartmentSections();
+        renderDepartmentTable();
+      }
+
+      async function loadDepartmentSettings() {
+        if (!electronAPI) return;
+        showDepartmentStatus("");
+
+        const result = await electronAPI.getDepartments();
+        if (!result?.success) {
+          showDepartmentStatus(
+            result?.message || "Failed to load departments.",
+            true,
+          );
+          return;
+        }
+
+        departmentManagerState.departments = Array.isArray(result.departments)
+          ? result.departments.map(normalizeDepartmentRow)
+          : [];
+
+        if (!departmentManagerState.selectedDepartmentId) {
+          const preferred =
+            departmentManagerState.departments.find(
+              (row) =>
+                String(row.department_code || "").toUpperCase() ===
+                String(
+                  activeUser?.department_code || activeUser?.department || "",
+                ).toUpperCase(),
+            ) ||
+            departmentManagerState.departments[0] ||
+            null;
+          fillDepartmentForm(preferred);
+        }
+
+        renderDepartmentTable();
+
+        if (departmentManagerState.selectedDepartmentCode) {
+          await loadDepartmentSections(
+            departmentManagerState.selectedDepartmentCode,
+          );
+        } else {
+          renderDepartmentSections();
+        }
+      }
+
+      function selectDepartmentForEditing(id) {
+        const row = (departmentManagerState.departments || []).find(
+          (item) => Number.parseInt(item.id, 10) === Number.parseInt(id, 10),
+        );
+        if (!row) return;
+        fillDepartmentForm(row);
+        loadDepartmentSections(row.department_code);
+        renderDepartmentTable();
+      }
+
+      function startNewDepartment() {
+        fillDepartmentForm(null);
+        departmentManagerState.sections = [];
+        departmentManagerState.deletedSectionIds = [];
+        renderDepartmentTable();
+        renderDepartmentSections();
+        showDepartmentStatus("New department form ready.");
+      }
+
+      async function chooseDepartmentLogoFromSettings() {
+        if (!electronAPI) {
+          showDepartmentStatus("Department logo picker is unavailable.", true);
+          return;
+        }
+
+        const result = await electronAPI.selectDepartmentLogo();
+        if (!result || result.canceled || !result.success) return;
+
+        departmentManagerState.selectedDepartmentLogoLocalPath = String(
+          result.localPath || "",
+        ).trim();
+        departmentManagerState.selectedDepartmentLogoMimeType = String(
+          result.mimeType || "image/jpeg",
+        );
+        const preview = document.getElementById("departmentLogoPreview");
+        if (preview) preview.src = toFileUrl(result.localPath || "");
+        showDepartmentStatus("Logo selected. Save to upload it.");
+      }
+
+      function clearDepartmentLogoSelection() {
+        departmentManagerState.selectedDepartmentLogoLocalPath = "";
+        departmentManagerState.selectedDepartmentLogoMimeType = "image/jpeg";
+        renderDepartmentLogoPreview();
+        showDepartmentStatus("Logo selection cleared.");
+      }
+
+      async function saveDepartmentFromSettings() {
+        if (!electronAPI) {
+          showDepartmentStatus("Department settings API is unavailable.", true);
+          return false;
+        }
+
+        try {
+          const department_name = String(
+            document.getElementById("departmentNameInput")?.value || "",
+          ).trim();
+          const department_code = String(
+            document.getElementById("departmentCodeInput")?.value || "",
+          )
+            .trim()
+            .toUpperCase();
+
+          if (!department_name || !department_code) {
+            throw new Error("Department name and code are required.");
+          }
+
+          const isEdit = Boolean(departmentManagerState.selectedDepartmentId);
+          const payload = {
+            department_name,
+            department_code,
+          };
+
+          let savedDepartment;
+          if (isEdit) {
+            const updateResult = await electronAPI.updateDepartment({
+              id: departmentManagerState.selectedDepartmentId,
+              ...payload,
+            });
+            if (!updateResult?.success) {
+              throw new Error(
+                updateResult?.message || "Failed to update department.",
+              );
+            }
+            savedDepartment = updateResult.department || null;
+          } else {
+            const createResult = await electronAPI.createDepartment(payload);
+            if (!createResult?.success) {
+              throw new Error(
+                createResult?.message || "Failed to create department.",
+              );
+            }
+            savedDepartment = createResult.department || null;
+          }
+
+          const savedId =
+            Number.parseInt(savedDepartment?.id, 10) ||
+            departmentManagerState.selectedDepartmentId;
+          const savedCode = String(
+            savedDepartment?.department_code || department_code,
+          )
+            .trim()
+            .toUpperCase();
+
+          if (departmentManagerState.selectedDepartmentLogoLocalPath) {
+            const uploadResult = await electronAPI.uploadDepartmentLogo({
+              localPath: departmentManagerState.selectedDepartmentLogoLocalPath,
+              fileName: `department_logo_${savedCode || savedId}.jpg`,
+              mimeType: departmentManagerState.selectedDepartmentLogoMimeType,
+              departmentId: savedId,
+              departmentCode: savedCode,
+            });
+
+            if (!uploadResult?.success || !uploadResult.path) {
+              throw new Error(
+                uploadResult?.message || "Failed to upload department logo.",
+              );
+            }
+
+            const logoResult = await electronAPI.updateDepartment({
+              id: savedId,
+              department_name,
+              department_code: savedCode,
+              logo_url: uploadResult.path,
+            });
+            if (!logoResult?.success) {
+              throw new Error(
+                logoResult?.message || "Failed to save department logo URL.",
+              );
+            }
+            savedDepartment = logoResult.department || savedDepartment;
+          }
+
+          departmentManagerState.selectedDepartmentId = savedId;
+          departmentManagerState.selectedDepartmentCode = savedCode;
+          departmentManagerState.selectedDepartmentLogoPath = String(
+            savedDepartment?.logo_url ||
+              departmentManagerState.selectedDepartmentLogoLocalPath ||
+              "",
+          ).trim();
+          departmentManagerState.selectedDepartmentLogoLocalPath = "";
+
+          const sectionRows = collectDepartmentSectionRows();
+          for (const id of departmentManagerState.deletedSectionIds) {
+            const deleteResult = await electronAPI.deleteSection(id);
+            if (!deleteResult?.success) {
+              throw new Error(
+                deleteResult?.message || "Failed to delete a section.",
+              );
+            }
+          }
+
+          for (const row of sectionRows) {
+            if (!row.section_name) continue;
+            if (row.id) {
+              const updateResult = await electronAPI.updateSection({
+                id: row.id,
+                section_name: row.section_name,
+                department: savedCode,
+              });
+              if (!updateResult?.success) {
+                throw new Error(
+                  updateResult?.message ||
+                    `Failed to update section ${row.section_name}.`,
+                );
+              }
+            } else {
+              const createResult = await electronAPI.createSection({
+                section_name: row.section_name,
+                department: savedCode,
+              });
+              if (!createResult?.success) {
+                throw new Error(
+                  createResult?.message ||
+                    `Failed to create section ${row.section_name}.`,
+                );
+              }
+            }
+          }
+
+          departmentManagerState.deletedSectionIds = [];
+          await loadDepartmentSettings();
+          if (savedCode) {
+            await loadDepartmentSections(savedCode);
+          }
+          showDepartmentStatus("Department settings updated successfully.");
+          return true;
+        } catch (error) {
+          showDepartmentStatus(
+            error?.message || "Failed to save department settings.",
+            true,
+          );
+          return false;
+        }
+      }
+
+      async function deleteDepartmentFromSettings() {
+        if (!electronAPI || !departmentManagerState.selectedDepartmentId) {
+          showDepartmentStatus("Select a department to delete.", true);
+          return;
+        }
+
+        const confirmDelete = window.confirm(
+          "Delete this department and its sections? This cannot be undone.",
+        );
+        if (!confirmDelete) return;
+
+        const result = await electronAPI.deleteDepartment(
+          departmentManagerState.selectedDepartmentId,
+        );
+        if (!result?.success) {
+          showDepartmentStatus(
+            result?.message || "Failed to delete department.",
+            true,
+          );
+          return;
+        }
+
+        departmentManagerState.selectedDepartmentId = null;
+        departmentManagerState.selectedDepartmentCode = "";
+        departmentManagerState.selectedDepartmentLogoPath = "";
+        departmentManagerState.selectedDepartmentLogoLocalPath = "";
+        departmentManagerState.sections = [];
+        departmentManagerState.deletedSectionIds = [];
+        startNewDepartment();
+        await loadDepartmentSettings();
+        showDepartmentStatus("Department deleted successfully.");
+      }
+
+      window.selectDepartmentForEditing = selectDepartmentForEditing;
+      window.startNewDepartment = startNewDepartment;
+      window.chooseDepartmentLogoFromSettings =
+        chooseDepartmentLogoFromSettings;
+      window.clearDepartmentLogoSelection = clearDepartmentLogoSelection;
+      window.addDepartmentSectionRow = addDepartmentSectionRow;
+      window.removeDepartmentSectionRow = removeDepartmentSectionRow;
+      window.loadDepartmentSections = loadDepartmentSections;
+      window.saveDepartmentFromSettings = saveDepartmentFromSettings;
+      window.deleteDepartmentFromSettings = deleteDepartmentFromSettings;
+
       function normalizeOjtManagerSettings(value = {}) {
         const input = value && typeof value === "object" ? value : {};
         const toInt = (raw, fallback, max) => {
@@ -1820,6 +2469,8 @@
           success = await saveThesisArchiveSettings();
         } else if (activeSection.id === "ojt-requirements") {
           success = await saveOjtRequirementsSettings();
+        } else if (activeSection.id === "department") {
+          success = await saveDepartmentFromSettings();
         } else {
           alert("Settings saved!");
         }
@@ -1907,6 +2558,12 @@
           return;
         }
 
+        if (activeSection?.id === "department") {
+          loadDepartmentSettings();
+          showDepartmentStatus("Changes reverted.");
+          return;
+        }
+
         location.reload();
       }
 
@@ -1933,7 +2590,6 @@
       loadThesisArchiveSettings();
       loadThesisArchiveOptions();
       loadThesisLinkCandidates("");
-      loadOjtRequirementsSettings();
     </script>
   </body>
 </html>

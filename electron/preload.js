@@ -16,6 +16,76 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("getSections", departmentCode),
   getDepartments: () => ipcRenderer.invoke("getDepartments"),
   getProfessors: () => ipcRenderer.invoke("getProfessors"),
+  createDepartment: async (payload) => {
+    try {
+      return await ipcRenderer.invoke("createDepartment", payload);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message:
+            "Department create handlers are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
+  updateDepartment: async (payload) => {
+    try {
+      return await ipcRenderer.invoke("updateDepartment", payload);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message:
+            "Department update handlers are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
+  deleteDepartment: async (id) => {
+    try {
+      return await ipcRenderer.invoke("deleteDepartment", id);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message:
+            "Department delete handlers are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
+  selectDepartmentLogo: async () => {
+    try {
+      return await ipcRenderer.invoke("selectDepartmentLogo");
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message:
+            "Department logo picker is unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
+  uploadDepartmentLogo: async (fileInfo) => {
+    try {
+      return await ipcRenderer.invoke("uploadDepartmentLogo", fileInfo);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message:
+            "Department logo upload is unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
   selectProfileImage: () => ipcRenderer.invoke("selectProfileImage"),
   selectPdfReportHeaderImage: async () => {
     try {
@@ -168,11 +238,38 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   // ── OJT Requirements ───────────────────────────────────────────────────────
-  getOjtRequirementsManagerSettings: () =>
-    ipcRenderer.invoke("getOjtRequirementsManagerSettings"),
+  getOjtRequirementsManagerSettings: async () => {
+    try {
+      return await ipcRenderer.invoke("getOjtRequirementsManagerSettings");
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          settings: null,
+          message:
+            "OJT requirements settings are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
   updateOjtRequirementsManagerSettings: (payload) =>
     ipcRenderer.invoke("updateOjtRequirementsManagerSettings", payload),
-  getOjtDepartmentHours: () => ipcRenderer.invoke("getOjtDepartmentHours"),
+  getOjtDepartmentHours: async () => {
+    try {
+      return await ipcRenderer.invoke("getOjtDepartmentHours");
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          hours: [],
+          message:
+            "Department hours handlers are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
   createOjtDepartmentHours: (payload) =>
     ipcRenderer.invoke("createOjtDepartmentHours", payload),
   updateOjtDepartmentHours: (payload) =>
