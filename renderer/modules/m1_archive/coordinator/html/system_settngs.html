@@ -1,278 +1,511 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Settings</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>System Settings</title>
 
-  <link rel="stylesheet" href="../css/system_settings.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/system_settings.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
 
-<body>
-
-<div class="main-content">
-
-  <div class="setting-header">
-    <h2>SYSTEM SETTINGS</h2>
-  </div>
-
-  <div class="settings-wrapper">
-    <div class="settings-container">
-
-      <!-- LEFT MENU -->
-      <div class="settings-menu">
-        <ul>
-          <li class="active" data-section="general"><i class="fa-solid fa-gear"></i> General</li>
-          <li data-section="notifications"><i class="fa-solid fa-bell"></i> Notification</li>
-          <li data-section="backup"><i class="fa-solid fa-database"></i> Restore & Backup</li>
-          <li data-section="about"><i class="fa-solid fa-info-circle"></i> About</li>
-        </ul>
+  <body>
+    <div class="main-content">
+      <div class="setting-header">
+        <h2>System Settings</h2>
+        <p>
+          Manage account and OJT requirement preferences for coordinator use.
+        </p>
       </div>
 
-      <!-- RIGHT CONTENT -->
-      <div class="settings-content">
+      <div class="settings-wrapper">
+        <div class="settings-container">
+          <!-- LEFT MENU -->
+          <div class="settings-menu">
+            <ul>
+              <li class="active" data-section="profile">
+                <i class="fa-solid fa-user"></i> Profile
+              </li>
+              <li data-section="ojt-requirements">
+                <i class="fa-solid fa-list-check"></i> OJT Requirements Manager
+              </li>
+            </ul>
+          </div>
 
-        <!-- ================= GENERAL ================= -->
-        <div id="general" class="settings-section active">
+          <!-- RIGHT CONTENT -->
+          <div class="settings-content">
+            <!-- ================= PROFILE ================= -->
+            <div id="profile" class="settings-section active">
+              <h3>Profile</h3>
+              <div class="section-description">
+                Update coordinator information displayed in activity records and
+                notifications.
+              </div>
 
-          <h3>General Settings</h3>
+              <div class="profile-panel">
+                <div class="profile-photo-wrap">
+                  <img
+                    id="settingsProfileImage"
+                    class="profile-photo"
+                    src="../../images/default_avatar.jpg"
+                    alt="Profile photo"
+                  />
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="chooseProfileImageFromSettings()"
+                  >
+                    Change Profile Picture
+                  </button>
+                </div>
 
-          <!-- DARK MODE -->
-          <div class="setting-row">
-            <div>
-              <p class="title">Dark Mode</p>
-              <span class="desc">Enable dark theme</span>
+                <div class="setting-grid two-column profile-fields">
+                  <label>
+                    User ID
+                    <input id="profileUserId" type="text" readonly />
+                  </label>
+                  <label>
+                    Role
+                    <input id="profileRole" type="text" readonly />
+                  </label>
+                  <label>
+                    Full Name
+                    <input id="profileName" type="text" />
+                  </label>
+                  <label>
+                    Email Address
+                    <input id="profileEmail" type="email" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="setting-grid two-column password-grid">
+                <label>
+                  Current Password
+                  <input
+                    id="profileCurrentPassword"
+                    type="password"
+                    autocomplete="new-password"
+                  />
+                </label>
+                <label>
+                  New Password
+                  <input
+                    id="profileNewPassword"
+                    type="password"
+                    autocomplete="new-password"
+                  />
+                </label>
+                <label class="full-width">
+                  Confirm New Password
+                  <input
+                    id="profileConfirmPassword"
+                    type="password"
+                    autocomplete="new-password"
+                  />
+                </label>
+              </div>
+
+              <div class="delete-profile-box">
+                <h4>Delete My Profile</h4>
+                <p>
+                  This permanently deletes your account. Section assignments
+                  will remain unchanged.
+                </p>
+                <div class="setting-grid two-column">
+                  <label class="full-width">
+                    Enter Current Password to Confirm
+                    <input
+                      id="profileDeletePassword"
+                      type="password"
+                      autocomplete="new-password"
+                    />
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  class="danger-btn"
+                  onclick="deleteMyProfileFromSettings()"
+                >
+                  Delete My Profile
+                </button>
+              </div>
+
+              <div id="profileStatusMessage" class="profile-status"></div>
             </div>
 
-            <label class="switch">
-              <input type="checkbox" checked>
-              <span class="slider"></span>
-            </label>
+            <!-- ================= OJT REQUIREMENTS ================= -->
+            <div id="ojt-requirements" class="settings-section">
+              <h3>OJT Requirements Manager</h3>
+              <div class="section-description">
+                Set and review OJT submission and internship rules for students.
+              </div>
+
+              <div class="setting-grid two-column">
+                <label>
+                  Required Documents
+                  <input
+                    type="text"
+                    placeholder="e.g. Resume, Weekly Report, Certificate"
+                  />
+                </label>
+                <label>
+                  Allowed File Type
+                  <select>
+                    <option selected>PDF Only (Recommended)</option>
+                    <option>PDF and DOCX</option>
+                    <option>All File Types</option>
+                  </select>
+                </label>
+                <label>
+                  Submission Deadline (Days)
+                  <input type="number" min="1" step="1" value="90" />
+                </label>
+                <label>
+                  Required OJT Hours
+                  <input type="number" min="1" step="1" value="486" />
+                </label>
+              </div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="settings-actions">
+              <button class="cancel-btn" onclick="cancelChanges()">
+                Cancel
+              </button>
+              <button class="save-btn" onclick="openConfirm()">Save</button>
+            </div>
           </div>
         </div>
-
-        <!-- ================= ABOUT ================= -->
-        <div id="about" class="settings-section">
-
-          <h3>About the System</h3>
-
-          <div class="about-content">
-            <h4>Thesis/Capstone Archiving and Host Training Establishment System</h4>
-            <p>This system is designed to manage and archive thesis and capstone projects for the College of Computer Studies (CCS). 
-              It also provides a comprehensive platform for coordinators and administrators to oversee HTE (Host Training Establishment) partnerships, manage 
-              OJT (On-the-Job Training) students, and maintain archives of academic projects.</p>
-
-            <h5>Key Features:</h5>
-            <ul>
-              <li>Dashboard for overview and analytics</li>
-              <li>Archive management for thesis and capstone projects</li>
-              <li>HTE partner management</li>
-              <li>OJT student tracking and management</li>
-              <li>User management and role assignments</li>
-              <li>System settings and configuration</li>
-            </ul>
-
-            <h5>Version:</h5>
-            <p>Version 1.0.0</p>
-
-            <h5>Developed by:</h5>
-            <p>Aaron Mark D. Valiente -- Fullstack Developer</p>
-            <p>Heaven Grace D. Salayo -- Frontend UX/UI Developer</p>
-            <p>Rashid Mendoza -- Frontend Functional Developer</p>
-            <p>John Michael E. Guevarra -- Backend Developer</p>
-            <p>Alvin A. Salva -- Quality Assurance & Documentation</p>
-
-            <h5>Contact:</h5>
-            <p>valiente_aaronmark@plp.edu.ph</p>
-          </div>
-
-        </div>
-
-        <!-- ACTION BUTTONS -->
-        <div class="settings-actions">
-          <button class="cancel-btn" onclick="cancelChanges()">Cancel</button>
-          <button class="save-btn" onclick="openConfirm()">Save</button>
-        </div>
-
       </div>
-
     </div>
-  </div>
-</div>
 
-</div>
+    <!-- CONFIRM MODAL -->
+    <div class="modal" id="confirmModal">
+      <div class="modal-content">
+        <p>Are you sure you want to save changes?</p>
 
-<!-- CONFIRM MODAL -->
-<div class="modal" id="confirmModal">
-  <div class="modal-content">
-    <p>Are you sure you want to save changes?</p>
-
-    <div class="modal-actions">
-      <button class="cancel-btn" onclick="closeConfirm()">Cancel</button>
-      <button class="confirm-btn" onclick="saveChanges()">Yes, Save</button>
+        <div class="modal-actions">
+          <button class="cancel-btn" onclick="closeConfirm()">Cancel</button>
+          <button class="confirm-btn" onclick="saveChanges()">Yes, Save</button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
+    <script>
+      const electronAPI = window.electronAPI || window.parent?.electronAPI;
+      const DEFAULT_PROFILE_IMAGE = "../../images/default_avatar.jpg";
+      let activeUser = null;
+      let profileImagePath = "";
 
+      document.querySelectorAll(".settings-menu li").forEach((item) => {
+        item.onclick = () => {
+          document
+            .querySelectorAll(".settings-menu li")
+            .forEach((i) => i.classList.remove("active"));
+          document
+            .querySelectorAll(".settings-section")
+            .forEach((s) => s.classList.remove("active"));
 
-<script>
+          item.classList.add("active");
+          const section = document.getElementById(item.dataset.section);
+          if (section) {
+            section.classList.add("active");
+          }
+        };
+      });
 
-// MENU SWITCH
-document.querySelectorAll('.settings-menu li').forEach(item => {
-  item.onclick = () => {
-    document.querySelectorAll('.settings-menu li').forEach(i=>i.classList.remove('active'));
-    document.querySelectorAll('.settings-section').forEach(s=>s.classList.remove('active'));
+      function readStoredUser() {
+        try {
+          const userStr = localStorage.getItem("user");
+          return userStr ? JSON.parse(userStr) : null;
+        } catch (error) {
+          console.error("Unable to parse local user data:", error);
+          return null;
+        }
+      }
 
-    item.classList.add('active');
-    document.getElementById(item.dataset.section).classList.add('active');
+      function writeStoredUser(nextUser) {
+        localStorage.setItem("user", JSON.stringify(nextUser));
+      }
 
-    // Hide save/cancel buttons for About section
-    const actions = document.querySelector('.settings-actions');
-    if (item.dataset.section === 'about') {
-      actions.style.display = 'none';
-    } else {
-      actions.style.display = 'flex';
-    }
-  }
-});
+      function showProfileStatus(message, isError = false) {
+        const el = document.getElementById("profileStatusMessage");
+        if (!el) return;
+        el.textContent = message || "";
+        el.classList.toggle("error", Boolean(isError));
+      }
 
-// PROGRAM CAPS + ENTER
-programInput.addEventListener("input", () => {
-  programInput.value = programInput.value.toUpperCase();
-});
+      function fillProfileForm(user) {
+        const img = document.getElementById("settingsProfileImage");
+        const userIdInput = document.getElementById("profileUserId");
+        const roleInput = document.getElementById("profileRole");
+        const nameInput = document.getElementById("profileName");
+        const emailInput = document.getElementById("profileEmail");
 
-programInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    addProgram();
-  }
-});
+        profileImagePath = String(user?.profile_image || "").trim();
+        if (img) img.src = profileImagePath || DEFAULT_PROFILE_IMAGE;
+        if (userIdInput) userIdInput.value = user?.user_id || "";
+        if (roleInput) roleInput.value = user?.role || "";
+        if (nameInput) nameInput.value = user?.name || "";
+        if (emailInput) emailInput.value = user?.email || "";
+      }
 
-// ADD PROGRAM
-function addProgram(){
-  const val = programInput.value.trim().toUpperCase();
-  if(!val) return;
+      function clearSensitiveInputs() {
+        const current = document.getElementById("profileCurrentPassword");
+        const next = document.getElementById("profileNewPassword");
+        const confirm = document.getElementById("profileConfirmPassword");
+        const del = document.getElementById("profileDeletePassword");
+        if (current) current.value = "";
+        if (next) next.value = "";
+        if (confirm) confirm.value = "";
+        if (del) del.value = "";
+      }
 
-  const li = document.createElement("li");
-  li.innerHTML = `
-    <span class="program-name" onclick="editProgram(this)">${val}</span>
-    <button class="remove-btn" onclick="this.parentElement.remove()">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-  `;
-  programList.appendChild(li);
-  programInput.value="";
-}
+      async function loadProfileFromBackend() {
+        if (!electronAPI) return;
+        activeUser = readStoredUser();
+        if (!activeUser?.id) {
+          showProfileStatus("Unable to identify current user.", true);
+          return;
+        }
 
-// EDIT PROGRAM
-function editProgram(el){
-  const input = document.createElement("input");
-  input.value = el.textContent;
-  input.classList.add("edit-input");
+        const result = await electronAPI.getProfile(activeUser.id);
+        if (!result?.success || !result.user) {
+          showProfileStatus(result?.message || "Failed to load profile.", true);
+          return;
+        }
 
-  el.replaceWith(input);
-  input.focus();
+        const mergedUser = {
+          ...activeUser,
+          ...result.user,
+          department_code:
+            activeUser.department_code || activeUser.department || "CCS",
+        };
+        activeUser = mergedUser;
+        writeStoredUser(mergedUser);
+        fillProfileForm(mergedUser);
+        showProfileStatus("");
+      }
 
-  input.oninput = ()=> input.value = input.value.toUpperCase();
-  input.onblur = ()=> saveEdit(input);
-  input.onkeypress = e => { if(e.key==="Enter") saveEdit(input); };
-}
+      async function chooseProfileImageFromSettings() {
+        if (!electronAPI || !activeUser?.id) {
+          showProfileStatus("Profile upload is unavailable.", true);
+          return;
+        }
 
-function saveEdit(input){
-  const span = document.createElement("span");
-  span.className="program-name";
-  span.textContent=input.value || "EMPTY";
-  span.onclick=()=>editProgram(span);
-  input.replaceWith(span);
-}
+        const pickerResult = await electronAPI.selectProfileImage();
+        if (!pickerResult || pickerResult.canceled || !pickerResult.success) {
+          return;
+        }
 
-// ADD DOC
-function addDoc(){
-  const val = docInput.value.trim();
-  if(!val) return;
+        showProfileStatus("Uploading profile image...");
+        const uploadResult = await electronAPI.uploadProfileImage({
+          localPath: pickerResult.localPath,
+          fileName: pickerResult.fileName,
+          mimeType: pickerResult.mimeType,
+          userId: activeUser.id,
+        });
 
-  const li=document.createElement("li");
-  li.innerHTML=`
-    <span>${val}</span>
-    <button class="remove-btn" onclick="this.parentElement.remove()">
-      <i class="fa-solid fa-xmark"></i>
-    </button>`;
-  docList.appendChild(li);
-  docInput.value="";
-}
+        if (!uploadResult?.success || !uploadResult.path) {
+          showProfileStatus(
+            uploadResult?.message || "Image upload failed.",
+            true,
+          );
+          return;
+        }
 
-// SWITCH TAB
-function switchReqTab(tab){
-  document.querySelectorAll('.req-tab-content').forEach(e=>e.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
+        profileImagePath = uploadResult.path;
+        const img = document.getElementById("settingsProfileImage");
+        if (img) img.src = profileImagePath;
+        showProfileStatus(
+          "Profile image uploaded. Click Save to apply changes.",
+        );
+      }
 
-  if(tab==='ojt'){
-    ojtTab.classList.add('active');
-    document.querySelectorAll('.tab-btn')[0].classList.add('active');
-  }else{
-    partnerTab.classList.add('active');
-    document.querySelectorAll('.tab-btn')[1].classList.add('active');
-  }
-}
+      function openConfirm() {
+        confirmModal.style.display = "flex";
+      }
 
-// FILE PREVIEW
-logoInput.onchange = e=>{
-  const file=e.target.files[0];
-  if(file){
-    fileName.textContent=file.name;
-    previewImage.src=URL.createObjectURL(file);
-    filePreview.style.display="block";
-  }
-}
+      function closeConfirm() {
+        confirmModal.style.display = "none";
+      }
 
-// ADD THESIS FIELD
-function addThesisField(){
-  const input = document.getElementById("thesisFieldInput");
-  const list = document.getElementById("thesisFieldList");
+      async function saveChanges() {
+        const activeSection = document.querySelector(
+          ".settings-section.active",
+        );
+        if (!activeSection || activeSection.id !== "profile") {
+          alert("Settings saved!");
+          closeConfirm();
+          return;
+        }
 
-  const val = input.value.trim();
-  if(!val) return;
+        if (!electronAPI || !activeUser?.id) {
+          showProfileStatus("Profile update is unavailable.", true);
+          closeConfirm();
+          return;
+        }
 
-  const li = document.createElement("li");
-  li.innerHTML = `
-    <span>${val}</span>
-    <button class="remove-btn" onclick="this.parentElement.remove()">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-  `;
+        const name = String(
+          document.getElementById("profileName")?.value || "",
+        ).trim();
+        const email = String(
+          document.getElementById("profileEmail")?.value || "",
+        )
+          .trim()
+          .toLowerCase();
+        const currentPassword = String(
+          document.getElementById("profileCurrentPassword")?.value || "",
+        );
+        const newPassword = String(
+          document.getElementById("profileNewPassword")?.value || "",
+        );
+        const confirmPassword = String(
+          document.getElementById("profileConfirmPassword")?.value || "",
+        );
 
-  list.appendChild(li);
-  input.value="";
-}
+        if (!name || !email) {
+          showProfileStatus("Name and email are required.", true);
+          closeConfirm();
+          return;
+        }
 
-// REQUIRED HOURS: WHOLE NUMBERS ONLY
-document.querySelectorAll(".required-hours-input").forEach((input) => {
-  input.addEventListener("input", () => {
-    input.value = input.value.replace(/\D/g, "");
-  });
-});
+        const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        if (!emailIsValid) {
+          showProfileStatus("Please provide a valid email address.", true);
+          closeConfirm();
+          return;
+        }
 
-// SAVE / CANCEL
-function openConfirm(){
-  confirmModal.style.display="flex";
-}
+        const wantsPasswordChange = Boolean(
+          currentPassword || newPassword || confirmPassword,
+        );
+        if (wantsPasswordChange) {
+          if (!currentPassword || !newPassword || !confirmPassword) {
+            showProfileStatus(
+              "Fill out current, new, and confirm password fields.",
+              true,
+            );
+            closeConfirm();
+            return;
+          }
+          if (newPassword.length < 8) {
+            showProfileStatus(
+              "New password must be at least 8 characters.",
+              true,
+            );
+            closeConfirm();
+            return;
+          }
+          if (newPassword !== confirmPassword) {
+            showProfileStatus(
+              "New password and confirmation do not match.",
+              true,
+            );
+            closeConfirm();
+            return;
+          }
+        }
 
-function closeConfirm(){
-  confirmModal.style.display="none";
-}
+        const result = await electronAPI.updateProfile({
+          userId: activeUser.id,
+          name,
+          email,
+          profileImagePath: profileImagePath || "",
+          currentPassword: wantsPasswordChange ? currentPassword : "",
+          newPassword: wantsPasswordChange ? newPassword : "",
+        });
 
-function saveChanges(){
-  alert("Settings saved!");
-  closeConfirm();
-}
+        if (!result?.success) {
+          showProfileStatus(
+            result?.message || "Failed to save profile changes.",
+            true,
+          );
+          closeConfirm();
+          return;
+        }
 
-function cancelChanges(){
-  location.reload();
-}
+        activeUser = {
+          ...activeUser,
+          ...(result.user || {}),
+          name,
+          email,
+          profile_image: (
+            result.user?.profile_image ||
+            profileImagePath ||
+            ""
+          ).trim(),
+        };
+        writeStoredUser(activeUser);
+        fillProfileForm(activeUser);
+        clearSensitiveInputs();
+        showProfileStatus("Profile updated successfully.");
+        closeConfirm();
+      }
 
-</script>
+      async function deleteMyProfileFromSettings() {
+        if (!electronAPI || !activeUser?.id) {
+          showProfileStatus("Delete profile is unavailable.", true);
+          return;
+        }
 
-</body>
+        const currentPassword = String(
+          document.getElementById("profileDeletePassword")?.value || "",
+        );
+        if (!currentPassword) {
+          showProfileStatus(
+            "Enter your current password to delete your profile.",
+            true,
+          );
+          return;
+        }
+
+        const confirmDelete = window.confirm(
+          "Delete your profile permanently? This cannot be undone.",
+        );
+        if (!confirmDelete) return;
+
+        const result = await electronAPI.deleteMyProfile({
+          userId: activeUser.id,
+          currentPassword,
+        });
+
+        if (!result?.success) {
+          showProfileStatus(
+            result?.message || "Failed to delete profile.",
+            true,
+          );
+          return;
+        }
+
+        await electronAPI.logout();
+        localStorage.removeItem("user");
+
+        if (window.parent && typeof window.parent.logoutUser === "function") {
+          window.parent.logoutUser();
+          return;
+        }
+
+        window.location.href = "../../login.html";
+      }
+
+      function cancelChanges() {
+        loadProfileFromBackend();
+        clearSensitiveInputs();
+        showProfileStatus("Changes reverted.");
+      }
+
+      loadProfileFromBackend();
+    </script>
+  </body>
 </html>

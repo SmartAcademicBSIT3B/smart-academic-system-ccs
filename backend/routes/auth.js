@@ -111,6 +111,16 @@ function normalizeDepartmentCode(value) {
   return code || "CCS";
 }
 
+function normalizeEmail(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ""));
+}
+
 function hashPassword(value) {
   return crypto
     .createHash("sha256")
@@ -481,30 +491,203 @@ router.patch("/profile", requireAuth, async (req, res) => {
   try {
     const userId = parseInt(req.body.userId, 10);
     const name = String(req.body.name || "").trim();
+    const email = normalizeEmail(req.body.email);
     const profileImagePath = String(req.body.profileImagePath || "").trim();
+    const currentPassword = String(req.body.currentPassword || "");
+    const newPassword = String(req.body.newPassword || "");
+    const actorId = Number.parseInt(req.user?.id, 10);
 
-    if (!userId || !name) {
+    if (!Number.isInteger(actorId) || actorId <= 0 || actorId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only update your own profile.",
+      });
+    }
+
+    if (!userId || !name || !email) {
       return res
         .status(400)
-        .json({ success: false, message: "Missing user ID or name." });
+        .json({ success: false, message: "Missing user ID, name, or email." });
     }
 
-    if (profileImagePath) {
-      await query("UPDATE users SET name = ?, profile_image = ? WHERE id = ?", [
-        name,
-        profileImagePath,
-        userId,
-      ]);
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address.",
+      });
+    }
+
+    if (newPassword && newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 8 characters long.",
+      });
+    }
+
+    if (newPassword && !currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is required to set a new password.",
+      });
+    }
+
+    const rows = await query(
+      `SELECT id, user_id, name, email, password, role, profile_image,
+              UPPER(COALESCE(department, 'CCS')) AS department
+         FROM users
+        WHERE id = ?
+        LIMIT 1`,
+      [userId],
+    );
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
+
+    const existingUser = rows[0];
+    const currentDepartment = normalizeDepartmentCode(
+      existingUser.department || req.user?.department_code,
+    );
+
+    const duplicateEmailRows = await query(
+      `SELECT id
+         FROM users
+        WHERE id <> ?
+          AND LOWER(email) = LOWER(?)
+          AND UPPER(COALESCE(department, 'CCS')) = ?
+        LIMIT 1`,
+      [userId, email, currentDepartment],
+    );
+
+    if (Array.isArray(duplicateEmailRows) && duplicateEmailRows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This email is already used by another account in your department.",
+      });
+    }
+
+    let hashedNewPassword = "";
+    if (newPassword) {
+      const hashedCurrentPassword = hashPassword(currentPassword);
+      if (hashedCurrentPassword !== String(existingUser.password || "")) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is incorrect.",
+        });
+      }
+      hashedNewPassword = hashPassword(newPassword);
+    }
+
+    const nextProfileImagePath =
+      profileImagePath || String(existingUser.profile_image || "");
+
+    if (hashedNewPassword) {
+      await query(
+        "UPDATE users SET name = ?, email = ?, profile_image = ?, password = ? WHERE id = ?",
+        [name, email, nextProfileImagePath, hashedNewPassword, userId],
+      );
     } else {
-      await query("UPDATE users SET name = ? WHERE id = ?", [name, userId]);
+      await query(
+        "UPDATE users SET name = ?, email = ?, profile_image = ? WHERE id = ?",
+        [name, email, nextProfileImagePath, userId],
+      );
     }
 
-    return res.json({ success: true });
+    if (String(existingUser.name || "") !== name) {
+      try {
+        await query(
+          `UPDATE section_assignments
+              SET professor_name = ?
+            WHERE professor_email = ?
+              AND department = ?`,
+          [name, String(existingUser.email || ""), currentDepartment],
+        );
+      } catch (sectionSyncError) {
+        const errorCode = String(sectionSyncError?.code || "");
+        if (
+          errorCode !== "ER_NO_SUCH_TABLE" &&
+          errorCode !== "ER_BAD_TABLE_ERROR"
+        ) {
+          throw sectionSyncError;
+        }
+      }
+    }
+
+    const updatedRows = await query(
+      "SELECT id, user_id, name, email, role, profile_image FROM users WHERE id = ? LIMIT 1",
+      [userId],
+    );
+
+    return res.json({ success: true, user: updatedRows[0] || null });
   } catch (error) {
     console.error("Update profile error:", error);
     return res.status(500).json({
       success: false,
       message: "An error occurred while saving profile.",
+    });
+  }
+});
+
+// ── DELETE /api/auth/profile/:userId ────────────────────────────────────────
+router.delete("/profile/:userId", requireAuth, async (req, res) => {
+  try {
+    const userId = Number.parseInt(req.params.userId, 10);
+    const currentPassword = String(req.body?.currentPassword || "");
+    const actorId = Number.parseInt(req.user?.id, 10);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid user ID." });
+    }
+
+    if (!Number.isInteger(actorId) || actorId <= 0 || actorId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own profile.",
+      });
+    }
+
+    if (!currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is required to delete your profile.",
+      });
+    }
+
+    const users = await query(
+      "SELECT id, password FROM users WHERE id = ? LIMIT 1",
+      [userId],
+    );
+
+    if (!Array.isArray(users) || users.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
+
+    const hashedCurrentPassword = hashPassword(currentPassword);
+    if (hashedCurrentPassword !== String(users[0].password || "")) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is incorrect.",
+      });
+    }
+
+    await query("DELETE FROM users WHERE id = ?", [userId]);
+
+    return res.json({
+      success: true,
+      message: "Profile deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete profile error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete profile.",
     });
   }
 });

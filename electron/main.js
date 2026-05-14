@@ -1571,18 +1571,45 @@ ipcMain.handle(
 
 ipcMain.handle(
   "updateProfile",
-  async (event, { userId, name, profileImagePath }) => {
+  async (
+    event,
+    { userId, name, email, profileImagePath, currentPassword, newPassword },
+  ) => {
     try {
       return await api.patch("/auth/profile", {
         userId,
         name,
+        email,
         profileImagePath,
+        currentPassword,
+        newPassword,
       });
     } catch (error) {
       console.error("Update profile error:", error);
       return {
         success: false,
         message: "An error occurred while saving profile.",
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  "deleteMyProfile",
+  async (event, { userId, currentPassword }) => {
+    try {
+      const result = await api.del(`/auth/profile/${userId}`, {
+        currentPassword,
+      });
+      if (result?.success) {
+        api.clearToken();
+      }
+      return result;
+    } catch (error) {
+      console.error("Delete my profile error:", error);
+      return {
+        success: false,
+        message: "Failed to delete profile.",
       };
     }
   },

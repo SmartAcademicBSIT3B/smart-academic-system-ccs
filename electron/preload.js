@@ -95,6 +95,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("ensureDepartmentDocumentsDirectory", departmentCode),
   updateProfile: (profileData) =>
     ipcRenderer.invoke("updateProfile", profileData),
+  deleteMyProfile: (payload) => ipcRenderer.invoke("deleteMyProfile", payload),
   logout: () => ipcRenderer.invoke("logout"),
   sendOTP: (email) => ipcRenderer.invoke("sendOTP", email),
   verifyOTP: (email, otp) => ipcRenderer.invoke("verifyOTP", email, otp),
