@@ -548,7 +548,7 @@
                 <i data-lucide="file-up" class="drop-zone-icon"></i>
                 <p class="drop-zone-text">Drag &amp; drop PDF here</p>
                 <p class="drop-zone-sub">
-                  or <span class="drop-zone-browse">browse</span>
+                  or <span class="drop-zone-browse">browse</span> (max 50 MB)
                 </p>
                 <p class="drop-zone-filename" id="drop-zone-filename"></p>
               </div>
@@ -650,11 +650,68 @@
                 placeholder="e.g. Machine Learning, AI, etc."
               />
             </div>
+
+            <div class="input-group archive-link-manager">
+              <div class="archive-link-header-row">
+                <label>LINKED OJT STUDENTS</label>
+                <button
+                  class="choice-btn archive-link-manage-btn"
+                  id="manage-archive-links-btn"
+                  type="button"
+                >
+                  Manage Links
+                </button>
+              </div>
+              <p class="archive-link-summary" id="archive-link-summary">
+                Save the archive first to manage manual OJT links.
+              </p>
+            </div>
           </div>
           <div class="form-actions">
             <button class="cancel-btn" id="close-modal">Cancel</button>
             <button class="save-btn" id="save-archive-btn" type="button">
               Save
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="archive-ojt-links-modal" class="modal" style="display: none">
+        <div class="modal-content archive-link-modal-content">
+          <div class="form-header">
+            <h4>MANAGE LINKED OJT STUDENTS</h4>
+          </div>
+          <div class="form-body archive-link-modal-body">
+            <div class="input-group">
+              <label>SEARCH STUDENT</label>
+              <input
+                id="archive-link-search"
+                type="text"
+                placeholder="Type student ID or name"
+              />
+            </div>
+            <p class="archive-link-context" id="archive-link-context"></p>
+            <div class="archive-link-table-wrap">
+              <table class="archive-link-table">
+                <thead>
+                  <tr>
+                    <th>Link</th>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Section</th>
+                    <th>Source</th>
+                  </tr>
+                </thead>
+                <tbody id="archive-link-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="cancel-btn" id="archive-link-cancel" type="button">
+              Cancel
+            </button>
+            <button class="save-btn" id="archive-link-save" type="button">
+              Save Links
             </button>
           </div>
         </div>
@@ -769,6 +826,9 @@
       const MANAGE_ARCHIVES_PENDING_SEARCH_KEY =
         "sas.manageArchives.pendingSearch";
       const DEFAULT_DEPARTMENT_CODE = "CCS";
+      let ARCHIVE_UPLOAD_MAX_SIZE_MB = 50;
+      let ARCHIVE_UPLOAD_MAX_SIZE_BYTES = 50 * 1024 * 1024;
+      let DEFAULT_NEW_ARCHIVE_STATUS = "Approved";
       let ACTIVE_DEPARTMENT_CODE = DEFAULT_DEPARTMENT_CODE;
 
       function resolveActiveDepartmentCode() {
@@ -786,6 +846,38 @@
       }
 
       ACTIVE_DEPARTMENT_CODE = resolveActiveDepartmentCode();
+
+      async function loadArchiveRuntimeSettings() {
+        const api = getElectronAPI();
+        if (!api || typeof api.getAppSettings !== "function") return;
+
+        try {
+          const result = await api.getAppSettings();
+          if (!result?.success || !result.settings) return;
+
+          const thesis = result.settings.thesisArchives || {};
+          const maxFileSizeMB = Number.parseInt(thesis.maxFileSizeMB, 10);
+          if (Number.isInteger(maxFileSizeMB) && maxFileSizeMB >= 1) {
+            ARCHIVE_UPLOAD_MAX_SIZE_MB = Math.min(50, maxFileSizeMB);
+            ARCHIVE_UPLOAD_MAX_SIZE_BYTES =
+              ARCHIVE_UPLOAD_MAX_SIZE_MB * 1024 * 1024;
+          }
+
+          const defaultStatus = String(thesis.defaultArchiveStatus || "")
+            .trim()
+            .toLowerCase();
+          DEFAULT_NEW_ARCHIVE_STATUS =
+            defaultStatus === "pending"
+              ? "Pending"
+              : defaultStatus === "rejected"
+                ? "Rejected"
+                : "Approved";
+        } catch (_error) {
+          // Keep built-in defaults when settings are unavailable.
+        }
+      }
+
+      loadArchiveRuntimeSettings();
 
       if (typeof window.loadArchiveDropdownOptions === "function") {
         window.loadArchiveDropdownOptions();
@@ -1245,6 +1337,28 @@
       const keywordsExpandedCancelBtn = document.getElementById(
         "keywords-expanded-cancel",
       );
+      const manageArchiveLinksBtn = document.getElementById(
+        "manage-archive-links-btn",
+      );
+      const archiveLinkSummaryEl = document.getElementById(
+        "archive-link-summary",
+      );
+      const archiveLinkModal = document.getElementById(
+        "archive-ojt-links-modal",
+      );
+      const archiveLinkSearchEl = document.getElementById(
+        "archive-link-search",
+      );
+      const archiveLinkContextEl = document.getElementById(
+        "archive-link-context",
+      );
+      const archiveLinkTableBody = document.getElementById(
+        "archive-link-table-body",
+      );
+      const archiveLinkCancelBtn = document.getElementById(
+        "archive-link-cancel",
+      );
+      const archiveLinkSaveBtn = document.getElementById("archive-link-save");
 
       let currentKeywordsRow = null;
       let pendingRequiredFieldFocus = null;
@@ -1253,6 +1367,14 @@
       let pendingDeleteRows = null;
       let pendingDownloadRows = [];
       let _activeViewModalRow = null;
+      let archiveLinkState = {
+        archiveId: null,
+        archiveTitle: "",
+        archiveSection: "",
+        originalLinkedIds: new Set(),
+        selectedLinkedIds: new Set(),
+        students: [],
+      };
 
       const titleEl = document.getElementById("archive-title");
       const sectionEl = document.getElementById("archive-section");
@@ -1337,6 +1459,7 @@
           fileUploadEl.disabled = isEditMode() ? true : !enabled;
         }
         updateUploadInteractivity();
+        updateArchiveLinkManageState();
         updateRequiredTextIndicators();
       }
 
@@ -1429,6 +1552,7 @@
         fileUploadEl.value = "";
         renderEditModeFileInfo(row);
         updateSectionDependentFieldsState();
+        updateArchiveLinkManageState();
         updateRequiredTextIndicators();
         closeModal(selectModeModal);
         openModal(archiveModal);
@@ -1474,6 +1598,259 @@
         showArchiveAlert("Duplicate Title", message);
       }
 
+      function isArchiveFileSizeValid(file) {
+        if (!file) return true;
+        const fileSize = Number(file.size || 0);
+        if (fileSize <= ARCHIVE_UPLOAD_MAX_SIZE_BYTES) return true;
+
+        const fileName =
+          String(file.name || "Selected file").trim() || "Selected file";
+        showArchiveAlert(
+          "File Too Large",
+          `${fileName} exceeds the ${ARCHIVE_UPLOAD_MAX_SIZE_MB} MB upload limit.`,
+        );
+        return false;
+      }
+
+      function getEditingArchiveId() {
+        if (!editingRow) return null;
+        const archiveId = Number.parseInt(editingRow.dataset.id, 10);
+        if (!Number.isInteger(archiveId) || archiveId <= 0) return null;
+        return archiveId;
+      }
+
+      function getLinkedStudentIdsFromRow(row) {
+        const raw = String(row?.dataset?.linkedStudentIds || "").trim();
+        if (!raw) return [];
+        return raw
+          .split(",")
+          .map((value) => String(value || "").trim())
+          .filter(Boolean);
+      }
+
+      function updateArchiveLinkSummaryFromRow(row) {
+        if (!archiveLinkSummaryEl) return;
+        if (!row) {
+          archiveLinkSummaryEl.textContent =
+            "Save the archive first to manage manual OJT links.";
+          return;
+        }
+
+        const linkedCount = getLinkedStudentIdsFromRow(row).length;
+        const section = String(row.dataset.section || "").trim();
+        const scopeText = section
+          ? `Section ${section}, ${ACTIVE_DEPARTMENT_CODE}`
+          : ACTIVE_DEPARTMENT_CODE;
+
+        if (linkedCount === 0) {
+          archiveLinkSummaryEl.textContent = `No linked OJT students yet. Eligible students are restricted to ${scopeText}.`;
+          return;
+        }
+
+        archiveLinkSummaryEl.textContent = `${linkedCount} linked OJT student${linkedCount === 1 ? "" : "s"}. Eligible students are restricted to ${scopeText}.`;
+      }
+
+      function updateArchiveLinkManageState() {
+        const canManage = Boolean(getEditingArchiveId());
+        if (manageArchiveLinksBtn) {
+          manageArchiveLinksBtn.disabled = !canManage;
+        }
+        updateArchiveLinkSummaryFromRow(editingRow);
+      }
+
+      function renderArchiveLinkTableRows() {
+        if (!archiveLinkTableBody) return;
+
+        const queryText = String(archiveLinkSearchEl?.value || "")
+          .trim()
+          .toLowerCase();
+        const students = Array.isArray(archiveLinkState.students)
+          ? archiveLinkState.students
+          : [];
+
+        const filtered = students.filter((student) => {
+          if (!queryText) return true;
+          const haystack =
+            `${String(student.student_id || "")} ${String(student.name || "")}`.toLowerCase();
+          return haystack.includes(queryText);
+        });
+
+        if (!filtered.length) {
+          archiveLinkTableBody.innerHTML = `
+            <tr>
+              <td colspan="5" class="archive-link-empty">No students found for this archive scope.</td>
+            </tr>`;
+          return;
+        }
+
+        archiveLinkTableBody.innerHTML = filtered
+          .map((student) => {
+            const studentId = Number.parseInt(student.id, 10);
+            const checked = archiveLinkState.selectedLinkedIds.has(studentId)
+              ? "checked"
+              : "";
+            const linkedBy = String(student.linked_by || "").trim();
+            const sourceLabel = linkedBy
+              ? linkedBy === "auto-match"
+                ? "Auto"
+                : "Manual"
+              : "-";
+
+            return `
+              <tr data-student-id="${studentId}">
+                <td><input type="checkbox" class="archive-link-checkbox" ${checked} /></td>
+                <td>${escapeAttr(student.student_id || "-")}</td>
+                <td>${escapeAttr(student.name || "-")}</td>
+                <td>${escapeAttr(student.section || "-")}</td>
+                <td>${escapeAttr(sourceLabel)}</td>
+              </tr>`;
+          })
+          .join("");
+      }
+
+      async function loadArchiveLinkCandidates() {
+        const archiveId = getEditingArchiveId();
+        const electronAPI = getElectronAPI();
+
+        if (!archiveId) {
+          showArchiveAlert(
+            "Save Required",
+            "Please save this archive first before managing linked OJT students.",
+          );
+          return false;
+        }
+
+        if (
+          !electronAPI ||
+          typeof electronAPI.getArchiveOjtLinks !== "function"
+        ) {
+          showArchiveAlert(
+            "API Error",
+            "Archive link API is unavailable. Please reload the app and try again.",
+          );
+          return false;
+        }
+
+        const result = await electronAPI.getArchiveOjtLinks(archiveId);
+        if (!result || !result.success) {
+          showArchiveAlert(
+            "Load Failed",
+            result?.message || "Failed to load OJT students for this archive.",
+          );
+          return false;
+        }
+
+        const linkedIds = (
+          Array.isArray(result.students) ? result.students : []
+        )
+          .filter((student) => Boolean(student.is_linked))
+          .map((student) => Number.parseInt(student.id, 10))
+          .filter((id) => Number.isInteger(id) && id > 0);
+
+        archiveLinkState = {
+          archiveId,
+          archiveTitle: String(result.archive?.title || "").trim(),
+          archiveSection: String(result.archive?.section || "").trim(),
+          originalLinkedIds: new Set(linkedIds),
+          selectedLinkedIds: new Set(linkedIds),
+          students: Array.isArray(result.students) ? result.students : [],
+        };
+
+        if (archiveLinkContextEl) {
+          const title = archiveLinkState.archiveTitle || "Selected archive";
+          const section = archiveLinkState.archiveSection || "No section";
+          archiveLinkContextEl.textContent = `${title} | ${ACTIVE_DEPARTMENT_CODE} | ${section}`;
+        }
+
+        if (archiveLinkSearchEl) {
+          archiveLinkSearchEl.value = "";
+        }
+
+        renderArchiveLinkTableRows();
+        return true;
+      }
+
+      async function saveArchiveLinks() {
+        const electronAPI = getElectronAPI();
+        if (
+          !electronAPI ||
+          typeof electronAPI.createArchiveOjtLink !== "function" ||
+          typeof electronAPI.deleteArchiveOjtLink !== "function"
+        ) {
+          showArchiveAlert("API Error", "Archive link API is unavailable.");
+          return;
+        }
+
+        const original = archiveLinkState.originalLinkedIds;
+        const selected = archiveLinkState.selectedLinkedIds;
+        const toCreate = [...selected].filter((id) => !original.has(id));
+        const toDelete = [...original].filter((id) => !selected.has(id));
+
+        if (!toCreate.length && !toDelete.length) {
+          closeModal(archiveLinkModal);
+          return;
+        }
+
+        archiveLinkSaveBtn.disabled = true;
+        let createErrors = 0;
+        let deleteErrors = 0;
+
+        for (const studentId of toCreate) {
+          try {
+            const createResult = await electronAPI.createArchiveOjtLink({
+              archive_id: archiveLinkState.archiveId,
+              ojt_student_id: studentId,
+            });
+            if (!createResult || !createResult.success) {
+              createErrors += 1;
+            }
+          } catch (_error) {
+            createErrors += 1;
+          }
+        }
+
+        for (const studentId of toDelete) {
+          try {
+            const deleteResult = await electronAPI.deleteArchiveOjtLink(
+              archiveLinkState.archiveId,
+              studentId,
+            );
+            if (!deleteResult || !deleteResult.success) {
+              deleteErrors += 1;
+            }
+          } catch (_error) {
+            deleteErrors += 1;
+          }
+        }
+
+        archiveLinkSaveBtn.disabled = false;
+
+        const refreshed = await loadArchiveLinkCandidates();
+        if (!refreshed) {
+          return;
+        }
+
+        if (editingRow) {
+          const linkedIds = [...archiveLinkState.selectedLinkedIds].sort(
+            (a, b) => a - b,
+          );
+          editingRow.dataset.linkedStudentIds = linkedIds.join(",");
+          updateArchiveLinkSummaryFromRow(editingRow);
+        }
+
+        if (createErrors || deleteErrors) {
+          showToast(
+            `Links saved with issues (${createErrors + deleteErrors} failed request${createErrors + deleteErrors === 1 ? "" : "s"}).`,
+            "error",
+            4200,
+          );
+        } else {
+          showToast("OJT links updated successfully.", "success", 3000);
+        }
+
+        closeModal(archiveLinkModal);
+      }
+
       function closeArchiveAlertModal() {
         closeModal(archiveAlertModal);
       }
@@ -1517,7 +1894,7 @@
       }
 
       function statusSelectMarkup(value) {
-        const safe = String(value || "Approved");
+        const safe = String(value || DEFAULT_NEW_ARCHIVE_STATUS);
         return `<select class="bulk-field-status"><option ${safe === "Pending" ? "selected" : ""}>Pending</option><option ${safe === "Approved" ? "selected" : ""}>Approved</option><option ${safe === "Rejected" ? "selected" : ""}>Rejected</option></select>`;
       }
 
@@ -1675,6 +2052,12 @@
           return;
         }
 
+        const oversized = list.find((file) => !isArchiveFileSizeValid(file));
+        if (oversized) {
+          fileUploadEl.value = "";
+          return;
+        }
+
         if (list.length === 1) {
           setDropZoneFile(list[0]);
           return;
@@ -1691,7 +2074,7 @@
           status:
             statusEl.value && statusEl.selectedIndex > 0
               ? statusEl.value
-              : "Approved",
+              : DEFAULT_NEW_ARCHIVE_STATUS,
         };
 
         try {
@@ -1738,7 +2121,7 @@
             professorEl.value = opt.value;
           }
 
-          statusEl.value = "Approved";
+          statusEl.value = DEFAULT_NEW_ARCHIVE_STATUS;
           typeEl.value = data.type;
           updateRequiredTextIndicators();
 
@@ -1765,6 +2148,9 @@
           !file.name.toLowerCase().endsWith(".pdf")
         ) {
           alert("Please select a PDF file.");
+          return;
+        }
+        if (!isArchiveFileSizeValid(file)) {
           return;
         }
         const dt = new DataTransfer();
@@ -2252,7 +2638,7 @@
         sectionEl.selectedIndex = 0;
         datePublishedEl.value = "";
         professorEl.selectedIndex = 0;
-        statusEl.selectedIndex = 0;
+        setSelectToValue(statusEl, DEFAULT_NEW_ARCHIVE_STATUS);
         typeEl.selectedIndex = 0;
         a1El.value = "";
         a2El.value = "";
@@ -2261,6 +2647,7 @@
         fileUploadEl.value = "";
         dropZoneFilename.textContent = "";
         updateSectionDependentFieldsState();
+        updateArchiveLinkManageState();
         updateRequiredTextIndicators();
       }
 
@@ -2457,6 +2844,8 @@
         tr.dataset.localFilePath =
           data.local_file_path || data.localFilePath || "";
         tr.dataset.createdAt = data.created_at || data.createdAt || "";
+        tr.dataset.linkedStudentIds =
+          data.linked_student_ids || data.linkedStudentIds || "";
 
         tr.innerHTML = `
           <td class="col-check"><input type="checkbox" class="archive-checkbox"></td>
@@ -2675,7 +3064,7 @@
           const status =
             statusEl.value && statusEl.selectedIndex > 0
               ? statusEl.value
-              : "Pending";
+              : DEFAULT_NEW_ARCHIVE_STATUS;
           const type =
             typeEl.value && typeEl.selectedIndex > 0 ? typeEl.value : "Thesis";
           const normalizedA1 = normalizeAuthorName(a1El.value);
@@ -2706,6 +3095,14 @@
               ? fileUploadEl.files[0]
               : null;
           let fileContentBase64 = "";
+
+          if (
+            !editingRow &&
+            selectedFile &&
+            !isArchiveFileSizeValid(selectedFile)
+          ) {
+            return;
+          }
 
           setSaving(true);
           try {
@@ -2856,6 +3253,45 @@
             setSaving(false);
           }
         });
+
+      manageArchiveLinksBtn.addEventListener("click", async () => {
+        const loaded = await loadArchiveLinkCandidates();
+        if (!loaded) return;
+        openModal(archiveLinkModal);
+      });
+
+      archiveLinkCancelBtn.addEventListener("click", () => {
+        closeModal(archiveLinkModal);
+      });
+
+      archiveLinkSaveBtn.addEventListener("click", async () => {
+        await saveArchiveLinks();
+      });
+
+      archiveLinkSearchEl.addEventListener("input", () => {
+        renderArchiveLinkTableRows();
+      });
+
+      archiveLinkTableBody.addEventListener("change", (event) => {
+        const checkbox = event.target.closest(".archive-link-checkbox");
+        if (!checkbox) return;
+
+        const row = checkbox.closest("tr");
+        const studentId = Number.parseInt(row?.dataset?.studentId, 10);
+        if (!Number.isInteger(studentId) || studentId <= 0) return;
+
+        if (checkbox.checked) {
+          archiveLinkState.selectedLinkedIds.add(studentId);
+        } else {
+          archiveLinkState.selectedLinkedIds.delete(studentId);
+        }
+      });
+
+      archiveLinkModal.addEventListener("click", (event) => {
+        if (event.target === archiveLinkModal) {
+          closeModal(archiveLinkModal);
+        }
+      });
 
       // ── Archive action menu button handlers ───────────────────────────
       // All five handlers read the active row from _activeActionRow (set when
@@ -3013,7 +3449,7 @@
       });
 
       // Backdrop click closes modals
-      [selectModeModal, archiveModal].forEach((m) => {
+      [selectModeModal, archiveModal, archiveLinkModal].forEach((m) => {
         m.addEventListener("click", (e) => {
           if (e.target === m) closeModal(m);
         });
@@ -3040,6 +3476,7 @@
         closeArchiveActionMenu();
         closeModal(selectModeModal);
         closeModal(archiveModal);
+        closeModal(archiveLinkModal);
         closeModal(document.getElementById("view-archive-modal"));
         closeDeleteConfirmModal();
         closeBulkDownloadConfirmModal();

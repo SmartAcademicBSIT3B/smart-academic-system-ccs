@@ -95,6 +95,48 @@
     });
   }
 
+  function toHeaderImageUrl(pathValue) {
+    const raw = String(pathValue || "").trim();
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw)) return raw;
+    if (/^[a-zA-Z]:\\/.test(raw)) {
+      return `file:///${raw.replace(/\\/g, "/")}`;
+    }
+    if (raw.startsWith("/")) return `file://${raw}`;
+    return raw;
+  }
+
+  async function resolveHeaderImageDataUrl() {
+    const defaultHeaderUrl = new URL(
+      "../../images/header-template.png",
+      window.location.href,
+    ).href;
+    let candidateUrl = defaultHeaderUrl;
+
+    try {
+      const api = window.electronAPI || window.parent?.electronAPI;
+      if (api?.getAppSettings) {
+        const settingsResult = await api.getAppSettings();
+        if (settingsResult?.success && settingsResult.settings) {
+          const selectedPath = String(
+            settingsResult.settings.selectedPdfReportHeaderPath || "",
+          ).trim();
+          if (selectedPath) {
+            candidateUrl = toHeaderImageUrl(selectedPath) || defaultHeaderUrl;
+          }
+        }
+      }
+    } catch (_error) {
+      candidateUrl = defaultHeaderUrl;
+    }
+
+    try {
+      return await loadImageAsDataUrl(candidateUrl);
+    } catch (_error) {
+      return await loadImageAsDataUrl(defaultHeaderUrl);
+    }
+  }
+
   function escapeHtml(value) {
     return String(value || "")
       .replace(/&/g, "&amp;")
@@ -232,11 +274,7 @@
       compress: true,
     });
 
-    const headerImageUrl = new URL(
-      "../../images/header-template.png",
-      window.location.href,
-    ).href;
-    const headerImageDataUrl = await loadImageAsDataUrl(headerImageUrl);
+    const headerImageDataUrl = await resolveHeaderImageDataUrl();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const marginX = 36;

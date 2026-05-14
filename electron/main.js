@@ -300,7 +300,17 @@ const DEFAULT_APP_SETTINGS = {
     department_code: "CCS",
     logo_url: "",
   },
+  thesisArchives: {
+    acceptedFileType: "PDF Only",
+    maxFileSizeMB: 50,
+    submissionAttempts: 3,
+    autoArchiveAfterDays: 30,
+    defaultArchiveStatus: "Approved",
+  },
   localDocumentsPath: "",
+  gdriveDocumentsBasePath: "CTA Files/Documents",
+  pdfReportHeaders: [],
+  selectedPdfReportHeaderPath: "",
   setup: {
     completed: false,
     completedAt: "",
@@ -333,9 +343,95 @@ function normalizeDepartmentSetting(department) {
   };
 }
 
+function normalizeDriveBasePath(value) {
+  const raw = String(value || "")
+    .replace(/\\/g, "/")
+    .split("/")
+    .map((part) => String(part || "").trim())
+    .filter(Boolean)
+    .map((part) => part.replace(/[\\:*?"<>|]+/g, "-"));
+
+  if (raw.length === 0) return "CTA Files/Documents";
+  return raw.join("/");
+}
+
+function normalizePdfReportHeaders(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      const pathValue = String(item?.path || "").trim();
+      if (!pathValue) return null;
+
+      const name = String(item?.name || path.basename(pathValue) || "Header")
+        .trim()
+        .slice(0, 120);
+
+      return {
+        id: String(
+          item?.id || `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        ).trim(),
+        name: name || "Header",
+        path: pathValue,
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeArchiveStatusLabel(value) {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (raw === "approved") return "Approved";
+  if (raw === "rejected") return "Rejected";
+  return "Pending";
+}
+
+function normalizeThesisArchiveSettings(value) {
+  const raw = value && typeof value === "object" ? value : {};
+  const defaults = DEFAULT_APP_SETTINGS.thesisArchives;
+
+  const acceptedFileType =
+    String(raw.acceptedFileType || defaults.acceptedFileType).trim() ||
+    defaults.acceptedFileType;
+
+  const maxFileSizeMB = Number.parseInt(raw.maxFileSizeMB, 10);
+  const submissionAttempts = Number.parseInt(raw.submissionAttempts, 10);
+  const autoArchiveAfterDays = Number.parseInt(raw.autoArchiveAfterDays, 10);
+
+  return {
+    acceptedFileType,
+    maxFileSizeMB:
+      Number.isInteger(maxFileSizeMB) &&
+      maxFileSizeMB >= 1 &&
+      maxFileSizeMB <= 50
+        ? maxFileSizeMB
+        : defaults.maxFileSizeMB,
+    submissionAttempts:
+      Number.isInteger(submissionAttempts) && submissionAttempts >= 1
+        ? submissionAttempts
+        : defaults.submissionAttempts,
+    autoArchiveAfterDays:
+      Number.isInteger(autoArchiveAfterDays) && autoArchiveAfterDays >= 1
+        ? autoArchiveAfterDays
+        : defaults.autoArchiveAfterDays,
+    defaultArchiveStatus: normalizeArchiveStatusLabel(
+      raw.defaultArchiveStatus || defaults.defaultArchiveStatus,
+    ),
+  };
+}
+
 function normalizeSettingsData(value) {
   const raw = value && typeof value === "object" ? value : {};
+  const thesisArchives = normalizeThesisArchiveSettings(raw.thesisArchives);
   const localDocumentsPath = String(raw.localDocumentsPath || "").trim();
+  const gdriveDocumentsBasePath = normalizeDriveBasePath(
+    raw.gdriveDocumentsBasePath,
+  );
+  const pdfReportHeaders = normalizePdfReportHeaders(raw.pdfReportHeaders);
+  const selectedPdfReportHeaderPath = String(
+    raw.selectedPdfReportHeaderPath || "",
+  ).trim();
   const rawSetup = raw.setup && typeof raw.setup === "object" ? raw.setup : {};
 
   const completed = rawSetup.completed === true;
@@ -346,7 +442,11 @@ function normalizeSettingsData(value) {
 
   return {
     department: normalizeDepartmentSetting(raw.department),
+    thesisArchives,
     localDocumentsPath,
+    gdriveDocumentsBasePath,
+    pdfReportHeaders,
+    selectedPdfReportHeaderPath,
     setup: {
       completed,
       completedAt,
@@ -441,6 +541,22 @@ async function saveAppSettingsPatch(settingsPatch = {}) {
     patch,
     "setup",
   );
+  const patchIncludesDriveBasePath = Object.prototype.hasOwnProperty.call(
+    patch,
+    "gdriveDocumentsBasePath",
+  );
+  const patchIncludesPdfHeaders = Object.prototype.hasOwnProperty.call(
+    patch,
+    "pdfReportHeaders",
+  );
+  const patchIncludesThesisArchives = Object.prototype.hasOwnProperty.call(
+    patch,
+    "thesisArchives",
+  );
+  const patchIncludesSelectedPdfHeader = Object.prototype.hasOwnProperty.call(
+    patch,
+    "selectedPdfReportHeaderPath",
+  );
 
   const next = {
     ...current,
@@ -455,6 +571,35 @@ async function saveAppSettingsPatch(settingsPatch = {}) {
               ? patch.department
               : {}),
           }),
+        }
+      : {}),
+    ...(patchIncludesThesisArchives
+      ? {
+          thesisArchives: normalizeThesisArchiveSettings({
+            ...current.thesisArchives,
+            ...(patch.thesisArchives && typeof patch.thesisArchives === "object"
+              ? patch.thesisArchives
+              : {}),
+          }),
+        }
+      : {}),
+    ...(patchIncludesDriveBasePath
+      ? {
+          gdriveDocumentsBasePath: normalizeDriveBasePath(
+            patch.gdriveDocumentsBasePath,
+          ),
+        }
+      : {}),
+    ...(patchIncludesPdfHeaders
+      ? {
+          pdfReportHeaders: normalizePdfReportHeaders(patch.pdfReportHeaders),
+        }
+      : {}),
+    ...(patchIncludesSelectedPdfHeader
+      ? {
+          selectedPdfReportHeaderPath: String(
+            patch.selectedPdfReportHeaderPath || "",
+          ).trim(),
         }
       : {}),
     ...(patchIncludesSetup
@@ -500,6 +645,16 @@ async function saveAppSettingsPatch(settingsPatch = {}) {
       : {}),
   };
 
+  if (
+    next.selectedPdfReportHeaderPath &&
+    !next.pdfReportHeaders.some(
+      (header) =>
+        String(header?.path || "").trim() === next.selectedPdfReportHeaderPath,
+    )
+  ) {
+    next.selectedPdfReportHeaderPath = "";
+  }
+
   if (patchIncludesDepartment && !patchIncludesLocalPath) {
     next.localDocumentsPath = await ensureDepartmentDocumentsDirectory(
       next?.department?.department_code,
@@ -513,6 +668,16 @@ async function saveAppSettingsPatch(settingsPatch = {}) {
   }
 
   return writeAppSettings(next);
+}
+
+async function getConfiguredDriveBasePath() {
+  const settings = await loadAppSettings();
+  return normalizeDriveBasePath(settings?.gdriveDocumentsBasePath);
+}
+
+async function getConfiguredThesisArchiveSettings() {
+  const settings = await loadAppSettings();
+  return normalizeThesisArchiveSettings(settings?.thesisArchives);
 }
 
 function getDefaultLocalDocumentsDirectory() {
@@ -1461,6 +1626,49 @@ ipcMain.handle("selectProfileImage", async () => {
   }
 });
 
+ipcMain.handle("selectPdfReportHeaderImage", async () => {
+  try {
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    const { canceled, filePaths } = await dialog.showOpenDialog(focusedWindow, {
+      title: "Select report header image",
+      properties: ["openFile"],
+      filters: [{ name: "Images", extensions: ["jpg", "jpeg", "png"] }],
+    });
+
+    if (canceled || !Array.isArray(filePaths) || filePaths.length === 0) {
+      return { success: false, canceled: true };
+    }
+
+    const selectedPath = String(filePaths[0] || "").trim();
+    const ext = path.extname(selectedPath).toLowerCase();
+    const safeExt = [".jpg", ".jpeg", ".png"].includes(ext) ? ext : ".png";
+    const settingsPath = getAppSettingsPath();
+    const headersDir = path.join(path.dirname(settingsPath), "report-headers");
+
+    await fs.mkdir(headersDir, { recursive: true });
+
+    const id = `${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+    const fileName = `report_header_${id}${safeExt}`;
+    const destinationPath = path.join(headersDir, fileName);
+
+    await fs.copyFile(selectedPath, destinationPath);
+
+    return {
+      success: true,
+      header: {
+        id,
+        name: path.basename(selectedPath),
+        path: destinationPath,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to select report header image.",
+    };
+  }
+});
+
 ipcMain.handle("selectExternalPartnerLogo", async () => {
   try {
     const focusedWindow = BrowserWindow.getFocusedWindow();
@@ -1617,6 +1825,15 @@ ipcMain.handle(
 
 ipcMain.handle("createArchive", async (event, payload = {}) => {
   try {
+    const thesisArchiveSettings = await getConfiguredThesisArchiveSettings();
+    const maxUploadBytes =
+      Math.max(
+        1,
+        Number.parseInt(thesisArchiveSettings.maxFileSizeMB, 10) || 50,
+      ) *
+      1024 *
+      1024;
+
     const {
       localSourcePath,
       fileName: uploadedFileName,
@@ -1644,6 +1861,14 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
       };
     }
 
+    if (fileBuffer.length > maxUploadBytes) {
+      return {
+        success: false,
+        code: "FILE_TOO_LARGE",
+        message: `File exceeds the configured maximum upload size of ${thesisArchiveSettings.maxFileSizeMB} MB.`,
+      };
+    }
+
     let persistedLocalFilePath = "";
     try {
       const configuredDocumentsDir = await getConfiguredDocumentsDirectory();
@@ -1664,8 +1889,14 @@ ipcMain.handle("createArchive", async (event, payload = {}) => {
       persistedLocalFilePath = resolveLocalPath(localSourcePath);
     }
 
+    const driveBasePath = await getConfiguredDriveBasePath();
+
     const archiveFields = {
       ...fields,
+      status:
+        String(fields?.status || "").trim() ||
+        thesisArchiveSettings.defaultArchiveStatus,
+      drive_base_path: driveBasePath,
       ...(persistedLocalFilePath
         ? { local_file_path: persistedLocalFilePath }
         : {}),
@@ -1695,6 +1926,46 @@ ipcMain.handle("getArchives", async () => {
     return {
       success: false,
       message: error.message || "Failed to fetch archives.",
+    };
+  }
+});
+
+ipcMain.handle("getArchiveOjtLinks", async (event, archiveId) => {
+  try {
+    return await api.get(`/archives/${archiveId}/ojt-links`);
+  } catch (error) {
+    console.error("getArchiveOjtLinks error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to fetch archive OJT links.",
+    };
+  }
+});
+
+ipcMain.handle("createArchiveOjtLink", async (event, payload = {}) => {
+  try {
+    const archiveId = Number.parseInt(payload.archive_id, 10);
+    const studentId = Number.parseInt(payload.ojt_student_id, 10);
+    return await api.post(`/archives/${archiveId}/ojt-links`, {
+      ojt_student_id: studentId,
+    });
+  } catch (error) {
+    console.error("createArchiveOjtLink error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to create archive OJT link.",
+    };
+  }
+});
+
+ipcMain.handle("deleteArchiveOjtLink", async (event, archiveId, studentId) => {
+  try {
+    return await api.del(`/archives/${archiveId}/ojt-links/${studentId}`);
+  } catch (error) {
+    console.error("deleteArchiveOjtLink error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to delete archive OJT link.",
     };
   }
 });

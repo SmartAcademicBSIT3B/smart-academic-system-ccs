@@ -1049,6 +1049,101 @@ body {
   color: var(--text-secondary);
 }
 
+.archive-link-manager {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: rgba(18, 21, 26, 0.55);
+}
+
+.archive-link-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.archive-link-manage-btn {
+  width: auto;
+  min-width: 150px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.archive-link-manage-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.archive-link-summary {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.archive-link-modal-content {
+  max-width: 980px;
+}
+
+.archive-link-modal-body {
+  gap: 14px;
+}
+
+.archive-link-context {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: -4px;
+}
+
+.archive-link-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: auto;
+  max-height: 45vh;
+}
+
+.archive-link-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+}
+
+.archive-link-table th,
+.archive-link-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 9px 10px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.archive-link-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #20252d;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+.archive-link-table td:first-child,
+.archive-link-table th:first-child {
+  width: 74px;
+  text-align: center;
+}
+
+.archive-link-table tr:last-child td {
+  border-bottom: none;
+}
+
+.archive-link-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 20px 12px;
+}
+
 /* =============================================
    ARCHIVES TABLE — new column layout styles
    ============================================= */

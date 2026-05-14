@@ -17,6 +17,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDepartments: () => ipcRenderer.invoke("getDepartments"),
   getProfessors: () => ipcRenderer.invoke("getProfessors"),
   selectProfileImage: () => ipcRenderer.invoke("selectProfileImage"),
+  selectPdfReportHeaderImage: async () => {
+    try {
+      return await ipcRenderer.invoke("selectPdfReportHeaderImage");
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          message:
+            "Header image picker is unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
   selectExternalPartnerLogo: () =>
     ipcRenderer.invoke("selectExternalPartnerLogo"),
   uploadProfileImage: (fileInfo) =>
@@ -30,6 +44,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateArchive: (archiveData) =>
     ipcRenderer.invoke("updateArchive", archiveData),
   getArchives: () => ipcRenderer.invoke("getArchives"),
+  getArchiveOjtLinks: (archiveId) =>
+    ipcRenderer.invoke("getArchiveOjtLinks", archiveId),
+  createArchiveOjtLink: (payload) =>
+    ipcRenderer.invoke("createArchiveOjtLink", payload),
+  deleteArchiveOjtLink: (archiveId, studentId) =>
+    ipcRenderer.invoke("deleteArchiveOjtLink", archiveId, studentId),
   deleteArchive: (archiveId) => ipcRenderer.invoke("deleteArchive", archiveId),
   getExternalPartners: () => ipcRenderer.invoke("getExternalPartners"),
   createExternalPartner: (partnerData) =>

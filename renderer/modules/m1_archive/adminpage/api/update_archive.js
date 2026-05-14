@@ -100,6 +100,9 @@ function applyArchiveRowUpdate(
   editingRow.dataset.type = savedType;
   editingRow.dataset.status = normalizedStatus;
   editingRow.dataset.department = savedDepartment;
+  editingRow.dataset.linkedStudentIds = String(
+    archive.linked_student_ids || fallbackData.linked_student_ids || "",
+  );
 
   if (window.archiveSearchFilter?.refresh) {
     window.archiveSearchFilter.refresh();

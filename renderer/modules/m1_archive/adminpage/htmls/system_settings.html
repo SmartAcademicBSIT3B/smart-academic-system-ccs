@@ -162,51 +162,103 @@
             <div id="general" class="settings-section">
               <h3>General</h3>
               <div class="section-description">
-                Set default behavior for interface and notifications.
+                Manage report header format and storage locations.
               </div>
 
-              <div class="setting-row">
-                <div>
-                  <p class="title">Dark Mode</p>
-                  <span class="desc"
-                    >Enable dark mode for all users by default.</span
-                  >
+              <div class="general-card">
+                <h4>PDF Report Header Format</h4>
+                <p>
+                  Upload header images, preview the selected header, and choose
+                  which one is used for all generated PDF reports.
+                </p>
+
+                <div class="general-header-layout">
+                  <div class="general-header-preview-wrap">
+                    <img
+                      id="generalHeaderPreview"
+                      class="general-header-preview"
+                      src="../../images/header-template.png"
+                      alt="Report header preview"
+                    />
+                  </div>
+                  <div class="general-header-actions">
+                    <div class="inline-actions">
+                      <button
+                        type="button"
+                        class="save-btn"
+                        onclick="addPdfReportHeaderFromPicker()"
+                      >
+                        Upload Header Image
+                      </button>
+                      <button
+                        type="button"
+                        class="cancel-btn"
+                        onclick="useDefaultPdfReportHeader()"
+                      >
+                        Use Default Header
+                      </button>
+                      <button
+                        type="button"
+                        class="cancel-btn"
+                        onclick="removeSelectedPdfReportHeader()"
+                      >
+                        Remove Selected Header
+                      </button>
+                    </div>
+
+                    <div
+                      id="generalHeaderList"
+                      class="header-image-select-grid"
+                    ></div>
+                  </div>
                 </div>
-
-                <label class="switch">
-                  <input type="checkbox" checked />
-                  <span class="slider"></span>
-                </label>
               </div>
 
-              <div class="setting-grid two-column">
+              <div class="general-card">
+                <h4>Google Drive Storage</h4>
+                <p>
+                  Configure the base folder path used for Google Drive archive
+                  uploads.
+                </p>
+                <div class="setting-grid">
+                  <label>
+                    Google Drive Base Path
+                    <input
+                      id="generalGdriveBasePath"
+                      type="text"
+                      placeholder="CTA Files/Documents"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div class="general-card">
+                <h4>Local File Storage</h4>
+                <p>
+                  Choose where local archive file copies are stored on this
+                  machine.
+                </p>
                 <label>
-                  Time Zone
-                  <select>
-                    <option selected>Asia/Manila (GMT+8)</option>
-                    <option>UTC (GMT+0)</option>
-                  </select>
-                </label>
-                <label>
-                  Date Format
-                  <select>
-                    <option selected>MMMM DD, YYYY</option>
-                    <option>DD/MM/YYYY</option>
-                    <option>MM/DD/YYYY</option>
-                  </select>
-                </label>
-                <label>
-                  Maintenance Message
+                  Local Storage Directory
                   <input
+                    id="generalLocalStoragePath"
                     type="text"
-                    placeholder="Optional system-wide message"
+                    readonly
+                    placeholder="Select a local directory"
                   />
                 </label>
-                <label>
-                  Session Timeout (minutes)
-                  <input type="number" min="5" step="5" value="30" />
-                </label>
+                <div class="inline-actions">
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="chooseGeneralLocalStoragePath()"
+                  >
+                    Browse Folder
+                  </button>
+                </div>
               </div>
+
+              <div id="generalStatusMessage" class="general-status"></div>
             </div>
 
             <!-- ================= THESIS ARCHIVES ================= -->
@@ -218,26 +270,68 @@
 
               <div class="setting-grid two-column">
                 <label>
-                  Accepted File Type
-                  <select>
-                    <option selected>PDF Only</option>
-                    <option>PDF and DOCX</option>
-                    <option>All File Types</option>
+                  Max File Size (MB)
+                  <input
+                    id="thesisMaxFileSizeMB"
+                    type="number"
+                    min="1"
+                    max="50"
+                    step="1"
+                  />
+                </label>
+                <label>
+                  Default Archive Status
+                  <select id="thesisDefaultArchiveStatus">
+                    <option>Pending</option>
+                    <option>Approved</option>
+                    <option>Rejected</option>
                   </select>
                 </label>
-                <label>
-                  Max File Size (MB)
-                  <input type="number" min="1" step="1" value="10" />
-                </label>
-                <label>
-                  Submission Attempts
-                  <input type="number" min="1" step="1" value="3" />
-                </label>
-                <label>
-                  Auto Archive After (Days)
-                  <input type="number" min="1" step="1" value="30" />
-                </label>
               </div>
+
+              <div class="general-card thesis-link-card">
+                <h4>Manual OJT Student Linking</h4>
+                <p>
+                  Link or unlink OJT students to a selected thesis/capstone
+                  archive document.
+                </p>
+
+                <div class="setting-grid two-column">
+                  <label>
+                    Select Archive
+                    <select id="thesisLinkArchiveSelect">
+                      <option value="">Choose archive</option>
+                    </select>
+                  </label>
+                  <label>
+                    Search Student
+                    <input
+                      id="thesisLinkSearchInput"
+                      type="text"
+                      placeholder="Type student ID or name"
+                    />
+                  </label>
+                </div>
+
+                <p id="thesisLinkContext" class="thesis-link-context"></p>
+
+                <div class="thesis-link-table-wrap">
+                  <table class="thesis-link-table">
+                    <thead>
+                      <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Section</th>
+                        <th>Source</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="thesisLinkTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div id="thesisStatusMessage" class="general-status"></div>
             </div>
 
             <!-- ================= OJT REQUIREMENTS ================= -->
@@ -381,8 +475,25 @@
     <script>
       const electronAPI = window.electronAPI || window.parent?.electronAPI;
       const DEFAULT_PROFILE_IMAGE = "../../images/default_avatar.jpg";
+      const DEFAULT_REPORT_HEADER_IMAGE = "../../images/header-template.png";
+      const DEFAULT_THESIS_ARCHIVE_SETTINGS = {
+        maxFileSizeMB: 50,
+        defaultArchiveStatus: "Approved",
+      };
       let activeUser = null;
       let profileImagePath = "";
+      let generalSettingsState = {
+        gdriveDocumentsBasePath: "CTA Files/Documents",
+        localDocumentsPath: "",
+        pdfReportHeaders: [],
+        selectedPdfReportHeaderPath: "",
+      };
+      let thesisArchiveSettingsState = { ...DEFAULT_THESIS_ARCHIVE_SETTINGS };
+      let thesisLinkState = {
+        archiveId: null,
+        archives: [],
+        students: [],
+      };
 
       document.querySelectorAll(".settings-menu li").forEach((item) => {
         item.onclick = () => {
@@ -397,6 +508,10 @@
           const section = document.getElementById(item.dataset.section);
           if (section) {
             section.classList.add("active");
+            if (section.id === "thesis-archives") {
+              loadThesisArchiveOptions();
+              renderThesisLinkTable();
+            }
           }
         };
       });
@@ -415,11 +530,364 @@
         localStorage.setItem("user", JSON.stringify(nextUser));
       }
 
+      function toFileUrl(pathValue = "") {
+        const raw = String(pathValue || "").trim();
+        if (!raw) return "";
+        if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw)) return raw;
+        if (/^[a-zA-Z]:\\/.test(raw)) {
+          return `file:///${raw.replace(/\\/g, "/")}`;
+        }
+        if (raw.startsWith("/")) return `file://${raw}`;
+        return raw;
+      }
+
+      function normalizeDriveBasePath(value = "") {
+        const normalized = String(value || "")
+          .replace(/\\/g, "/")
+          .split("/")
+          .map((part) => String(part || "").trim())
+          .filter(Boolean)
+          .map((part) => part.replace(/[\\:*?"<>|]+/g, "-"));
+
+        return normalized.length ? normalized.join("/") : "CTA Files/Documents";
+      }
+
+      function escapeHtml(value = "") {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function normalizeHeaderList(value) {
+        if (!Array.isArray(value)) return [];
+        return value
+          .map((item) => {
+            const path = String(item?.path || "").trim();
+            if (!path) return null;
+            return {
+              id: String(
+                item?.id ||
+                  `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+              ).trim(),
+              name: String(item?.name || "Header").trim() || "Header",
+              path,
+            };
+          })
+          .filter(Boolean);
+      }
+
       function showProfileStatus(message, isError = false) {
         const el = document.getElementById("profileStatusMessage");
         if (!el) return;
         el.textContent = message || "";
         el.classList.toggle("error", Boolean(isError));
+      }
+
+      function showGeneralStatus(message, isError = false) {
+        const el = document.getElementById("generalStatusMessage");
+        if (!el) return;
+        el.textContent = message || "";
+        el.classList.toggle("error", Boolean(isError));
+      }
+
+      function showThesisStatus(message, isError = false) {
+        const el = document.getElementById("thesisStatusMessage");
+        if (!el) return;
+        el.textContent = message || "";
+        el.classList.toggle("error", Boolean(isError));
+      }
+
+      function normalizeThesisArchiveSettings(value = {}) {
+        const settings = {
+          ...DEFAULT_THESIS_ARCHIVE_SETTINGS,
+          ...(value && typeof value === "object" ? value : {}),
+        };
+
+        const maxFileSizeMB = Number.parseInt(settings.maxFileSizeMB, 10);
+
+        const normalizedStatus = String(settings.defaultArchiveStatus || "")
+          .trim()
+          .toLowerCase();
+
+        return {
+          maxFileSizeMB:
+            Number.isInteger(maxFileSizeMB) &&
+            maxFileSizeMB >= 1 &&
+            maxFileSizeMB <= 50
+              ? maxFileSizeMB
+              : DEFAULT_THESIS_ARCHIVE_SETTINGS.maxFileSizeMB,
+          defaultArchiveStatus:
+            normalizedStatus === "approved"
+              ? "Approved"
+              : normalizedStatus === "rejected"
+                ? "Rejected"
+                : "Pending",
+        };
+      }
+
+      function renderThesisArchiveSettings() {
+        const maxFileSizeMB = document.getElementById("thesisMaxFileSizeMB");
+        const defaultArchiveStatus = document.getElementById(
+          "thesisDefaultArchiveStatus",
+        );
+
+        if (maxFileSizeMB) {
+          maxFileSizeMB.value = thesisArchiveSettingsState.maxFileSizeMB;
+        }
+        if (defaultArchiveStatus) {
+          defaultArchiveStatus.value =
+            thesisArchiveSettingsState.defaultArchiveStatus;
+        }
+      }
+
+      async function loadThesisArchiveSettings() {
+        if (!electronAPI) return;
+
+        const result = await electronAPI.getAppSettings();
+        if (!result?.success || !result.settings) {
+          showThesisStatus(
+            result?.message || "Failed to load thesis archive settings.",
+            true,
+          );
+          return;
+        }
+
+        thesisArchiveSettingsState = normalizeThesisArchiveSettings(
+          result.settings.thesisArchives,
+        );
+        renderThesisArchiveSettings();
+        showThesisStatus("");
+      }
+
+      function readThesisArchiveFormValues() {
+        const maxFileSizeMB = document.getElementById(
+          "thesisMaxFileSizeMB",
+        )?.value;
+        const defaultArchiveStatus = document.getElementById(
+          "thesisDefaultArchiveStatus",
+        )?.value;
+
+        return normalizeThesisArchiveSettings({
+          maxFileSizeMB,
+          defaultArchiveStatus,
+        });
+      }
+
+      function getThesisSourceLabel(linkedBy) {
+        const value = String(linkedBy || "")
+          .trim()
+          .toLowerCase();
+        if (value === "manual") return "Manual";
+        if (value === "auto-match") return "Auto";
+        return "-";
+      }
+
+      function renderThesisLinkTable() {
+        const body = document.getElementById("thesisLinkTableBody");
+        const searchText = String(
+          document.getElementById("thesisLinkSearchInput")?.value || "",
+        )
+          .trim()
+          .toLowerCase();
+
+        if (!body) return;
+
+        const list = Array.isArray(thesisLinkState.students)
+          ? thesisLinkState.students
+          : [];
+        const filtered = list.filter((student) => {
+          if (!searchText) return true;
+          const haystack =
+            `${String(student.student_id || "")} ${String(student.name || "")}`.toLowerCase();
+          return haystack.includes(searchText);
+        });
+
+        if (!filtered.length) {
+          body.innerHTML = `
+            <tr>
+              <td colspan="5" class="thesis-link-empty">No OJT students found for the selected archive.</td>
+            </tr>`;
+          return;
+        }
+
+        body.innerHTML = filtered
+          .map((student) => {
+            const studentId = Number.parseInt(student.id, 10);
+            const isLinked = Boolean(student.is_linked);
+            const buttonLabel = isLinked ? "Unlink" : "Link";
+            return `
+              <tr>
+                <td>${escapeHtml(student.student_id || "-")}</td>
+                <td>${escapeHtml(student.name || "-")}</td>
+                <td>${escapeHtml(student.section || "-")}</td>
+                <td>${escapeHtml(getThesisSourceLabel(student.linked_by))}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="tiny-btn"
+                    onclick="toggleThesisManualLink(${studentId}, ${isLinked ? "true" : "false"})"
+                  >
+                    ${buttonLabel}
+                  </button>
+                </td>
+              </tr>`;
+          })
+          .join("");
+      }
+
+      async function loadThesisArchiveOptions() {
+        if (!electronAPI || typeof electronAPI.getArchives !== "function")
+          return;
+
+        const result = await electronAPI.getArchives();
+        const select = document.getElementById("thesisLinkArchiveSelect");
+        if (!select) return;
+
+        if (!result?.success || !Array.isArray(result.archives)) {
+          showThesisStatus(
+            result?.message || "Failed to load thesis archives for linking.",
+            true,
+          );
+          return;
+        }
+
+        thesisLinkState.archives = result.archives
+          .filter((archive) => {
+            const type = String(archive?.type || "")
+              .trim()
+              .toLowerCase();
+            return type === "thesis" || type === "capstone";
+          })
+          .sort((a, b) =>
+            String(b.created_at || "").localeCompare(
+              String(a.created_at || ""),
+            ),
+          );
+
+        const currentValue = String(thesisLinkState.archiveId || "");
+        select.innerHTML =
+          '<option value="">Choose archive</option>' +
+          thesisLinkState.archives
+            .map(
+              (archive) =>
+                `<option value="${archive.id}">${escapeHtml(archive.title || "Untitled")} (${escapeHtml(archive.section || "No section")})</option>`,
+            )
+            .join("");
+
+        if (
+          currentValue &&
+          thesisLinkState.archives.some(
+            (archive) => String(archive.id) === currentValue,
+          )
+        ) {
+          select.value = currentValue;
+        }
+      }
+
+      async function loadThesisLinkCandidates(archiveId) {
+        const context = document.getElementById("thesisLinkContext");
+        if (
+          !electronAPI ||
+          typeof electronAPI.getArchiveOjtLinks !== "function"
+        ) {
+          showThesisStatus("Archive link API is unavailable.", true);
+          return;
+        }
+
+        thesisLinkState.archiveId = Number.parseInt(archiveId, 10) || null;
+        thesisLinkState.students = [];
+
+        if (!thesisLinkState.archiveId) {
+          if (context) {
+            context.textContent =
+              "Select an archive to load eligible OJT students for manual linking.";
+          }
+          renderThesisLinkTable();
+          return;
+        }
+
+        const result = await electronAPI.getArchiveOjtLinks(
+          thesisLinkState.archiveId,
+        );
+        if (!result?.success) {
+          showThesisStatus(
+            result?.message || "Failed to load linked students.",
+            true,
+          );
+          return;
+        }
+
+        thesisLinkState.students = Array.isArray(result.students)
+          ? result.students
+          : [];
+
+        if (context) {
+          context.textContent = `${String(result.archive?.title || "Selected archive")} | ${String(result.archive?.department || "")}${result.archive?.section ? ` | ${result.archive.section}` : ""}`;
+        }
+
+        renderThesisLinkTable();
+        showThesisStatus("");
+      }
+
+      async function toggleThesisManualLink(studentId, isLinked) {
+        if (!electronAPI || !thesisLinkState.archiveId) return;
+
+        let result;
+        if (isLinked) {
+          result = await electronAPI.deleteArchiveOjtLink(
+            thesisLinkState.archiveId,
+            studentId,
+          );
+        } else {
+          result = await electronAPI.createArchiveOjtLink({
+            archive_id: thesisLinkState.archiveId,
+            ojt_student_id: studentId,
+          });
+        }
+
+        if (!result?.success) {
+          showThesisStatus(
+            result?.message || "Failed to update archive-student link.",
+            true,
+          );
+          return;
+        }
+
+        await loadThesisLinkCandidates(thesisLinkState.archiveId);
+        showThesisStatus(
+          isLinked
+            ? "Student unlinked successfully."
+            : "Student linked successfully.",
+        );
+      }
+
+      window.toggleThesisManualLink = toggleThesisManualLink;
+
+      async function saveThesisArchiveSettings() {
+        if (!electronAPI) {
+          showThesisStatus("Thesis archive settings are unavailable.", true);
+          return false;
+        }
+
+        const thesisArchives = readThesisArchiveFormValues();
+        const result = await electronAPI.saveAppSettings({ thesisArchives });
+        if (!result?.success || !result.settings) {
+          showThesisStatus(
+            result?.message || "Failed to save thesis archive settings.",
+            true,
+          );
+          return false;
+        }
+
+        thesisArchiveSettingsState = normalizeThesisArchiveSettings(
+          result.settings.thesisArchives,
+        );
+        renderThesisArchiveSettings();
+        showThesisStatus("Thesis archive settings updated successfully.");
+        return true;
       }
 
       function fillProfileForm(user) {
@@ -474,6 +942,195 @@
         showProfileStatus("");
       }
 
+      function renderGeneralHeaderSelection() {
+        const list = document.getElementById("generalHeaderList");
+        const preview = document.getElementById("generalHeaderPreview");
+
+        if (!list || !preview) return;
+        list.innerHTML = "";
+
+        const defaultCard = document.createElement("button");
+        defaultCard.type = "button";
+        defaultCard.className = "header-image-card";
+        if (!generalSettingsState.selectedPdfReportHeaderPath) {
+          defaultCard.classList.add("active");
+        }
+        defaultCard.innerHTML = `
+          <img src="${DEFAULT_REPORT_HEADER_IMAGE}" alt="Default header" />
+          <span>Default Header</span>
+        `;
+        defaultCard.onclick = () => {
+          generalSettingsState.selectedPdfReportHeaderPath = "";
+          renderGeneralHeaderSelection();
+        };
+        list.appendChild(defaultCard);
+
+        generalSettingsState.pdfReportHeaders.forEach((header) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "header-image-card";
+          if (
+            String(header.path || "").trim() ===
+            generalSettingsState.selectedPdfReportHeaderPath
+          ) {
+            card.classList.add("active");
+          }
+          card.innerHTML = `
+            <img src="${toFileUrl(header.path)}" alt="${header.name}" />
+            <span>${header.name}</span>
+          `;
+          card.onclick = () => {
+            generalSettingsState.selectedPdfReportHeaderPath = String(
+              header.path || "",
+            ).trim();
+            renderGeneralHeaderSelection();
+          };
+          list.appendChild(card);
+        });
+
+        const selected = generalSettingsState.pdfReportHeaders.find(
+          (header) =>
+            String(header.path || "").trim() ===
+            generalSettingsState.selectedPdfReportHeaderPath,
+        );
+        preview.src = selected
+          ? toFileUrl(selected.path)
+          : DEFAULT_REPORT_HEADER_IMAGE;
+      }
+
+      async function loadGeneralSettings() {
+        if (!electronAPI) return;
+
+        const result = await electronAPI.getAppSettings();
+        if (!result?.success || !result.settings) {
+          showGeneralStatus(
+            result?.message || "Failed to load general settings.",
+            true,
+          );
+          return;
+        }
+
+        generalSettingsState = {
+          gdriveDocumentsBasePath: normalizeDriveBasePath(
+            result.settings.gdriveDocumentsBasePath,
+          ),
+          localDocumentsPath: String(
+            result.settings.localDocumentsPath || "",
+          ).trim(),
+          pdfReportHeaders: normalizeHeaderList(
+            result.settings.pdfReportHeaders,
+          ),
+          selectedPdfReportHeaderPath: String(
+            result.settings.selectedPdfReportHeaderPath || "",
+          ).trim(),
+        };
+
+        if (
+          generalSettingsState.selectedPdfReportHeaderPath &&
+          !generalSettingsState.pdfReportHeaders.some(
+            (header) =>
+              String(header.path || "").trim() ===
+              generalSettingsState.selectedPdfReportHeaderPath,
+          )
+        ) {
+          generalSettingsState.selectedPdfReportHeaderPath = "";
+        }
+
+        const gdriveInput = document.getElementById("generalGdriveBasePath");
+        const localPathInput = document.getElementById(
+          "generalLocalStoragePath",
+        );
+        if (gdriveInput)
+          gdriveInput.value = generalSettingsState.gdriveDocumentsBasePath;
+        if (localPathInput)
+          localPathInput.value = generalSettingsState.localDocumentsPath;
+
+        renderGeneralHeaderSelection();
+        showGeneralStatus("");
+      }
+
+      async function addPdfReportHeaderFromPicker() {
+        if (!electronAPI) {
+          showGeneralStatus("Header upload is unavailable.", true);
+          return;
+        }
+
+        const result = await electronAPI.selectPdfReportHeaderImage();
+        if (!result || result.canceled || !result.success) {
+          return;
+        }
+
+        const header = result.header;
+        if (!header?.path) {
+          showGeneralStatus("Failed to load selected header image.", true);
+          return;
+        }
+
+        generalSettingsState.pdfReportHeaders = [
+          ...generalSettingsState.pdfReportHeaders.filter(
+            (item) =>
+              String(item.path || "").trim() !==
+              String(header.path || "").trim(),
+          ),
+          {
+            id: header.id,
+            name: String(header.name || "Header").trim() || "Header",
+            path: String(header.path || "").trim(),
+          },
+        ];
+        generalSettingsState.selectedPdfReportHeaderPath = String(
+          header.path || "",
+        ).trim();
+
+        renderGeneralHeaderSelection();
+        showGeneralStatus(
+          "Header image uploaded. Click Save to apply changes.",
+        );
+      }
+
+      function useDefaultPdfReportHeader() {
+        generalSettingsState.selectedPdfReportHeaderPath = "";
+        renderGeneralHeaderSelection();
+        showGeneralStatus(
+          "Default report header selected. Click Save to apply changes.",
+        );
+      }
+
+      function removeSelectedPdfReportHeader() {
+        const selectedPath = generalSettingsState.selectedPdfReportHeaderPath;
+        if (!selectedPath) {
+          showGeneralStatus("No uploaded header is selected.", true);
+          return;
+        }
+
+        generalSettingsState.pdfReportHeaders =
+          generalSettingsState.pdfReportHeaders.filter(
+            (header) => String(header.path || "").trim() !== selectedPath,
+          );
+        generalSettingsState.selectedPdfReportHeaderPath = "";
+        renderGeneralHeaderSelection();
+        showGeneralStatus("Selected header removed from saved choices.");
+      }
+
+      async function chooseGeneralLocalStoragePath() {
+        if (!electronAPI) {
+          showGeneralStatus("Local path picker is unavailable.", true);
+          return;
+        }
+
+        const result = await electronAPI.selectLocalDocumentsDirectory();
+        if (!result || result.canceled || !result.success) return;
+
+        generalSettingsState.localDocumentsPath = String(
+          result.path || "",
+        ).trim();
+        const input = document.getElementById("generalLocalStoragePath");
+        if (input) input.value = generalSettingsState.localDocumentsPath;
+        showGeneralStatus(
+          "Local storage path updated. Click Save to apply changes.",
+        );
+      }
+
       async function chooseProfileImageFromSettings() {
         if (!electronAPI || !activeUser?.id) {
           showProfileStatus("Profile upload is unavailable.", true);
@@ -517,20 +1174,10 @@
         confirmModal.style.display = "none";
       }
 
-      async function saveChanges() {
-        const activeSection = document.querySelector(
-          ".settings-section.active",
-        );
-        if (!activeSection || activeSection.id !== "profile") {
-          alert("Settings saved!");
-          closeConfirm();
-          return;
-        }
-
+      async function saveProfileSettings() {
         if (!electronAPI || !activeUser?.id) {
           showProfileStatus("Profile update is unavailable.", true);
-          closeConfirm();
-          return;
+          return false;
         }
 
         const name = String(
@@ -553,15 +1200,13 @@
 
         if (!name || !email) {
           showProfileStatus("Name and email are required.", true);
-          closeConfirm();
-          return;
+          return false;
         }
 
         const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         if (!emailIsValid) {
           showProfileStatus("Please provide a valid email address.", true);
-          closeConfirm();
-          return;
+          return false;
         }
 
         const wantsPasswordChange = Boolean(
@@ -573,24 +1218,21 @@
               "Fill out current, new, and confirm password fields.",
               true,
             );
-            closeConfirm();
-            return;
+            return false;
           }
           if (newPassword.length < 8) {
             showProfileStatus(
               "New password must be at least 8 characters.",
               true,
             );
-            closeConfirm();
-            return;
+            return false;
           }
           if (newPassword !== confirmPassword) {
             showProfileStatus(
               "New password and confirmation do not match.",
               true,
             );
-            closeConfirm();
-            return;
+            return false;
           }
         }
 
@@ -608,8 +1250,7 @@
             result?.message || "Failed to save profile changes.",
             true,
           );
-          closeConfirm();
-          return;
+          return false;
         }
 
         activeUser = {
@@ -627,7 +1268,97 @@
         fillProfileForm(activeUser);
         clearSensitiveInputs();
         showProfileStatus("Profile updated successfully.");
-        closeConfirm();
+        return true;
+      }
+
+      async function saveGeneralSettings() {
+        if (!electronAPI) {
+          showGeneralStatus("General settings update is unavailable.", true);
+          return false;
+        }
+
+        const gdriveInput = document.getElementById("generalGdriveBasePath");
+        const localPathInput = document.getElementById(
+          "generalLocalStoragePath",
+        );
+
+        const nextDriveBase = normalizeDriveBasePath(gdriveInput?.value || "");
+        const nextLocalPath = String(
+          localPathInput?.value ||
+            generalSettingsState.localDocumentsPath ||
+            "",
+        ).trim();
+
+        if (!nextDriveBase) {
+          showGeneralStatus("Google Drive base path is required.", true);
+          return false;
+        }
+
+        const payload = {
+          gdriveDocumentsBasePath: nextDriveBase,
+          localDocumentsPath: nextLocalPath,
+          pdfReportHeaders: generalSettingsState.pdfReportHeaders,
+          selectedPdfReportHeaderPath:
+            generalSettingsState.selectedPdfReportHeaderPath,
+        };
+
+        const result = await electronAPI.saveAppSettings(payload);
+        if (!result?.success || !result.settings) {
+          showGeneralStatus(
+            result?.message || "Failed to save general settings.",
+            true,
+          );
+          return false;
+        }
+
+        generalSettingsState = {
+          gdriveDocumentsBasePath: normalizeDriveBasePath(
+            result.settings.gdriveDocumentsBasePath,
+          ),
+          localDocumentsPath: String(
+            result.settings.localDocumentsPath || "",
+          ).trim(),
+          pdfReportHeaders: normalizeHeaderList(
+            result.settings.pdfReportHeaders,
+          ),
+          selectedPdfReportHeaderPath: String(
+            result.settings.selectedPdfReportHeaderPath || "",
+          ).trim(),
+        };
+
+        if (gdriveInput)
+          gdriveInput.value = generalSettingsState.gdriveDocumentsBasePath;
+        if (localPathInput)
+          localPathInput.value = generalSettingsState.localDocumentsPath;
+        renderGeneralHeaderSelection();
+        showGeneralStatus("General settings updated successfully.");
+        return true;
+      }
+
+      async function saveChanges() {
+        const activeSection = document.querySelector(
+          ".settings-section.active",
+        );
+
+        if (!activeSection) {
+          closeConfirm();
+          return;
+        }
+
+        let success = true;
+        if (activeSection.id === "profile") {
+          success = await saveProfileSettings();
+        } else if (activeSection.id === "general") {
+          success = await saveGeneralSettings();
+        } else if (activeSection.id === "thesis-archives") {
+          success = await saveThesisArchiveSettings();
+        } else {
+          alert("Settings saved!");
+        }
+
+        if (success) {
+          closeConfirm();
+        }
       }
 
       async function deleteMyProfileFromSettings() {
@@ -677,10 +1408,45 @@
       }
 
       function cancelChanges() {
-        loadProfileFromBackend();
-        clearSensitiveInputs();
-        showProfileStatus("Changes reverted.");
+        const activeSection = document.querySelector(
+          ".settings-section.active",
+        );
+
+        if (activeSection?.id === "profile") {
+          loadProfileFromBackend();
+          clearSensitiveInputs();
+          showProfileStatus("Changes reverted.");
+          return;
+        }
+
+        if (activeSection?.id === "general") {
+          loadGeneralSettings();
+          showGeneralStatus("Changes reverted.");
+          return;
+        }
+
+        if (activeSection?.id === "thesis-archives") {
+          loadThesisArchiveSettings();
+          loadThesisArchiveOptions();
+          loadThesisLinkCandidates("");
+          showThesisStatus("Changes reverted.");
+          return;
+        }
+
+        location.reload();
       }
+
+      document
+        .getElementById("thesisLinkArchiveSelect")
+        ?.addEventListener("change", (event) => {
+          loadThesisLinkCandidates(event.target.value);
+        });
+
+      document
+        .getElementById("thesisLinkSearchInput")
+        ?.addEventListener("input", () => {
+          renderThesisLinkTable();
+        });
 
       function confirmReset() {
         if (window.confirm("Reset all settings to default values?")) {
@@ -689,6 +1455,10 @@
       }
 
       loadProfileFromBackend();
+      loadGeneralSettings();
+      loadThesisArchiveSettings();
+      loadThesisArchiveOptions();
+      loadThesisLinkCandidates("");
     </script>
   </body>
 </html>
