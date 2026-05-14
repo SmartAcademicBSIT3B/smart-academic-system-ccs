@@ -6,6 +6,7 @@ error_reporting(0);
 ini_set('display_errors', 0);
 
 session_start();
+require_once __DIR__ . '/ojt_policy_settings.php';
 if (!isset($_SESSION['student_id'])) {
     echo json_encode(['success' => false, 'error' => 'Not authenticated']);
     exit();
@@ -326,6 +327,9 @@ $stmt->bind_result($ojt_student_id, $department);
 $stmt->fetch();
 $stmt->close();
 
+$policy = ojt_policy_get_for_department($conn, $department);
+$dailyPolicy = ojt_policy_values_for_category($policy, 'daily');
+
 if (!$ojt_student_id) {
     $conn->close();
     echo json_encode(['success' => false, 'error' => 'Student OJT record not found']);
@@ -384,7 +388,31 @@ if ($action === 'save') {
         exit();
     }
 
+    $proofUploadedNow = false;
     if (isset($_FILES['proof_file']) && is_array($_FILES['proof_file']) && ($_FILES['proof_file']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+        $sizeError = ojt_policy_validate_uploaded_file_size($_FILES['proof_file'], $dailyPolicy['maxFileSizeMB']);
+        if ($sizeError !== null) {
+            $conn->close();
+            echo json_encode(['success' => false, 'error' => $sizeError]);
+            exit();
+        }
+
+        $limitCheck = ojt_policy_check_daily_upload_limit(
+            $conn,
+            $department,
+            $student_id,
+            $dailyPolicy['category'],
+            $dailyPolicy['rateLimitPerDay']
+        );
+        if (!$limitCheck['ok']) {
+            $conn->close();
+            echo json_encode([
+                'success' => false,
+                'error' => $dailyPolicy['label'] . ' upload limit reached (' . (int)$dailyPolicy['rateLimitPerDay'] . ' per 24 hours).'
+            ]);
+            exit();
+        }
+
         $uploadedProof = uploadAttendanceProofToCloudinary(
             $_FILES['proof_file']['tmp_name'],
             $student_id,
@@ -399,6 +427,7 @@ if ($action === 'save') {
 
         $proof_url = (string)($uploadedProof['url'] ?? '');
         $proof_public_id = (string)($uploadedProof['public_id'] ?? '');
+        $proofUploadedNow = true;
     }
 
     $schedule = get_schedule_for_date($conn, $ojt_student_id, $attendance_date);
@@ -438,6 +467,9 @@ if ($action === 'save') {
 
     ensure_today_auto_absent($conn, $ojt_student_id, $student_id, $department);
     ensure_due_auto_timeout($conn, $ojt_student_id);
+    if ($proofUploadedNow) {
+        ojt_policy_track_upload_activity($conn, $department, $student_id, $dailyPolicy['category']);
+    }
     $conn->close();
     echo json_encode(['success' => true]);
     exit();

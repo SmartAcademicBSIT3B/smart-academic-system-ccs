@@ -750,22 +750,50 @@
 
         coordinatorNotifications.forEach((notif) => {
           const timestamp = formatTimeAgo(new Date(notif.timestamp));
-          const activityIcon = getActivityIcon(notif.activity_type);
+          const activityIcon = getActivityIcon(
+            notif.activity_type || notif.action_type,
+          );
+          const isCoordinatorAction =
+            notif.activity_type === "coordinator_action";
 
           const notifItem = document.createElement("div");
           notifItem.className = "notif-item";
-          notifItem.innerHTML = `
-            <div style="display: flex; gap: 8px; align-items: flex-start;">
-              <div style="flex-shrink: 0; margin-top: 2px;">${activityIcon}</div>
-              <div style="flex: 1; min-width: 0;">
-                <div class="notif-text">
-                  <b>${escapeHtml(notif.student_name)}</b> ${escapeHtml(notif.message)}
+
+          // Build the notification content based on type
+          let notifContent = "";
+
+          if (isCoordinatorAction) {
+            // Coordinator action format
+            notifContent = `
+              <div style="display: flex; gap: 8px; align-items: flex-start;">
+                <div style="flex-shrink: 0; margin-top: 2px;">${activityIcon}</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div class="notif-text" style="color: #a7d8ff;">
+                    <b>${escapeHtml(notif.coordinator_name || notif.coordinator_email)}</b> ${escapeHtml(notif.message || "")}
+                  </div>
+                  <div style="font-size: 11px; color: #666; margin-top: 2px;">
+                    Student: <b>${escapeHtml(notif.student_name || notif.student_id)}</b>
+                  </div>
                 </div>
-                ${notif.file_name ? `<div style="font-size: 11px; color: #999; margin-top: 2px;">${escapeHtml(notif.file_name)}</div>` : ""}
               </div>
-            </div>
-            <span class="notif-time">${timestamp}</span>
-          `;
+            `;
+          } else {
+            // Regular student activity format
+            notifContent = `
+              <div style="display: flex; gap: 8px; align-items: flex-start;">
+                <div style="flex-shrink: 0; margin-top: 2px;">${activityIcon}</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div class="notif-text">
+                    <b>${escapeHtml(notif.student_name)}</b> ${escapeHtml(notif.message)}
+                  </div>
+                  ${notif.file_name ? `<div style="font-size: 11px; color: #999; margin-top: 2px;">${escapeHtml(notif.file_name)}</div>` : ""}
+                </div>
+              </div>
+            `;
+          }
+
+          notifItem.innerHTML =
+            notifContent + `<span class="notif-time">${timestamp}</span>`;
           notifList.appendChild(notifItem);
         });
 
@@ -780,6 +808,12 @@
           partner: "🏢",
           certificate: "🎓",
           status: "🔔",
+          coordinator_action: "👤",
+          update_partner: "🔗",
+          update_status: "📊",
+          verify_requirement: "✅",
+          mark_attendance: "✔️",
+          review_report: "📖",
         };
         return icons[activityType] || "●";
       }

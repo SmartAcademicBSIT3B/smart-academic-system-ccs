@@ -5,6 +5,7 @@ const {
   sendOjtDeploymentStatusEmail,
   formatStatusLabel,
 } = require("../services/deployment-email");
+const notificationService = require("../services/notifications");
 
 const router = express.Router();
 
@@ -267,7 +268,7 @@ router.patch("/student/:studentId/partner", requireAuth, async (req, res) => {
         .json({ success: false, message: "Student ID is required." });
 
     const existing = await query(
-      "SELECT id FROM ojt_students WHERE student_id = ? AND department = ? LIMIT 1",
+      "SELECT id, name FROM ojt_students WHERE student_id = ? AND department = ? LIMIT 1",
       [studentId, dept],
     );
     if (!existing.length)
@@ -275,9 +276,29 @@ router.patch("/student/:studentId/partner", requireAuth, async (req, res) => {
         .status(404)
         .json({ success: false, message: "Student not found." });
 
+    const studentName = existing[0].name;
+
     await query(
       "UPDATE ojt_students SET external_partner_assigned = ?, nature_of_business = ?, updated_at = NOW() WHERE student_id = ? AND department = ?",
       [partner, nature, studentId, dept],
+    );
+
+    // Log coordinator activity
+    const coordinatorEmail = String(req.user?.email || "")
+      .trim()
+      .toLowerCase();
+    const coordinatorName = String(req.user?.name || "").trim();
+    const description = `Updated partner assignment to ${partner || "None"}`;
+    await notificationService.logCoordinatorActivity(
+      query,
+      dept,
+      coordinatorEmail,
+      coordinatorName,
+      "update_partner",
+      studentId,
+      studentName,
+      description,
+      { old_partner: null, new_partner: partner, nature_of_business: nature },
     );
 
     return res.json({ success: true, message: "Partner assignment updated." });
@@ -329,6 +350,24 @@ router.patch("/student/:studentId/status", requireAuth, async (req, res) => {
       `INSERT INTO ojt_status_history (ojt_student_id, old_status, new_status, changed_by_user_id, notes)
        VALUES (?, ?, ?, ?, ?)`,
       [dbId, oldStatus, newStatus, req.user?.id || null, notes],
+    );
+
+    // Log coordinator activity
+    const coordinatorEmail = String(req.user?.email || "")
+      .trim()
+      .toLowerCase();
+    const coordinatorName = String(req.user?.name || "").trim();
+    const description = `Updated status from ${oldStatus} to ${newStatus}`;
+    await notificationService.logCoordinatorActivity(
+      query,
+      dept,
+      coordinatorEmail,
+      coordinatorName,
+      "update_status",
+      studentId,
+      existing[0].name,
+      description,
+      { old_status: oldStatus, new_status: newStatus, notes: notes },
     );
 
     let emailSent = false;
@@ -704,8 +743,57 @@ router.get("/notifications", requireAuth, async (req, res) => {
 
     // Sort by timestamp (most recent first) and limit
     notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // For admins, also include coordinator activity logs
+    const isAdmin = req.user?.role === "admin";
+    if (isAdmin) {
+      try {
+        const coordinatorActivities = await query(
+          `SELECT 
+             'coordinator_action' AS activity_type,
+             coordinator_email,
+             coordinator_name,
+             action_type,
+             student_id,
+             student_name,
+             description,
+             metadata,
+             created_at AS timestamp
+           FROM coordinator_activity_log
+           WHERE department = ? AND created_at >= ?
+           ORDER BY created_at DESC
+           LIMIT 50`,
+          [dept, windowStart],
+        );
+
+        coordinatorActivities.forEach((activity) => {
+          const metadata =
+            typeof activity.metadata === "string"
+              ? JSON.parse(activity.metadata)
+              : activity.metadata || {};
+          notifications.push({
+            id: `coord-${activity.coordinator_email}-${activity.created_at}`,
+            activity_type: "coordinator_action",
+            action_type: activity.action_type,
+            coordinator_email: activity.coordinator_email,
+            coordinator_name: activity.coordinator_name,
+            student_id: activity.student_id,
+            student_name: activity.student_name,
+            message: activity.description,
+            metadata: metadata,
+            timestamp: activity.timestamp,
+          });
+        });
+      } catch (error) {
+        console.error("Error fetching coordinator activities:", error);
+        // Continue without coordinator activities on error
+      }
+    }
+
     const result = notifications.slice(0, limit);
-    const lastCursor = result.length ? result[0].timestamp : null;
+    const lastCursor = result.length
+      ? result[result.length - 1].timestamp
+      : null;
 
     return res.json({
       success: true,

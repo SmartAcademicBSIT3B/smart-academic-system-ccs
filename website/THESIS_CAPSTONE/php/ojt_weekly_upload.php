@@ -6,6 +6,7 @@ error_reporting(0);
 ini_set('display_errors', 0);
 
 session_start();
+require_once __DIR__ . '/ojt_policy_settings.php';
 if (!isset($_SESSION['student_id'])) {
     echo json_encode(['success' => false, 'error' => 'Not authenticated']);
     exit();
@@ -192,6 +193,9 @@ $stmt->bind_result($ojt_student_id, $department, $student_name);
 $stmt->fetch();
 $stmt->close();
 
+$policy = ojt_policy_get_for_department($conn, $department);
+$weeklyPolicy = ojt_policy_values_for_category($policy, 'weekly');
+
 if (!$ojt_student_id) {
     $conn->close();
     echo json_encode(['success' => false, 'error' => 'Student OJT record not found']);
@@ -255,6 +259,29 @@ if ($action === 'save') {
     $submitted_at = $existing ? ($existing['submitted_at'] ?? null) : null;
 
     if (isset($_FILES['file']) && is_array($_FILES['file']) && ($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+        $sizeError = ojt_policy_validate_uploaded_file_size($_FILES['file'], $weeklyPolicy['maxFileSizeMB']);
+        if ($sizeError !== null) {
+            $conn->close();
+            echo json_encode(['success' => false, 'error' => $sizeError]);
+            exit();
+        }
+
+        $limitCheck = ojt_policy_check_daily_upload_limit(
+            $conn,
+            $department,
+            $student_id,
+            $weeklyPolicy['category'],
+            $weeklyPolicy['rateLimitPerDay']
+        );
+        if (!$limitCheck['ok']) {
+            $conn->close();
+            echo json_encode([
+                'success' => false,
+                'error' => $weeklyPolicy['label'] . ' upload limit reached (' . (int)$weeklyPolicy['rateLimitPerDay'] . ' per 24 hours).'
+            ]);
+            exit();
+        }
+
         $uploaded = uploadWeeklyReportToCloudinary(
             $_FILES['file']['tmp_name'],
             $student_id,
@@ -292,6 +319,7 @@ if ($action === 'save') {
     // Emit real-time notification if file was uploaded
     if ($file_url !== '') {
         emitWeeklyReportNotification($student_id, $student_name, $department, $week_number, $status);
+        ojt_policy_track_upload_activity($conn, $department, $student_id, $weeklyPolicy['category']);
     }
 
     $conn->close();

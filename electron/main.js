@@ -2026,7 +2026,7 @@ ipcMain.handle("resetExternalPartners", async () => {
 ipcMain.handle("resetAppSettings", async () => {
   try {
     // Reset settings on client side
-    const defaultSettings = loadDefaultAppSettings();
+    const defaultSettings = { ...DEFAULT_APP_SETTINGS };
     await saveAppSettingsPatch(defaultSettings);
     return {
       success: true,

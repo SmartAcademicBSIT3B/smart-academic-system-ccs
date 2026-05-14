@@ -15,21 +15,36 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   background: linear-gradient(
     to bottom,
     var(--bg-gradient-start),
     var(--bg-gradient-end)
   );
+  background-attachment: fixed;
   color: var(--primary-text);
   font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   padding: 20px;
-  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .main-content {
   max-width: 1320px;
   margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .setting-header {
@@ -52,12 +67,17 @@ body {
 /* WRAPPER */
 .settings-wrapper {
   width: 100%;
+  flex: 1;
+  overflow: hidden;
 }
 
 .settings-container {
   display: flex;
   gap: 22px;
-  align-items: flex-start;
+  align-items: stretch;
+  height: 100%;
+  max-height: min(820px, calc(100vh - 150px));
+  overflow: hidden;
 }
 
 .settings-menu {
@@ -98,15 +118,45 @@ body {
 
 .settings-content {
   flex: 1;
+  min-height: 0;
   background: var(--secondary-bg);
   border: 1px solid var(--border-color);
   border-radius: 14px;
   padding: 24px;
-  min-height: 640px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-gutter: stable both-edges;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: rgba(157, 198, 255, 0.5);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(157, 198, 255, 0.8);
+}
+
+.settings-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(157, 198, 255, 0.5) rgba(255, 255, 255, 0.05);
 }
 
 .settings-section {
   display: none;
+  min-height: min-content;
 }
 .settings-section.active {
   display: block;
@@ -809,6 +859,8 @@ input[readonly] {
 @media (max-width: 980px) {
   .settings-container {
     flex-direction: column;
+    height: auto;
+    max-height: none;
   }
 
   .settings-menu {

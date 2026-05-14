@@ -196,6 +196,72 @@ async function emitWeeklyReportSubmission(
   broadcastNotification(dept, notification);
 }
 
+/**
+ * Log coordinator activity to database
+ * @param {function} db - Database query function
+ * @param {string} dept - Department code
+ * @param {string} coordinatorEmail - Coordinator email
+ * @param {string} coordinatorName - Coordinator name
+ * @param {string} actionType - Type of action (verify_requirement, mark_attendance, review_report, update_status, etc.)
+ * @param {string} studentId - Student ID (if applicable)
+ * @param {string} studentName - Student name (if applicable)
+ * @param {string} description - Action description
+ * @param {object} metadata - Additional metadata
+ */
+async function logCoordinatorActivity(
+  db,
+  dept,
+  coordinatorEmail,
+  coordinatorName,
+  actionType,
+  studentId = null,
+  studentName = null,
+  description = null,
+  metadata = {},
+) {
+  try {
+    // Ensure table exists
+    await db(
+      `CREATE TABLE IF NOT EXISTS coordinator_activity_log (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        department VARCHAR(50) NOT NULL,
+        coordinator_email VARCHAR(255) NOT NULL,
+        coordinator_name VARCHAR(255),
+        action_type VARCHAR(100) NOT NULL,
+        student_id VARCHAR(100),
+        student_name VARCHAR(255),
+        description TEXT,
+        metadata JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_dept_time (department, created_at),
+        INDEX idx_coordinator (coordinator_email, department)
+      )`,
+    );
+
+    // Insert activity log
+    await db(
+      `INSERT INTO coordinator_activity_log
+       (department, coordinator_email, coordinator_name, action_type, student_id, student_name, description, metadata)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        dept,
+        coordinatorEmail,
+        coordinatorName,
+        actionType,
+        studentId,
+        studentName,
+        description,
+        JSON.stringify(metadata),
+      ],
+    );
+
+    return true;
+  } catch (error) {
+    console.error("[Coordinator Activity Log] Error:", error.message);
+    return false;
+  }
+}
+
 module.exports = {
   registerClient,
   broadcastNotification,
@@ -204,4 +270,5 @@ module.exports = {
   emitRequirementUpload,
   emitWeeklyReportSubmission,
   connectedClients,
+  logCoordinatorActivity,
 };

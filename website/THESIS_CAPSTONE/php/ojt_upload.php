@@ -15,6 +15,7 @@ set_exception_handler(function($e) {
 $cloud_name = 'diujat7xu';
 
 session_start();
+require_once __DIR__ . '/ojt_policy_settings.php';
 
 if (!isset($_SESSION['student_id'])) {
     echo json_encode(['error' => 'Not authenticated']);
@@ -276,6 +277,29 @@ if ($action === 'upload' && isset($_FILES['file'])) {
     }
     $stmt->close();
 
+    $policy = ojt_policy_get_for_department($conn, $student_dept);
+    $policyValues = ojt_policy_values_for_category($policy, $requirement_section);
+
+    $sizeError = ojt_policy_validate_uploaded_file_size($file, $policyValues['maxFileSizeMB']);
+    if ($sizeError !== null) {
+        echo json_encode(['error' => $sizeError]);
+        exit();
+    }
+
+    $limitCheck = ojt_policy_check_daily_upload_limit(
+        $conn,
+        $student_dept,
+        $student_id,
+        $policyValues['category'],
+        $policyValues['rateLimitPerDay']
+    );
+    if (!$limitCheck['ok']) {
+        echo json_encode([
+            'error' => $policyValues['label'] . ' upload limit reached (' . (int)$policyValues['rateLimitPerDay'] . ' per 24 hours).'
+        ]);
+        exit();
+    }
+
     $current_status = requirement_status($conn, $ojt_student_id, $template_id);
     $is_section_submitted = section_is_submitted($conn, $ojt_student_id, $requirement_section);
     $can_edit_rejected = $current_status === 'rejected';
@@ -337,6 +361,7 @@ if ($action === 'upload' && isset($_FILES['file'])) {
         
         // Emit real-time notification to coordinators
         emitNotification($next_status, $requirement_section, $student_id, $student_name, $student_dept, $file_name);
+        ojt_policy_track_upload_activity($conn, $student_dept, $student_id, $policyValues['category']);
         
         echo json_encode([
             'success' => true,
