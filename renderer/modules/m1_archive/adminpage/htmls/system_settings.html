@@ -597,48 +597,208 @@
             <div id="backup-restore" class="settings-section">
               <h3>Backup and Restore</h3>
               <div class="section-description">
-                Protect records by generating regular backups and enabling
-                restoration.
+                Export and import department-scoped records using CSV and ZIP
+                bundles.
               </div>
 
-              <div class="setting-grid two-column">
-                <label>
-                  Backup Frequency
-                  <select>
-                    <option selected>Daily</option>
-                    <option>Weekly</option>
-                    <option>Monthly</option>
-                  </select>
-                </label>
-                <label>
-                  Last Backup Date
-                  <input type="text" value="Not yet configured" readonly />
-                </label>
+              <div class="general-card">
+                <h4>Department Archive Backup</h4>
+                <p>
+                  Download the current department thesis/capstone archive as a
+                  ZIP package with metadata and retrievable attachments.
+                </p>
+                <div class="inline-actions">
+                  <button
+                    type="button"
+                    class="save-btn"
+                    onclick="downloadDepartmentArchiveBackup()"
+                  >
+                    Download Archive Backup ZIP
+                  </button>
+                </div>
               </div>
 
-              <div class="inline-actions">
-                <button type="button" class="cancel-btn">
-                  Create Backup Now
-                </button>
-                <button type="button" class="save-btn">
-                  class="cancel-btn department-action-btn"
-                </button>
+              <div class="general-card">
+                <h4>CSV Export Bundles</h4>
+                <p>
+                  Export core records, section assignments, and all OJT-related
+                  records into zipped CSV bundles.
+                </p>
+                <div class="inline-actions backup-actions-wrap">
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="exportCoreDataCsvBundle()"
+                  >
+                    Export Core Data CSV ZIP
+                  </button>
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="exportSectionAssignmentsCsvBundle()"
+                  >
+                    Export Section Assignments CSV ZIP
+                  </button>
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="exportAllOjtCsvBundle()"
+                  >
+                    Export All OJT CSV ZIP
+                  </button>
+                </div>
               </div>
+
+              <div class="general-card">
+                <h4>Import Selected Table (CSV/ZIP)</h4>
+                <p>
+                  Import external partners, users, OJT students, or
+                  section_assignments using CSV or ZIP (auto-detects CSV entry
+                  in ZIP).
+                </p>
+                <div class="setting-grid two-column backup-import-grid">
+                  <label>
+                    Target Table
+                    <select id="backupSelectedTable">
+                      <option value="external_partners">
+                        external_partners
+                      </option>
+                      <option value="users">users</option>
+                      <option value="ojt_students">ojt_students</option>
+                      <option value="section_assignments">
+                        section_assignments
+                      </option>
+                    </select>
+                  </label>
+                  <label>
+                    Selected File
+                    <input
+                      id="backupSelectedImportFile"
+                      type="text"
+                      readonly
+                      placeholder="No file selected"
+                    />
+                  </label>
+                </div>
+                <div class="inline-actions backup-actions-wrap">
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="pickBackupImportFile('selected')"
+                  >
+                    Choose CSV/ZIP File
+                  </button>
+                  <button
+                    type="button"
+                    class="save-btn"
+                    onclick="runSelectedTableImport()"
+                  >
+                    Import Selected Table
+                  </button>
+                </div>
+              </div>
+
+              <div class="general-card">
+                <h4>Import All OJT Tables (ZIP)</h4>
+                <p>
+                  Import all OJT-related CSV files from one ZIP package,
+                  including students_user and section_assignments. Excludes
+                  ojt_requirement_templates and ojt_department_hours.
+                </p>
+                <div class="setting-grid">
+                  <label>
+                    Selected ZIP File
+                    <input
+                      id="backupAllOjtImportFile"
+                      type="text"
+                      readonly
+                      placeholder="No ZIP file selected"
+                    />
+                  </label>
+                </div>
+                <div class="inline-actions backup-actions-wrap">
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="pickBackupImportFile('all')"
+                  >
+                    Choose ZIP File
+                  </button>
+                  <button
+                    type="button"
+                    class="save-btn"
+                    onclick="runAllOjtImport()"
+                  >
+                    Import All OJT ZIP
+                  </button>
+                </div>
+              </div>
+
+              <div id="backupRestoreStatusMessage" class="general-status"></div>
             </div>
 
             <!-- ================= RESET ================= -->
             <div id="reset" class="settings-section">
               <h3>Reset</h3>
+              <div class="section-description">
+                Manage system-wide resets for various data and configurations.
+                These actions are irreversible.
+              </div>
+
               <div class="warning-card">
-                <h4>Danger Zone</h4>
+                <h4>Delete Thesis/Capstone Archives</h4>
                 <p>
-                  Reset will restore system settings to default values. This
-                  action should only be performed by authorized administrators.
+                  Remove all thesis and capstone archive records from the
+                  system.
                 </p>
                 <button
                   type="button"
                   class="danger-btn"
-                  onclick="confirmReset()"
+                  onclick="resetThesisCapstoneArchives()"
+                >
+                  Delete All Archives
+                </button>
+              </div>
+
+              <div class="warning-card">
+                <h4>Truncate OJT-Related Tables</h4>
+                <p>
+                  Remove all OJT student records, attendance, certificates,
+                  weekly reports, schedules, and related data. Also removes
+                  students_user and section_assignments data. Preserves
+                  ojt_requirement_templates and ojt_department_hours.
+                </p>
+                <button
+                  type="button"
+                  class="danger-btn"
+                  onclick="resetOjtTables()"
+                >
+                  Truncate OJT Tables
+                </button>
+              </div>
+
+              <div class="warning-card">
+                <h4>Truncate External Partners</h4>
+                <p>Remove all external partner records from the system.</p>
+                <button
+                  type="button"
+                  class="danger-btn"
+                  onclick="resetExternalPartners()"
+                >
+                  Truncate External Partners
+                </button>
+              </div>
+
+              <div class="warning-card">
+                <h4>Reset to Default Settings</h4>
+                <p>
+                  Restore all system settings (department, thesis archives, PDF
+                  headers, Google Drive paths, etc.) to their default values.
+                </p>
+                <button
+                  type="button"
+                  class="danger-btn"
+                  onclick="resetSettings()"
                 >
                   Reset All Settings
                 </button>
@@ -713,6 +873,10 @@
         sections: [],
         deletedSectionIds: [],
       };
+      let backupRestoreState = {
+        selectedImportPath: "",
+        allOjtImportPath: "",
+      };
 
       document.querySelectorAll(".settings-menu li").forEach((item) => {
         item.onclick = () => {
@@ -737,9 +901,245 @@
             if (section.id === "department") {
               loadDepartmentSettings();
             }
+            if (section.id === "backup-restore") {
+              showBackupRestoreStatus("");
+            }
           }
         };
       });
+
+      function showBackupRestoreStatus(message, isError = false) {
+        const el = document.getElementById("backupRestoreStatusMessage");
+        if (!el) return;
+        el.textContent = message || "";
+        el.classList.toggle("error", Boolean(isError));
+      }
+
+      function renderBackupRestoreFileInputs() {
+        const selectedInput = document.getElementById(
+          "backupSelectedImportFile",
+        );
+        const allInput = document.getElementById("backupAllOjtImportFile");
+        if (selectedInput) {
+          selectedInput.value = backupRestoreState.selectedImportPath || "";
+        }
+        if (allInput) {
+          allInput.value = backupRestoreState.allOjtImportPath || "";
+        }
+      }
+
+      async function downloadDepartmentArchiveBackup() {
+        if (!electronAPI) {
+          showBackupRestoreStatus("Backup export is unavailable.", true);
+          return;
+        }
+
+        showBackupRestoreStatus("Preparing department archive backup...");
+        const result = await electronAPI.exportDepartmentArchiveBackup();
+        if (!result?.success) {
+          if (result?.canceled) {
+            showBackupRestoreStatus("Archive backup export canceled.");
+            return;
+          }
+          showBackupRestoreStatus(
+            result?.message || "Failed to export department archive backup.",
+            true,
+          );
+          return;
+        }
+
+        showBackupRestoreStatus(`Archive backup saved to: ${result.filePath}`);
+      }
+
+      async function exportCoreDataCsvBundle() {
+        if (!electronAPI) {
+          showBackupRestoreStatus("CSV export is unavailable.", true);
+          return;
+        }
+
+        showBackupRestoreStatus("Generating core data CSV ZIP...");
+        const result = await electronAPI.exportCoreDataCsvZip();
+        if (!result?.success) {
+          if (result?.canceled) {
+            showBackupRestoreStatus("Core CSV export canceled.");
+            return;
+          }
+          showBackupRestoreStatus(
+            result?.message || "Failed to export core data CSV ZIP.",
+            true,
+          );
+          return;
+        }
+
+        showBackupRestoreStatus(`Core CSV ZIP saved to: ${result.filePath}`);
+      }
+
+      async function exportSectionAssignmentsCsvBundle() {
+        if (!electronAPI) {
+          showBackupRestoreStatus("CSV export is unavailable.", true);
+          return;
+        }
+
+        showBackupRestoreStatus("Generating section assignments CSV ZIP...");
+        const result = await electronAPI.exportSectionAssignmentsCsvZip();
+        if (!result?.success) {
+          if (result?.canceled) {
+            showBackupRestoreStatus("Section assignments CSV export canceled.");
+            return;
+          }
+          showBackupRestoreStatus(
+            result?.message || "Failed to export section assignments CSV ZIP.",
+            true,
+          );
+          return;
+        }
+
+        showBackupRestoreStatus(
+          `Section assignments CSV ZIP saved to: ${result.filePath}`,
+        );
+      }
+
+      async function exportAllOjtCsvBundle() {
+        if (!electronAPI) {
+          showBackupRestoreStatus("CSV export is unavailable.", true);
+          return;
+        }
+
+        showBackupRestoreStatus(
+          "Generating all OJT CSV ZIP (including students_user)...",
+        );
+        const result = await electronAPI.exportAllOjtCsvZip();
+        if (!result?.success) {
+          if (result?.canceled) {
+            showBackupRestoreStatus("All OJT CSV export canceled.");
+            return;
+          }
+          showBackupRestoreStatus(
+            result?.message || "Failed to export all OJT CSV ZIP.",
+            true,
+          );
+          return;
+        }
+
+        showBackupRestoreStatus(`All OJT CSV ZIP saved to: ${result.filePath}`);
+      }
+
+      async function pickBackupImportFile(mode) {
+        if (!electronAPI) {
+          showBackupRestoreStatus("Import picker is unavailable.", true);
+          return;
+        }
+
+        const result = await electronAPI.selectBackupRestoreImportFile();
+        if (!result?.success) {
+          if (!result?.canceled) {
+            showBackupRestoreStatus(
+              result?.message || "Failed to pick import file.",
+              true,
+            );
+          }
+          return;
+        }
+
+        if (mode === "all") {
+          backupRestoreState.allOjtImportPath = result.localPath || "";
+        } else {
+          backupRestoreState.selectedImportPath = result.localPath || "";
+        }
+
+        renderBackupRestoreFileInputs();
+        showBackupRestoreStatus(
+          "Import file selected. Click Import to continue.",
+        );
+      }
+
+      async function runSelectedTableImport() {
+        if (!electronAPI) {
+          showBackupRestoreStatus(
+            "Selected-table import is unavailable.",
+            true,
+          );
+          return;
+        }
+
+        const localPath = String(
+          backupRestoreState.selectedImportPath || "",
+        ).trim();
+        const targetTable = String(
+          document.getElementById("backupSelectedTable")?.value || "",
+        )
+          .trim()
+          .toLowerCase();
+
+        if (!localPath) {
+          showBackupRestoreStatus("Choose a CSV or ZIP file first.", true);
+          return;
+        }
+        if (!targetTable) {
+          showBackupRestoreStatus("Choose a target table first.", true);
+          return;
+        }
+
+        showBackupRestoreStatus(`Importing into ${targetTable}...`);
+        const result = await electronAPI.importSelectedCsvZip({
+          localPath,
+          targetTable,
+        });
+
+        if (!result?.success) {
+          showBackupRestoreStatus(
+            result?.message || "Selected-table import failed.",
+            true,
+          );
+          return;
+        }
+
+        const report = result.report || {};
+        showBackupRestoreStatus(
+          `Selected import complete for ${targetTable}. Inserted: ${report.inserted || 0}, Updated: ${report.updated || 0}, Failed: ${report.failed || 0}.`,
+          false,
+        );
+      }
+
+      async function runAllOjtImport() {
+        if (!electronAPI) {
+          showBackupRestoreStatus("All-OJT import is unavailable.", true);
+          return;
+        }
+
+        const localPath = String(
+          backupRestoreState.allOjtImportPath || "",
+        ).trim();
+        if (!localPath) {
+          showBackupRestoreStatus("Choose a ZIP file first.", true);
+          return;
+        }
+
+        showBackupRestoreStatus("Importing all OJT CSV files from ZIP...");
+        const result = await electronAPI.importAllOjtZip({ localPath });
+        if (!result?.success) {
+          showBackupRestoreStatus(
+            result?.message || "All-OJT import failed.",
+            true,
+          );
+          return;
+        }
+
+        const reports = Array.isArray(result.reports) ? result.reports : [];
+        const totals = reports.reduce(
+          (acc, item) => ({
+            inserted: acc.inserted + (item.inserted || 0),
+            updated: acc.updated + (item.updated || 0),
+            failed: acc.failed + (item.failed || 0),
+          }),
+          { inserted: 0, updated: 0, failed: 0 },
+        );
+
+        showBackupRestoreStatus(
+          `All-OJT import complete. Inserted: ${totals.inserted}, Updated: ${totals.updated}, Failed: ${totals.failed}.`,
+          false,
+        );
+      }
 
       function readStoredUser() {
         try {
@@ -2449,6 +2849,14 @@
 
       window.addOjtDepartmentHoursRow = addOjtDepartmentHoursRow;
       window.removeOjtDepartmentHoursRow = removeOjtDepartmentHoursRow;
+      window.downloadDepartmentArchiveBackup = downloadDepartmentArchiveBackup;
+      window.exportCoreDataCsvBundle = exportCoreDataCsvBundle;
+      window.exportSectionAssignmentsCsvBundle =
+        exportSectionAssignmentsCsvBundle;
+      window.exportAllOjtCsvBundle = exportAllOjtCsvBundle;
+      window.pickBackupImportFile = pickBackupImportFile;
+      window.runSelectedTableImport = runSelectedTableImport;
+      window.runAllOjtImport = runAllOjtImport;
 
       async function saveChanges() {
         const activeSection = document.querySelector(
@@ -2471,6 +2879,10 @@
           success = await saveOjtRequirementsSettings();
         } else if (activeSection.id === "department") {
           success = await saveDepartmentFromSettings();
+        } else if (activeSection.id === "backup-restore") {
+          showBackupRestoreStatus(
+            "Backup and restore actions run immediately from their section buttons.",
+          );
         } else {
           alert("Settings saved!");
         }
@@ -2564,6 +2976,14 @@
           return;
         }
 
+        if (activeSection?.id === "backup-restore") {
+          backupRestoreState.selectedImportPath = "";
+          backupRestoreState.allOjtImportPath = "";
+          renderBackupRestoreFileInputs();
+          showBackupRestoreStatus("Selection cleared.");
+          return;
+        }
+
         location.reload();
       }
 
@@ -2585,11 +3005,124 @@
         }
       }
 
+      async function resetThesisCapstoneArchives() {
+        if (
+          !window.confirm(
+            "Are you sure you want to delete all thesis and capstone archives? This action cannot be undone.",
+          )
+        ) {
+          return;
+        }
+
+        if (!electronAPI?.resetThesisCapstoneArchives) {
+          alert("Reset operation is unavailable.");
+          return;
+        }
+
+        try {
+          const result = await electronAPI.resetThesisCapstoneArchives();
+          if (result?.success) {
+            alert("All thesis and capstone archives have been deleted.");
+          } else {
+            alert(
+              result?.message || "Failed to delete thesis/capstone archives.",
+            );
+          }
+        } catch (error) {
+          alert(
+            `Error: ${error.message || "Failed to delete thesis/capstone archives."}`,
+          );
+        }
+      }
+
+      async function resetOjtTables() {
+        if (
+          !window.confirm(
+            "Are you sure you want to truncate all OJT-related tables? This action cannot be undone.",
+          )
+        ) {
+          return;
+        }
+
+        if (!electronAPI?.resetOjtTables) {
+          alert("Reset operation is unavailable.");
+          return;
+        }
+
+        try {
+          const result = await electronAPI.resetOjtTables();
+          if (result?.success) {
+            alert("OJT-related tables have been truncated.");
+          } else {
+            alert(result?.message || "Failed to truncate OJT tables.");
+          }
+        } catch (error) {
+          alert(`Error: ${error.message || "Failed to truncate OJT tables."}`);
+        }
+      }
+
+      async function resetExternalPartners() {
+        if (
+          !window.confirm(
+            "Are you sure you want to truncate the external partners table? This action cannot be undone.",
+          )
+        ) {
+          return;
+        }
+
+        if (!electronAPI?.resetExternalPartners) {
+          alert("Reset operation is unavailable.");
+          return;
+        }
+
+        try {
+          const result = await electronAPI.resetExternalPartners();
+          if (result?.success) {
+            alert("External partners table has been truncated.");
+          } else {
+            alert(result?.message || "Failed to truncate external partners.");
+          }
+        } catch (error) {
+          alert(
+            `Error: ${error.message || "Failed to truncate external partners."}`,
+          );
+        }
+      }
+
+      async function resetSettings() {
+        if (
+          !window.confirm(
+            "Are you sure you want to reset all settings to defaults? This action cannot be undone.",
+          )
+        ) {
+          return;
+        }
+
+        if (!electronAPI?.resetAppSettings) {
+          alert("Reset operation is unavailable.");
+          return;
+        }
+
+        try {
+          const result = await electronAPI.resetAppSettings();
+          if (result?.success) {
+            alert("All settings have been reset to defaults. Reloading...");
+            // Reload the page to reflect default settings
+            window.location.reload();
+          } else {
+            alert(result?.message || "Failed to reset app settings.");
+          }
+        } catch (error) {
+          alert(`Error: ${error.message || "Failed to reset app settings."}`);
+        }
+      }
+
       loadProfileFromBackend();
       loadGeneralSettings();
       loadThesisArchiveSettings();
       loadThesisArchiveOptions();
       loadThesisLinkCandidates("");
+      renderBackupRestoreFileInputs();
     </script>
   </body>
 </html>

@@ -181,6 +181,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("markConfigurationSetupCompleted", payload),
   selectLocalDocumentsDirectory: () =>
     ipcRenderer.invoke("selectLocalDocumentsDirectory"),
+  selectBackupRestoreImportFile: () =>
+    ipcRenderer.invoke("selectBackupRestoreImportFile"),
+  exportDepartmentArchiveBackup: () =>
+    ipcRenderer.invoke("exportDepartmentArchiveBackup"),
+  exportCoreDataCsvZip: () => ipcRenderer.invoke("exportCoreDataCsvZip"),
+  exportSectionAssignmentsCsvZip: () =>
+    ipcRenderer.invoke("exportSectionAssignmentsCsvZip"),
+  exportAllOjtCsvZip: () => ipcRenderer.invoke("exportAllOjtCsvZip"),
+  importSelectedCsvZip: (payload) =>
+    ipcRenderer.invoke("importSelectedCsvZip", payload),
+  importAllOjtZip: (payload) => ipcRenderer.invoke("importAllOjtZip", payload),
+  resetThesisCapstoneArchives: () =>
+    ipcRenderer.invoke("resetThesisCapstoneArchives"),
+  resetOjtTables: () => ipcRenderer.invoke("resetOjtTables"),
+  resetExternalPartners: () => ipcRenderer.invoke("resetExternalPartners"),
+  resetAppSettings: () => ipcRenderer.invoke("resetAppSettings"),
   ensureDepartmentDocumentsDirectory: (departmentCode) =>
     ipcRenderer.invoke("ensureDepartmentDocumentsDirectory", departmentCode),
   updateProfile: (profileData) =>

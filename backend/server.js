@@ -23,6 +23,7 @@ const metaRoutes = require("./routes/meta");
 const gdriveRoutes = require("./routes/gdrive");
 const uploadRoutes = require("./routes/upload");
 const proxyRoutes = require("./routes/proxy");
+const backupRestoreRoutes = require("./routes/backup-restore");
 const { syncAllArchiveOjtLinks } = require("./helpers/archive-ojt-link");
 const notificationService = require("./services/notifications");
 
@@ -94,6 +95,7 @@ app.use("/api/meta", metaRoutes);
 app.use("/api/gdrive", gdriveRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/proxy", proxyRoutes);
+app.use("/api/backup-restore", backupRestoreRoutes);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) => {

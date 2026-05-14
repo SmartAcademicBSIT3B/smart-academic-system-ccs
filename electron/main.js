@@ -746,6 +746,71 @@ function sanitizeDownloadFileName(fileName) {
   return cleaned || "archive.pdf";
 }
 
+function parseContentDispositionFileName(value) {
+  const raw = String(value || "");
+  const utf8Match = raw.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match && utf8Match[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].trim());
+    } catch (_error) {
+      return utf8Match[1].trim();
+    }
+  }
+
+  const plainMatch = raw.match(/filename=\"?([^\";]+)\"?/i);
+  if (plainMatch && plainMatch[1]) {
+    return plainMatch[1].trim();
+  }
+
+  return "";
+}
+
+async function saveDownloadResponseToFile(response, preferredFileName, title) {
+  if (!response || !response.ok) {
+    let details = "";
+    try {
+      details = await response.text();
+    } catch (_error) {
+      // Ignore parse failures.
+    }
+
+    return {
+      success: false,
+      message:
+        `Download failed (HTTP ${response?.status || 500}). ${details}`.trim(),
+    };
+  }
+
+  const fallbackName = sanitizeDownloadFileName(
+    preferredFileName || "export.zip",
+  );
+  const contentDisposition = response.headers.get("content-disposition") || "";
+  const responseFileName =
+    sanitizeDownloadFileName(
+      parseContentDispositionFileName(contentDisposition),
+    ) || fallbackName;
+
+  const focusedWindow = BrowserWindow.getFocusedWindow();
+  const { canceled, filePath } = await dialog.showSaveDialog(focusedWindow, {
+    title: title || "Save exported file",
+    defaultPath: responseFileName,
+    filters: [{ name: "ZIP files", extensions: ["zip"] }],
+  });
+
+  if (canceled || !filePath) {
+    return { success: false, canceled: true, message: "Export canceled." };
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  await fs.writeFile(filePath, Buffer.from(arrayBuffer));
+
+  return {
+    success: true,
+    filePath,
+    fileName: path.basename(filePath),
+  };
+}
+
 async function buildUniqueDownloadPath(downloadsDir, preferredFileName) {
   const parsed = path.parse(sanitizeDownloadFileName(preferredFileName));
   const baseName = parsed.name || "archive";
@@ -1768,6 +1833,210 @@ ipcMain.handle("selectDepartmentLogo", async () => {
   } catch (error) {
     console.error("Select department logo error:", error);
     return { success: false, message: "Could not open file picker." };
+  }
+});
+
+ipcMain.handle("selectBackupRestoreImportFile", async () => {
+  try {
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    const { canceled, filePaths } = await dialog.showOpenDialog(focusedWindow, {
+      title: "Select CSV or ZIP file to import",
+      properties: ["openFile"],
+      filters: [
+        { name: "CSV/ZIP", extensions: ["csv", "zip"] },
+        { name: "All Files", extensions: ["*"] },
+      ],
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return { success: false, canceled: true };
+    }
+
+    return {
+      success: true,
+      localPath: filePaths[0],
+      fileName: path.basename(filePaths[0]),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Could not open file picker.",
+    };
+  }
+});
+
+ipcMain.handle("exportDepartmentArchiveBackup", async () => {
+  try {
+    const response = await api.download(
+      "/backup-restore/export/department-archives",
+    );
+    return await saveDownloadResponseToFile(
+      response,
+      "department-archives-backup.zip",
+      "Save Department Archive Backup",
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to export department archive backup.",
+    };
+  }
+});
+
+ipcMain.handle("exportCoreDataCsvZip", async () => {
+  try {
+    const response = await api.download("/backup-restore/export/core-data");
+    return await saveDownloadResponseToFile(
+      response,
+      "core-data-export.zip",
+      "Save Core Data CSV ZIP",
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to export core CSV data.",
+    };
+  }
+});
+
+ipcMain.handle("exportSectionAssignmentsCsvZip", async () => {
+  try {
+    const response = await api.download(
+      "/backup-restore/export/section-assignments",
+    );
+    return await saveDownloadResponseToFile(
+      response,
+      "section-assignments-export.zip",
+      "Save Section Assignments CSV ZIP",
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error.message || "Failed to export section assignments CSV data.",
+    };
+  }
+});
+
+ipcMain.handle("exportAllOjtCsvZip", async () => {
+  try {
+    const response = await api.download("/backup-restore/export/all-ojt");
+    return await saveDownloadResponseToFile(
+      response,
+      "all-ojt-export.zip",
+      "Save All OJT CSV ZIP",
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to export all OJT CSV data.",
+    };
+  }
+});
+
+ipcMain.handle(
+  "importSelectedCsvZip",
+  async (event, { localPath, targetTable } = {}) => {
+    try {
+      const resolvedPath = String(localPath || "").trim();
+      const resolvedTable = String(targetTable || "")
+        .trim()
+        .toLowerCase();
+
+      if (!resolvedPath) {
+        return { success: false, message: "Import file path is required." };
+      }
+      if (!resolvedTable) {
+        return { success: false, message: "Target table is required." };
+      }
+
+      const buffer = await fs.readFile(resolvedPath);
+      return await api.postFile(
+        "/backup-restore/import/selected",
+        buffer,
+        path.basename(resolvedPath),
+        "application/octet-stream",
+        { targetTable: resolvedTable },
+      );
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to import selected CSV/ZIP file.",
+      };
+    }
+  },
+);
+
+ipcMain.handle("importAllOjtZip", async (event, { localPath } = {}) => {
+  try {
+    const resolvedPath = String(localPath || "").trim();
+    if (!resolvedPath) {
+      return { success: false, message: "Import file path is required." };
+    }
+
+    const buffer = await fs.readFile(resolvedPath);
+    return await api.postFile(
+      "/backup-restore/import/all-ojt",
+      buffer,
+      path.basename(resolvedPath),
+      "application/octet-stream",
+      {},
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to import all OJT ZIP data.",
+    };
+  }
+});
+
+ipcMain.handle("resetThesisCapstoneArchives", async () => {
+  try {
+    return await api.post("/backup-restore/reset/thesis-capstone", {});
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to reset thesis/capstone archives.",
+    };
+  }
+});
+
+ipcMain.handle("resetOjtTables", async () => {
+  try {
+    return await api.post("/backup-restore/reset/ojt-tables", {});
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to reset OJT tables.",
+    };
+  }
+});
+
+ipcMain.handle("resetExternalPartners", async () => {
+  try {
+    return await api.post("/backup-restore/reset/external-partners", {});
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to reset external partners table.",
+    };
+  }
+});
+
+ipcMain.handle("resetAppSettings", async () => {
+  try {
+    // Reset settings on client side
+    const defaultSettings = loadDefaultAppSettings();
+    await saveAppSettingsPatch(defaultSettings);
+    return {
+      success: true,
+      message: "App settings have been reset to defaults.",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to reset app settings.",
+    };
   }
 });
 

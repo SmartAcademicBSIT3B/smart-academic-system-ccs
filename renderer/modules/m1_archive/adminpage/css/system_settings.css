@@ -519,6 +519,15 @@ body {
   overflow: hidden;
 }
 
+.backup-actions-wrap {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.backup-import-grid {
+  align-items: end;
+}
+
 .general-status {
   margin-top: 12px;
   min-height: 20px;

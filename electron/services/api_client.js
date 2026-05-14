@@ -43,10 +43,7 @@ function setDepartmentCode(code) {
   departmentCode = String(code || "CCS").trim() || "CCS";
 }
 
-// ── Core request ──────────────────────────────────────────────────────────────
-async function request(method, path, body = null, extraHeaders = {}) {
-  const url = `${BASE_URL}/api${path}`;
-
+function buildRequestHeaders(extraHeaders = {}) {
   const headers = {
     "x-department": departmentCode,
     ...extraHeaders,
@@ -55,6 +52,15 @@ async function request(method, path, body = null, extraHeaders = {}) {
   if (authToken) {
     headers["Authorization"] = `Bearer ${authToken}`;
   }
+
+  return headers;
+}
+
+// ── Core request ──────────────────────────────────────────────────────────────
+async function request(method, path, body = null, extraHeaders = {}) {
+  const url = `${BASE_URL}/api${path}`;
+
+  const headers = buildRequestHeaders(extraHeaders);
 
   let bodyStr = null;
   if (body !== null && !(body instanceof FormData)) {
@@ -84,6 +90,27 @@ async function request(method, path, body = null, extraHeaders = {}) {
   return data;
 }
 
+async function requestRaw(method, path, body = null, extraHeaders = {}) {
+  const url = `${BASE_URL}/api${path}`;
+  const headers = buildRequestHeaders(extraHeaders);
+
+  let payload = body;
+  if (
+    body !== null &&
+    body !== undefined &&
+    !(typeof FormDataImpl === "function" && body instanceof FormDataImpl)
+  ) {
+    headers["Content-Type"] = "application/json";
+    payload = JSON.stringify(body);
+  }
+
+  return fetch(url, {
+    method,
+    headers,
+    body: payload,
+  });
+}
+
 function get(path) {
   return request("GET", path);
 }
@@ -98,6 +125,10 @@ function patch(path, body) {
 
 function del(path, body = null) {
   return request("DELETE", path, body);
+}
+
+function download(path) {
+  return requestRaw("GET", path);
 }
 
 /**
@@ -165,6 +196,8 @@ module.exports = {
   post,
   patch,
   del,
+  requestRaw,
+  download,
   postFile,
   downloadFile,
 };
