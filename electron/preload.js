@@ -168,6 +168,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   // ── OJT Requirements ───────────────────────────────────────────────────────
+  getOjtRequirementsManagerSettings: () =>
+    ipcRenderer.invoke("getOjtRequirementsManagerSettings"),
+  updateOjtRequirementsManagerSettings: (payload) =>
+    ipcRenderer.invoke("updateOjtRequirementsManagerSettings", payload),
+  getOjtDepartmentHours: () => ipcRenderer.invoke("getOjtDepartmentHours"),
+  createOjtDepartmentHours: (payload) =>
+    ipcRenderer.invoke("createOjtDepartmentHours", payload),
+  updateOjtDepartmentHours: (payload) =>
+    ipcRenderer.invoke("updateOjtDepartmentHours", payload),
+  deleteOjtDepartmentHours: (id) =>
+    ipcRenderer.invoke("deleteOjtDepartmentHours", id),
   getOjtRequirementTemplates: (params) =>
     ipcRenderer.invoke("getOjtRequirementTemplates", params),
   createOjtRequirementTemplate: (payload) =>

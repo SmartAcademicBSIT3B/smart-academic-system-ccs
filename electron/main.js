@@ -2646,6 +2646,81 @@ ipcMain.handle("getOjtRequirementTemplates", async (event, params) => {
   }
 });
 
+ipcMain.handle("getOjtRequirementsManagerSettings", async () => {
+  try {
+    return await api.get("/ojt-requirements/settings");
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch OJT manager settings.",
+    };
+  }
+});
+
+ipcMain.handle(
+  "updateOjtRequirementsManagerSettings",
+  async (event, payload) => {
+    try {
+      return await api.patch("/ojt-requirements/settings", payload || {});
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to update OJT manager settings.",
+      };
+    }
+  },
+);
+
+ipcMain.handle("getOjtDepartmentHours", async () => {
+  try {
+    return await api.get("/ojt-requirements/department-hours");
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch department OJT hours.",
+    };
+  }
+});
+
+ipcMain.handle("createOjtDepartmentHours", async (event, payload) => {
+  try {
+    return await api.post("/ojt-requirements/department-hours", payload || {});
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to create department OJT hours.",
+    };
+  }
+});
+
+ipcMain.handle("updateOjtDepartmentHours", async (event, payload) => {
+  try {
+    const id = payload?.id;
+    return await api.patch(
+      `/ojt-requirements/department-hours/${encodeURIComponent(id)}`,
+      payload || {},
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to update department OJT hours.",
+    };
+  }
+});
+
+ipcMain.handle("deleteOjtDepartmentHours", async (event, id) => {
+  try {
+    return await api.del(
+      `/ojt-requirements/department-hours/${encodeURIComponent(id)}`,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to delete department OJT hours.",
+    };
+  }
+});
+
 ipcMain.handle("createOjtRequirementTemplate", async (event, payload) => {
   try {
     return await api.post("/ojt-requirements/templates", payload);

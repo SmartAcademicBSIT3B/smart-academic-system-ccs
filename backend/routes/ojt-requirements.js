@@ -4,6 +4,17 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
+const DEFAULT_OJT_MANAGER_SETTINGS = {
+  preRateLimitPerDay: 10,
+  postRateLimitPerDay: 10,
+  dailyRateLimitPerDay: 5,
+  weeklyRateLimitPerDay: 3,
+  preMaxFileSizeMB: 25,
+  postMaxFileSizeMB: 25,
+  dailyMaxFileSizeMB: 25,
+  weeklyMaxFileSizeMB: 25,
+};
+
 const DEPT_HEADER = "x-department";
 function getDept(req) {
   return (
@@ -79,7 +90,183 @@ async function ensureTables() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS ojt_requirements_manager_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      department VARCHAR(120) NOT NULL,
+      pre_rate_limit_per_day INT NOT NULL DEFAULT 10,
+      post_rate_limit_per_day INT NOT NULL DEFAULT 10,
+      daily_rate_limit_per_day INT NOT NULL DEFAULT 5,
+      weekly_rate_limit_per_day INT NOT NULL DEFAULT 3,
+      pre_max_file_size_mb INT NOT NULL DEFAULT 25,
+      post_max_file_size_mb INT NOT NULL DEFAULT 25,
+      daily_max_file_size_mb INT NOT NULL DEFAULT 25,
+      weekly_max_file_size_mb INT NOT NULL DEFAULT 25,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_orms_department (department)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS ojt_department_hours (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      department VARCHAR(120) NOT NULL,
+      section_prefix VARCHAR(50) NOT NULL,
+      required_hours INT NOT NULL,
+      notes VARCHAR(255) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_odh_department_section (department, section_prefix)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
   tablesPrepared = true;
+}
+
+function normalizePositiveInt(value, fallback, max = 1000) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+}
+
+function normalizeManagerSettingsPayload(value = {}) {
+  const raw = value && typeof value === "object" ? value : {};
+  return {
+    preRateLimitPerDay: normalizePositiveInt(
+      raw.preRateLimitPerDay,
+      DEFAULT_OJT_MANAGER_SETTINGS.preRateLimitPerDay,
+      100,
+    ),
+    postRateLimitPerDay: normalizePositiveInt(
+      raw.postRateLimitPerDay,
+      DEFAULT_OJT_MANAGER_SETTINGS.postRateLimitPerDay,
+      100,
+    ),
+    dailyRateLimitPerDay: normalizePositiveInt(
+      raw.dailyRateLimitPerDay,
+      DEFAULT_OJT_MANAGER_SETTINGS.dailyRateLimitPerDay,
+      100,
+    ),
+    weeklyRateLimitPerDay: normalizePositiveInt(
+      raw.weeklyRateLimitPerDay,
+      DEFAULT_OJT_MANAGER_SETTINGS.weeklyRateLimitPerDay,
+      100,
+    ),
+    preMaxFileSizeMB: normalizePositiveInt(
+      raw.preMaxFileSizeMB,
+      DEFAULT_OJT_MANAGER_SETTINGS.preMaxFileSizeMB,
+      50,
+    ),
+    postMaxFileSizeMB: normalizePositiveInt(
+      raw.postMaxFileSizeMB,
+      DEFAULT_OJT_MANAGER_SETTINGS.postMaxFileSizeMB,
+      50,
+    ),
+    dailyMaxFileSizeMB: normalizePositiveInt(
+      raw.dailyMaxFileSizeMB,
+      DEFAULT_OJT_MANAGER_SETTINGS.dailyMaxFileSizeMB,
+      50,
+    ),
+    weeklyMaxFileSizeMB: normalizePositiveInt(
+      raw.weeklyMaxFileSizeMB,
+      DEFAULT_OJT_MANAGER_SETTINGS.weeklyMaxFileSizeMB,
+      50,
+    ),
+  };
+}
+
+async function ensureManagerSettingsRow(dept) {
+  const rows = await query(
+    `SELECT *
+     FROM ojt_requirements_manager_settings
+     WHERE department = ?
+     LIMIT 1`,
+    [dept],
+  );
+
+  if (Array.isArray(rows) && rows.length > 0) {
+    return rows[0];
+  }
+
+  await query(
+    `INSERT INTO ojt_requirements_manager_settings (
+      department,
+      pre_rate_limit_per_day,
+      post_rate_limit_per_day,
+      daily_rate_limit_per_day,
+      weekly_rate_limit_per_day,
+      pre_max_file_size_mb,
+      post_max_file_size_mb,
+      daily_max_file_size_mb,
+      weekly_max_file_size_mb
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      dept,
+      DEFAULT_OJT_MANAGER_SETTINGS.preRateLimitPerDay,
+      DEFAULT_OJT_MANAGER_SETTINGS.postRateLimitPerDay,
+      DEFAULT_OJT_MANAGER_SETTINGS.dailyRateLimitPerDay,
+      DEFAULT_OJT_MANAGER_SETTINGS.weeklyRateLimitPerDay,
+      DEFAULT_OJT_MANAGER_SETTINGS.preMaxFileSizeMB,
+      DEFAULT_OJT_MANAGER_SETTINGS.postMaxFileSizeMB,
+      DEFAULT_OJT_MANAGER_SETTINGS.dailyMaxFileSizeMB,
+      DEFAULT_OJT_MANAGER_SETTINGS.weeklyMaxFileSizeMB,
+    ],
+  );
+
+  const created = await query(
+    `SELECT *
+     FROM ojt_requirements_manager_settings
+     WHERE department = ?
+     LIMIT 1`,
+    [dept],
+  );
+  return created[0] || null;
+}
+
+function toManagerSettingsResponse(row = {}) {
+  return {
+    preRateLimitPerDay: normalizePositiveInt(
+      row.pre_rate_limit_per_day,
+      DEFAULT_OJT_MANAGER_SETTINGS.preRateLimitPerDay,
+      100,
+    ),
+    postRateLimitPerDay: normalizePositiveInt(
+      row.post_rate_limit_per_day,
+      DEFAULT_OJT_MANAGER_SETTINGS.postRateLimitPerDay,
+      100,
+    ),
+    dailyRateLimitPerDay: normalizePositiveInt(
+      row.daily_rate_limit_per_day,
+      DEFAULT_OJT_MANAGER_SETTINGS.dailyRateLimitPerDay,
+      100,
+    ),
+    weeklyRateLimitPerDay: normalizePositiveInt(
+      row.weekly_rate_limit_per_day,
+      DEFAULT_OJT_MANAGER_SETTINGS.weeklyRateLimitPerDay,
+      100,
+    ),
+    preMaxFileSizeMB: normalizePositiveInt(
+      row.pre_max_file_size_mb,
+      DEFAULT_OJT_MANAGER_SETTINGS.preMaxFileSizeMB,
+      50,
+    ),
+    postMaxFileSizeMB: normalizePositiveInt(
+      row.post_max_file_size_mb,
+      DEFAULT_OJT_MANAGER_SETTINGS.postMaxFileSizeMB,
+      50,
+    ),
+    dailyMaxFileSizeMB: normalizePositiveInt(
+      row.daily_max_file_size_mb,
+      DEFAULT_OJT_MANAGER_SETTINGS.dailyMaxFileSizeMB,
+      50,
+    ),
+    weeklyMaxFileSizeMB: normalizePositiveInt(
+      row.weekly_max_file_size_mb,
+      DEFAULT_OJT_MANAGER_SETTINGS.weeklyMaxFileSizeMB,
+      50,
+    ),
+  };
 }
 
 // ── Seed defaults ─────────────────────────────────────────────────────────────
@@ -321,6 +508,235 @@ router.delete("/templates/:id", requireAuth, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to delete template.",
+    });
+  }
+});
+
+// ── GET /api/ojt-requirements/settings ──────────────────────────────────────
+router.get("/settings", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+    const row = await ensureManagerSettingsRow(dept);
+    return res.json({
+      success: true,
+      settings: toManagerSettingsResponse(row),
+    });
+  } catch (error) {
+    console.error("getOjtManagerSettings error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch OJT settings.",
+    });
+  }
+});
+
+// ── PATCH /api/ojt-requirements/settings ────────────────────────────────────
+router.patch("/settings", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+    await ensureManagerSettingsRow(dept);
+    const payload = normalizeManagerSettingsPayload(req.body || {});
+
+    await query(
+      `UPDATE ojt_requirements_manager_settings
+       SET pre_rate_limit_per_day = ?,
+           post_rate_limit_per_day = ?,
+           daily_rate_limit_per_day = ?,
+           weekly_rate_limit_per_day = ?,
+           pre_max_file_size_mb = ?,
+           post_max_file_size_mb = ?,
+           daily_max_file_size_mb = ?,
+           weekly_max_file_size_mb = ?
+       WHERE department = ?`,
+      [
+        payload.preRateLimitPerDay,
+        payload.postRateLimitPerDay,
+        payload.dailyRateLimitPerDay,
+        payload.weeklyRateLimitPerDay,
+        payload.preMaxFileSizeMB,
+        payload.postMaxFileSizeMB,
+        payload.dailyMaxFileSizeMB,
+        payload.weeklyMaxFileSizeMB,
+        dept,
+      ],
+    );
+
+    const row = await ensureManagerSettingsRow(dept);
+    return res.json({
+      success: true,
+      settings: toManagerSettingsResponse(row),
+    });
+  } catch (error) {
+    console.error("updateOjtManagerSettings error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update OJT settings.",
+    });
+  }
+});
+
+// ── GET /api/ojt-requirements/department-hours ─────────────────────────────
+router.get("/department-hours", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+    const rows = await query(
+      `SELECT id, department, section_prefix, required_hours, notes, updated_at
+       FROM ojt_department_hours
+       WHERE department = ?
+       ORDER BY section_prefix ASC`,
+      [dept],
+    );
+    return res.json({ success: true, hours: Array.isArray(rows) ? rows : [] });
+  } catch (error) {
+    console.error("getDepartmentHours error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch required OJT hours.",
+    });
+  }
+});
+
+// ── POST /api/ojt-requirements/department-hours ────────────────────────────
+router.post("/department-hours", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+
+    const sectionPrefix = String(req.body.section_prefix || "")
+      .trim()
+      .toUpperCase();
+    const requiredHours = normalizePositiveInt(
+      req.body.required_hours,
+      1,
+      2000,
+    );
+    const notes = String(req.body.notes || "").trim() || null;
+
+    if (!sectionPrefix) {
+      return res.status(400).json({
+        success: false,
+        message: "section_prefix is required.",
+      });
+    }
+
+    const existing = await query(
+      `SELECT id
+       FROM ojt_department_hours
+       WHERE department = ? AND section_prefix = ?
+       LIMIT 1`,
+      [dept, sectionPrefix],
+    );
+
+    if (Array.isArray(existing) && existing.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Section prefix already exists for this department.",
+      });
+    }
+
+    const result = await query(
+      `INSERT INTO ojt_department_hours (department, section_prefix, required_hours, notes)
+       VALUES (?, ?, ?, ?)`,
+      [dept, sectionPrefix, requiredHours, notes],
+    );
+
+    const rows = await query(
+      `SELECT id, department, section_prefix, required_hours, notes, updated_at
+       FROM ojt_department_hours
+       WHERE id = ?
+       LIMIT 1`,
+      [result.insertId],
+    );
+    return res.status(201).json({ success: true, hour: rows[0] });
+  } catch (error) {
+    console.error("createDepartmentHours error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create required hours entry.",
+    });
+  }
+});
+
+// ── PATCH /api/ojt-requirements/department-hours/:id ───────────────────────
+router.patch("/department-hours/:id", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid id." });
+    }
+
+    const sectionPrefix = String(req.body.section_prefix || "")
+      .trim()
+      .toUpperCase();
+    const requiredHours = normalizePositiveInt(
+      req.body.required_hours,
+      1,
+      2000,
+    );
+    const notes = String(req.body.notes || "").trim() || null;
+
+    if (!sectionPrefix) {
+      return res.status(400).json({
+        success: false,
+        message: "section_prefix is required.",
+      });
+    }
+
+    await query(
+      `UPDATE ojt_department_hours
+       SET section_prefix = ?, required_hours = ?, notes = ?
+       WHERE id = ? AND department = ?`,
+      [sectionPrefix, requiredHours, notes, id, dept],
+    );
+
+    const rows = await query(
+      `SELECT id, department, section_prefix, required_hours, notes, updated_at
+       FROM ojt_department_hours
+       WHERE id = ? AND department = ?
+       LIMIT 1`,
+      [id, dept],
+    );
+    if (!rows.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Entry not found." });
+    }
+    return res.json({ success: true, hour: rows[0] });
+  } catch (error) {
+    console.error("updateDepartmentHours error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update required hours entry.",
+    });
+  }
+});
+
+// ── DELETE /api/ojt-requirements/department-hours/:id ──────────────────────
+router.delete("/department-hours/:id", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid id." });
+    }
+
+    await query(
+      `DELETE FROM ojt_department_hours
+       WHERE id = ? AND department = ?`,
+      [id, dept],
+    );
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("deleteDepartmentHours error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete required hours entry.",
     });
   }
 });

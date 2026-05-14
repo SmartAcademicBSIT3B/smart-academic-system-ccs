@@ -1,9 +1,228 @@
 const express = require("express");
 const multer = require("multer");
 const { requireAuth } = require("../middleware/auth");
+const { query } = require("../db/connect");
 const cloudinaryService = require("../services/cloudinary");
 
 const router = express.Router();
+
+const DEFAULT_OJT_POLICY = {
+  preRateLimitPerDay: 10,
+  postRateLimitPerDay: 10,
+  dailyRateLimitPerDay: 5,
+  weeklyRateLimitPerDay: 3,
+  preMaxFileSizeMB: 25,
+  postMaxFileSizeMB: 25,
+  dailyMaxFileSizeMB: 25,
+  weeklyMaxFileSizeMB: 25,
+};
+
+let ojtPolicyTablesReady = false;
+
+function getDepartment(req) {
+  return String(req.headers["x-department"] || "").trim() || "CCS";
+}
+
+function normalizePositiveInt(value, fallback, max = 1000) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+}
+
+function mapFolderTypeToCategory(folderType) {
+  const key = String(folderType || "")
+    .trim()
+    .toLowerCase();
+  if (key.includes("post")) return "post";
+  if (key.includes("daily")) return "daily";
+  if (key.includes("weekly")) return "weekly";
+  if (key.includes("pre")) return "pre";
+  return "pre";
+}
+
+async function ensureOjtPolicyTables() {
+  if (ojtPolicyTablesReady) return;
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS ojt_requirements_manager_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      department VARCHAR(120) NOT NULL,
+      pre_rate_limit_per_day INT NOT NULL DEFAULT 10,
+      post_rate_limit_per_day INT NOT NULL DEFAULT 10,
+      daily_rate_limit_per_day INT NOT NULL DEFAULT 5,
+      weekly_rate_limit_per_day INT NOT NULL DEFAULT 3,
+      pre_max_file_size_mb INT NOT NULL DEFAULT 25,
+      post_max_file_size_mb INT NOT NULL DEFAULT 25,
+      daily_max_file_size_mb INT NOT NULL DEFAULT 25,
+      weekly_max_file_size_mb INT NOT NULL DEFAULT 25,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_orms_department (department)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS ojt_upload_activity (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      department VARCHAR(120) NOT NULL,
+      student_id_ref VARCHAR(120) NOT NULL,
+      upload_category ENUM('pre', 'post', 'daily', 'weekly') NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_oua_lookup (department, student_id_ref, upload_category, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  ojtPolicyTablesReady = true;
+}
+
+async function getPolicyForDepartment(dept) {
+  await ensureOjtPolicyTables();
+
+  const rows = await query(
+    `SELECT *
+     FROM ojt_requirements_manager_settings
+     WHERE department = ?
+     LIMIT 1`,
+    [dept],
+  );
+
+  if (!Array.isArray(rows) || !rows.length) {
+    await query(
+      `INSERT INTO ojt_requirements_manager_settings (
+        department,
+        pre_rate_limit_per_day,
+        post_rate_limit_per_day,
+        daily_rate_limit_per_day,
+        weekly_rate_limit_per_day,
+        pre_max_file_size_mb,
+        post_max_file_size_mb,
+        daily_max_file_size_mb,
+        weekly_max_file_size_mb
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        dept,
+        DEFAULT_OJT_POLICY.preRateLimitPerDay,
+        DEFAULT_OJT_POLICY.postRateLimitPerDay,
+        DEFAULT_OJT_POLICY.dailyRateLimitPerDay,
+        DEFAULT_OJT_POLICY.weeklyRateLimitPerDay,
+        DEFAULT_OJT_POLICY.preMaxFileSizeMB,
+        DEFAULT_OJT_POLICY.postMaxFileSizeMB,
+        DEFAULT_OJT_POLICY.dailyMaxFileSizeMB,
+        DEFAULT_OJT_POLICY.weeklyMaxFileSizeMB,
+      ],
+    );
+    return { ...DEFAULT_OJT_POLICY };
+  }
+
+  const row = rows[0];
+  return {
+    preRateLimitPerDay: normalizePositiveInt(
+      row.pre_rate_limit_per_day,
+      DEFAULT_OJT_POLICY.preRateLimitPerDay,
+      100,
+    ),
+    postRateLimitPerDay: normalizePositiveInt(
+      row.post_rate_limit_per_day,
+      DEFAULT_OJT_POLICY.postRateLimitPerDay,
+      100,
+    ),
+    dailyRateLimitPerDay: normalizePositiveInt(
+      row.daily_rate_limit_per_day,
+      DEFAULT_OJT_POLICY.dailyRateLimitPerDay,
+      100,
+    ),
+    weeklyRateLimitPerDay: normalizePositiveInt(
+      row.weekly_rate_limit_per_day,
+      DEFAULT_OJT_POLICY.weeklyRateLimitPerDay,
+      100,
+    ),
+    preMaxFileSizeMB: normalizePositiveInt(
+      row.pre_max_file_size_mb,
+      DEFAULT_OJT_POLICY.preMaxFileSizeMB,
+      50,
+    ),
+    postMaxFileSizeMB: normalizePositiveInt(
+      row.post_max_file_size_mb,
+      DEFAULT_OJT_POLICY.postMaxFileSizeMB,
+      50,
+    ),
+    dailyMaxFileSizeMB: normalizePositiveInt(
+      row.daily_max_file_size_mb,
+      DEFAULT_OJT_POLICY.dailyMaxFileSizeMB,
+      50,
+    ),
+    weeklyMaxFileSizeMB: normalizePositiveInt(
+      row.weekly_max_file_size_mb,
+      DEFAULT_OJT_POLICY.weeklyMaxFileSizeMB,
+      50,
+    ),
+  };
+}
+
+function resolvePolicyValues(policy, category) {
+  if (category === "post") {
+    return {
+      maxFileSizeMB: policy.postMaxFileSizeMB,
+      rateLimitPerDay: policy.postRateLimitPerDay,
+      categoryLabel: "Post Requirements",
+    };
+  }
+  if (category === "daily") {
+    return {
+      maxFileSizeMB: policy.dailyMaxFileSizeMB,
+      rateLimitPerDay: policy.dailyRateLimitPerDay,
+      categoryLabel: "Daily Reports",
+    };
+  }
+  if (category === "weekly") {
+    return {
+      maxFileSizeMB: policy.weeklyMaxFileSizeMB,
+      rateLimitPerDay: policy.weeklyRateLimitPerDay,
+      categoryLabel: "Weekly Reports",
+    };
+  }
+  return {
+    maxFileSizeMB: policy.preMaxFileSizeMB,
+    rateLimitPerDay: policy.preRateLimitPerDay,
+    categoryLabel: "Pre Requirements",
+  };
+}
+
+async function checkDailyUploadLimit({
+  department,
+  studentId,
+  category,
+  rateLimitPerDay,
+}) {
+  if (!rateLimitPerDay || rateLimitPerDay < 1) return { ok: true };
+
+  const rows = await query(
+    `SELECT COUNT(*) AS total
+     FROM ojt_upload_activity
+     WHERE department = ?
+       AND student_id_ref = ?
+       AND upload_category = ?
+       AND created_at >= (NOW() - INTERVAL 1 DAY)`,
+    [department, studentId, category],
+  );
+
+  const total = Number(rows?.[0]?.total || 0);
+  if (total >= rateLimitPerDay) {
+    return {
+      ok: false,
+      total,
+    };
+  }
+  return { ok: true, total };
+}
+
+async function trackUploadActivity({ department, studentId, category }) {
+  await query(
+    `INSERT INTO ojt_upload_activity (department, student_id_ref, upload_category)
+     VALUES (?, ?, ?)`,
+    [department, studentId, category],
+  );
+}
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -147,7 +366,7 @@ router.post("/partner-logo-url", requireAuth, async (req, res) => {
 // Body (multipart): file, studentId, folderType
 const ojtUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = [
       "application/pdf",
@@ -189,12 +408,41 @@ router.post(
         });
       }
 
+      const department = getDepartment(req);
+      const category = mapFolderTypeToCategory(folderType);
+      const policy = await getPolicyForDepartment(department);
+      const { maxFileSizeMB, rateLimitPerDay, categoryLabel } =
+        resolvePolicyValues(policy, category);
+
+      if (req.file.size > maxFileSizeMB * 1024 * 1024) {
+        return res.status(413).json({
+          success: false,
+          message: `${categoryLabel} upload exceeds the maximum size of ${maxFileSizeMB} MB.`,
+          code: "FILE_TOO_LARGE",
+        });
+      }
+
+      const rateCheck = await checkDailyUploadLimit({
+        department,
+        studentId,
+        category,
+        rateLimitPerDay,
+      });
+      if (!rateCheck.ok) {
+        return res.status(429).json({
+          success: false,
+          message: `${categoryLabel} upload limit reached for the last 24 hours (${rateLimitPerDay}).`,
+          code: "RATE_LIMIT_EXCEEDED",
+        });
+      }
+
       const result = await cloudinaryService.uploadOjtFile(
         req.file.buffer,
         fileName,
         studentId,
         folderType,
       );
+      await trackUploadActivity({ department, studentId, category });
       return res.json({
         success: true,
         url: result.url,
@@ -322,6 +570,33 @@ router.post("/ojt-file-url", requireAuth, async (req, res) => {
 
     const arrayBuffer = await response.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
+    const department = getDepartment(req);
+    const category = mapFolderTypeToCategory(folderType);
+    const policy = await getPolicyForDepartment(department);
+    const { maxFileSizeMB, rateLimitPerDay, categoryLabel } =
+      resolvePolicyValues(policy, category);
+    if (fileBuffer.length > maxFileSizeMB * 1024 * 1024) {
+      return res.status(413).json({
+        success: false,
+        message: `${categoryLabel} upload exceeds the maximum size of ${maxFileSizeMB} MB.`,
+        code: "FILE_TOO_LARGE",
+      });
+    }
+
+    const rateCheck = await checkDailyUploadLimit({
+      department,
+      studentId,
+      category,
+      rateLimitPerDay,
+    });
+    if (!rateCheck.ok) {
+      return res.status(429).json({
+        success: false,
+        message: `${categoryLabel} upload limit reached for the last 24 hours (${rateLimitPerDay}).`,
+        code: "RATE_LIMIT_EXCEEDED",
+      });
+    }
+
     const ext =
       contentType === "application/pdf"
         ? "pdf"
@@ -334,6 +609,7 @@ router.post("/ojt-file-url", requireAuth, async (req, res) => {
       studentId,
       folderType,
     );
+    await trackUploadActivity({ department, studentId, category });
     return res.json({
       success: true,
       url: result.url,

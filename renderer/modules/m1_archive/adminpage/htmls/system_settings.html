@@ -338,34 +338,113 @@
             <div id="ojt-requirements" class="settings-section">
               <h3>OJT Requirements Manager</h3>
               <div class="section-description">
-                Set OJT documents, deadlines, and required internship hours.
+                Set department-wide requirement templates, upload limits, and
+                required internship hours.
               </div>
 
-              <div class="setting-grid two-column">
-                <label>
-                  Required Documents
-                  <input
-                    type="text"
-                    placeholder="e.g. Resume, MOA, Endorsement Letter"
-                  />
-                </label>
-                <label>
-                  Allowed File Type
-                  <select>
-                    <option selected>PDF Only (Recommended)</option>
-                    <option>PDF and DOCX</option>
-                    <option>All File Types</option>
-                  </select>
-                </label>
-                <label>
-                  Deadline Duration (Days)
-                  <input type="number" min="1" step="1" value="90" />
-                </label>
-                <label>
-                  Required Hours per Program
-                  <input type="number" min="1" step="1" value="486" />
-                </label>
+              <div class="general-card">
+                <h4>Department-Wide Requirement Templates</h4>
+                <p>
+                  Each line is one required document template for the selected
+                  type.
+                </p>
+                <div class="setting-grid two-column">
+                  <label>
+                    Pre-OJT Requirements (one per line)
+                    <textarea
+                      id="ojtPreRequirements"
+                      rows="8"
+                      placeholder="Resume&#10;MOA&#10;Endorsement Letter"
+                    ></textarea>
+                  </label>
+                  <label>
+                    Post-OJT Requirements (one per line)
+                    <textarea
+                      id="ojtPostRequirements"
+                      rows="8"
+                      placeholder="Completion Certificate&#10;Final Evaluation"
+                    ></textarea>
+                  </label>
+                </div>
               </div>
+
+              <div class="general-card">
+                <h4>Upload Rate Limits (Per Student / 24 Hours)</h4>
+                <div class="setting-grid two-column">
+                  <label>
+                    Pre Requirements Uploads
+                    <input id="ojtRatePre" type="number" min="1" max="100" />
+                  </label>
+                  <label>
+                    Post Requirements Uploads
+                    <input id="ojtRatePost" type="number" min="1" max="100" />
+                  </label>
+                  <label>
+                    Daily Reports Uploads
+                    <input id="ojtRateDaily" type="number" min="1" max="100" />
+                  </label>
+                  <label>
+                    Weekly Reports Uploads
+                    <input id="ojtRateWeekly" type="number" min="1" max="100" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="general-card">
+                <h4>Maximum Upload Size (MB)</h4>
+                <div class="setting-grid two-column">
+                  <label>
+                    Pre Requirements Max Size
+                    <input id="ojtMaxPre" type="number" min="1" max="50" />
+                  </label>
+                  <label>
+                    Post Requirements Max Size
+                    <input id="ojtMaxPost" type="number" min="1" max="50" />
+                  </label>
+                  <label>
+                    Daily Reports Max Size
+                    <input id="ojtMaxDaily" type="number" min="1" max="50" />
+                  </label>
+                  <label>
+                    Weekly Reports Max Size
+                    <input id="ojtMaxWeekly" type="number" min="1" max="50" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="general-card">
+                <h4>Required OJT Hours by Section Prefix</h4>
+                <p>
+                  These entries update the required hours in the
+                  ojt_department_hours table.
+                </p>
+
+                <div class="thesis-link-table-wrap ojt-hours-wrap">
+                  <table class="thesis-link-table">
+                    <thead>
+                      <tr>
+                        <th>Section Prefix</th>
+                        <th>Required Hours</th>
+                        <th>Notes</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ojtDeptHoursBody"></tbody>
+                  </table>
+                </div>
+
+                <div class="inline-actions">
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="addOjtDepartmentHoursRow()"
+                  >
+                    Add Row
+                  </button>
+                </div>
+              </div>
+
+              <div id="ojtStatusMessage" class="general-status"></div>
             </div>
 
             <!-- ================= DEPARTMENT ================= -->
@@ -480,6 +559,16 @@
         maxFileSizeMB: 50,
         defaultArchiveStatus: "Approved",
       };
+      const DEFAULT_OJT_MANAGER_SETTINGS = {
+        preRateLimitPerDay: 10,
+        postRateLimitPerDay: 10,
+        dailyRateLimitPerDay: 5,
+        weeklyRateLimitPerDay: 3,
+        preMaxFileSizeMB: 25,
+        postMaxFileSizeMB: 25,
+        dailyMaxFileSizeMB: 25,
+        weeklyMaxFileSizeMB: 25,
+      };
       let activeUser = null;
       let profileImagePath = "";
       let generalSettingsState = {
@@ -494,6 +583,8 @@
         archives: [],
         students: [],
       };
+      let ojtSettingsState = { ...DEFAULT_OJT_MANAGER_SETTINGS };
+      let ojtDeletedHoursIds = [];
 
       document.querySelectorAll(".settings-menu li").forEach((item) => {
         item.onclick = () => {
@@ -511,6 +602,9 @@
             if (section.id === "thesis-archives") {
               loadThesisArchiveOptions();
               renderThesisLinkTable();
+            }
+            if (section.id === "ojt-requirements") {
+              loadOjtRequirementsSettings();
             }
           }
         };
@@ -1335,6 +1429,378 @@
         return true;
       }
 
+      function showOjtStatus(message, isError = false) {
+        const el = document.getElementById("ojtStatusMessage");
+        if (!el) return;
+        el.textContent = message || "";
+        el.classList.toggle("error", Boolean(isError));
+      }
+
+      function normalizeOjtManagerSettings(value = {}) {
+        const input = value && typeof value === "object" ? value : {};
+        const toInt = (raw, fallback, max) => {
+          const parsed = Number.parseInt(raw, 10);
+          if (!Number.isInteger(parsed) || parsed < 1) return fallback;
+          return Math.min(parsed, max);
+        };
+        return {
+          preRateLimitPerDay: toInt(
+            input.preRateLimitPerDay,
+            DEFAULT_OJT_MANAGER_SETTINGS.preRateLimitPerDay,
+            100,
+          ),
+          postRateLimitPerDay: toInt(
+            input.postRateLimitPerDay,
+            DEFAULT_OJT_MANAGER_SETTINGS.postRateLimitPerDay,
+            100,
+          ),
+          dailyRateLimitPerDay: toInt(
+            input.dailyRateLimitPerDay,
+            DEFAULT_OJT_MANAGER_SETTINGS.dailyRateLimitPerDay,
+            100,
+          ),
+          weeklyRateLimitPerDay: toInt(
+            input.weeklyRateLimitPerDay,
+            DEFAULT_OJT_MANAGER_SETTINGS.weeklyRateLimitPerDay,
+            100,
+          ),
+          preMaxFileSizeMB: toInt(
+            input.preMaxFileSizeMB,
+            DEFAULT_OJT_MANAGER_SETTINGS.preMaxFileSizeMB,
+            50,
+          ),
+          postMaxFileSizeMB: toInt(
+            input.postMaxFileSizeMB,
+            DEFAULT_OJT_MANAGER_SETTINGS.postMaxFileSizeMB,
+            50,
+          ),
+          dailyMaxFileSizeMB: toInt(
+            input.dailyMaxFileSizeMB,
+            DEFAULT_OJT_MANAGER_SETTINGS.dailyMaxFileSizeMB,
+            50,
+          ),
+          weeklyMaxFileSizeMB: toInt(
+            input.weeklyMaxFileSizeMB,
+            DEFAULT_OJT_MANAGER_SETTINGS.weeklyMaxFileSizeMB,
+            50,
+          ),
+        };
+      }
+
+      function normalizeRequirementLines(value = "") {
+        const seen = new Set();
+        return String(value || "")
+          .split(/\r?\n/)
+          .map((line) => String(line || "").trim())
+          .filter((line) => {
+            if (!line) return false;
+            const key = line.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+      }
+
+      function renderOjtManagerSettings() {
+        const setValue = (id, value) => {
+          const el = document.getElementById(id);
+          if (el) el.value = value;
+        };
+
+        setValue("ojtRatePre", ojtSettingsState.preRateLimitPerDay);
+        setValue("ojtRatePost", ojtSettingsState.postRateLimitPerDay);
+        setValue("ojtRateDaily", ojtSettingsState.dailyRateLimitPerDay);
+        setValue("ojtRateWeekly", ojtSettingsState.weeklyRateLimitPerDay);
+        setValue("ojtMaxPre", ojtSettingsState.preMaxFileSizeMB);
+        setValue("ojtMaxPost", ojtSettingsState.postMaxFileSizeMB);
+        setValue("ojtMaxDaily", ojtSettingsState.dailyMaxFileSizeMB);
+        setValue("ojtMaxWeekly", ojtSettingsState.weeklyMaxFileSizeMB);
+      }
+
+      function addOjtDepartmentHoursRow(row = {}) {
+        const body = document.getElementById("ojtDeptHoursBody");
+        if (!body) return;
+
+        const tr = document.createElement("tr");
+        if (row.id) tr.dataset.id = String(row.id);
+        tr.innerHTML = `
+          <td>
+            <input class="ojt-hours-input" data-field="section_prefix" type="text" maxlength="50" value="${escapeHtml(row.section_prefix || "")}" placeholder="BSIT" />
+          </td>
+          <td>
+            <input class="ojt-hours-input" data-field="required_hours" type="number" min="1" max="2000" value="${Number.parseInt(row.required_hours, 10) || 486}" />
+          </td>
+          <td>
+            <input class="ojt-hours-input" data-field="notes" type="text" maxlength="255" value="${escapeHtml(row.notes || "")}" placeholder="Optional" />
+          </td>
+          <td>
+            <button type="button" class="tiny-btn" onclick="removeOjtDepartmentHoursRow(this)">Remove</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      }
+
+      function removeOjtDepartmentHoursRow(button) {
+        const row = button?.closest("tr");
+        if (!row) return;
+        const id = Number.parseInt(row.dataset.id, 10);
+        if (Number.isInteger(id)) {
+          ojtDeletedHoursIds.push(id);
+        }
+        row.remove();
+      }
+
+      function collectOjtDepartmentHoursRows() {
+        return Array.from(
+          document.querySelectorAll("#ojtDeptHoursBody tr"),
+        ).map((row) => {
+          const getField = (name) =>
+            row.querySelector(`[data-field="${name}"]`)?.value || "";
+          return {
+            id: Number.parseInt(row.dataset.id, 10) || null,
+            section_prefix: String(getField("section_prefix") || "")
+              .trim()
+              .toUpperCase(),
+            required_hours: Number.parseInt(getField("required_hours"), 10),
+            notes: String(getField("notes") || "").trim(),
+          };
+        });
+      }
+
+      async function syncDepartmentTemplates(type, textareaId) {
+        const textarea = document.getElementById(textareaId);
+        const desiredNames = normalizeRequirementLines(textarea?.value || "");
+        const existingResult = await electronAPI.getOjtRequirementTemplates({
+          type,
+        });
+
+        if (!existingResult?.success) {
+          throw new Error(
+            existingResult?.message ||
+              `Failed to load ${type.toUpperCase()} templates.`,
+          );
+        }
+
+        const existing = (existingResult.templates || []).filter((item) => {
+          return String(item.scope || "").toLowerCase() === "department";
+        });
+
+        const byName = new Map(
+          existing.map((item) => [
+            String(item.name || "")
+              .trim()
+              .toLowerCase(),
+            item,
+          ]),
+        );
+
+        const desiredKeys = new Set(
+          desiredNames.map((name) => name.toLowerCase()),
+        );
+
+        for (const item of existing) {
+          const key = String(item.name || "")
+            .trim()
+            .toLowerCase();
+          if (key && !desiredKeys.has(key)) {
+            const delRes = await electronAPI.deleteOjtRequirementTemplate(
+              item.id,
+            );
+            if (!delRes?.success) {
+              throw new Error(
+                delRes?.message || `Failed to delete template: ${item.name}`,
+              );
+            }
+          }
+        }
+
+        for (const name of desiredNames) {
+          const key = name.toLowerCase();
+          if (byName.has(key)) continue;
+          const createRes = await electronAPI.createOjtRequirementTemplate({
+            type,
+            name,
+            is_required: 1,
+            scope: "department",
+            scope_value:
+              activeUser?.department_code || activeUser?.department || "CCS",
+          });
+          if (!createRes?.success) {
+            throw new Error(
+              createRes?.message || `Failed to create template: ${name}`,
+            );
+          }
+        }
+      }
+
+      async function loadOjtRequirementsSettings() {
+        if (!electronAPI) return;
+        showOjtStatus("");
+
+        const [settingsRes, preRes, postRes, hoursRes] = await Promise.all([
+          electronAPI.getOjtRequirementsManagerSettings(),
+          electronAPI.getOjtRequirementTemplates({ type: "pre" }),
+          electronAPI.getOjtRequirementTemplates({ type: "post" }),
+          electronAPI.getOjtDepartmentHours(),
+        ]);
+
+        if (!settingsRes?.success) {
+          showOjtStatus(
+            settingsRes?.message || "Failed to load OJT manager settings.",
+            true,
+          );
+          return;
+        }
+
+        ojtSettingsState = normalizeOjtManagerSettings(settingsRes.settings);
+        renderOjtManagerSettings();
+
+        const departmentTemplatesOnly = (items) =>
+          (Array.isArray(items) ? items : []).filter(
+            (item) => String(item.scope || "").toLowerCase() === "department",
+          );
+
+        const preItems = preRes?.success
+          ? departmentTemplatesOnly(preRes.templates)
+          : [];
+        const postItems = postRes?.success
+          ? departmentTemplatesOnly(postRes.templates)
+          : [];
+
+        const preTextarea = document.getElementById("ojtPreRequirements");
+        const postTextarea = document.getElementById("ojtPostRequirements");
+        if (preTextarea) {
+          preTextarea.value = preItems
+            .map((item) => String(item.name || "").trim())
+            .filter(Boolean)
+            .join("\n");
+        }
+        if (postTextarea) {
+          postTextarea.value = postItems
+            .map((item) => String(item.name || "").trim())
+            .filter(Boolean)
+            .join("\n");
+        }
+
+        const body = document.getElementById("ojtDeptHoursBody");
+        if (body) body.innerHTML = "";
+        ojtDeletedHoursIds = [];
+        if (hoursRes?.success && Array.isArray(hoursRes.hours)) {
+          hoursRes.hours.forEach((row) => addOjtDepartmentHoursRow(row));
+        }
+
+        if (!preRes?.success || !postRes?.success || !hoursRes?.success) {
+          showOjtStatus(
+            "Some OJT data failed to load. You can still edit available fields.",
+            true,
+          );
+          return;
+        }
+
+        showOjtStatus("");
+      }
+
+      async function saveOjtRequirementsSettings() {
+        if (!electronAPI) {
+          showOjtStatus("OJT settings API is unavailable.", true);
+          return false;
+        }
+
+        try {
+          const settingsPayload = normalizeOjtManagerSettings({
+            preRateLimitPerDay: document.getElementById("ojtRatePre")?.value,
+            postRateLimitPerDay: document.getElementById("ojtRatePost")?.value,
+            dailyRateLimitPerDay:
+              document.getElementById("ojtRateDaily")?.value,
+            weeklyRateLimitPerDay:
+              document.getElementById("ojtRateWeekly")?.value,
+            preMaxFileSizeMB: document.getElementById("ojtMaxPre")?.value,
+            postMaxFileSizeMB: document.getElementById("ojtMaxPost")?.value,
+            dailyMaxFileSizeMB: document.getElementById("ojtMaxDaily")?.value,
+            weeklyMaxFileSizeMB: document.getElementById("ojtMaxWeekly")?.value,
+          });
+
+          const settingsResult =
+            await electronAPI.updateOjtRequirementsManagerSettings(
+              settingsPayload,
+            );
+          if (!settingsResult?.success) {
+            throw new Error(
+              settingsResult?.message ||
+                "Failed to save upload policy settings.",
+            );
+          }
+
+          await syncDepartmentTemplates("pre", "ojtPreRequirements");
+          await syncDepartmentTemplates("post", "ojtPostRequirements");
+
+          for (const id of ojtDeletedHoursIds) {
+            const delRes = await electronAPI.deleteOjtDepartmentHours(id);
+            if (!delRes?.success) {
+              throw new Error(
+                delRes?.message || "Failed to delete a required-hours row.",
+              );
+            }
+          }
+
+          const rows = collectOjtDepartmentHoursRows();
+          for (const row of rows) {
+            if (!row.section_prefix) {
+              throw new Error(
+                "Section prefix is required for every hours row.",
+              );
+            }
+            if (
+              !Number.isInteger(row.required_hours) ||
+              row.required_hours < 1
+            ) {
+              throw new Error(
+                `Required hours must be a positive integer (${row.section_prefix}).`,
+              );
+            }
+
+            if (row.id) {
+              const updateRes = await electronAPI.updateOjtDepartmentHours({
+                id: row.id,
+                section_prefix: row.section_prefix,
+                required_hours: row.required_hours,
+                notes: row.notes,
+              });
+              if (!updateRes?.success) {
+                throw new Error(
+                  updateRes?.message ||
+                    `Failed to update hours for ${row.section_prefix}.`,
+                );
+              }
+            } else {
+              const createRes = await electronAPI.createOjtDepartmentHours({
+                section_prefix: row.section_prefix,
+                required_hours: row.required_hours,
+                notes: row.notes,
+              });
+              if (!createRes?.success) {
+                throw new Error(
+                  createRes?.message ||
+                    `Failed to create hours for ${row.section_prefix}.`,
+                );
+              }
+            }
+          }
+
+          await loadOjtRequirementsSettings();
+          showOjtStatus(
+            "OJT requirements manager settings updated successfully.",
+          );
+          return true;
+        } catch (error) {
+          showOjtStatus(error?.message || "Failed to save OJT settings.", true);
+          return false;
+        }
+      }
+
+      window.addOjtDepartmentHoursRow = addOjtDepartmentHoursRow;
+      window.removeOjtDepartmentHoursRow = removeOjtDepartmentHoursRow;
+
       async function saveChanges() {
         const activeSection = document.querySelector(
           ".settings-section.active",
@@ -1352,6 +1818,8 @@
           success = await saveGeneralSettings();
         } else if (activeSection.id === "thesis-archives") {
           success = await saveThesisArchiveSettings();
+        } else if (activeSection.id === "ojt-requirements") {
+          success = await saveOjtRequirementsSettings();
         } else {
           alert("Settings saved!");
         }
@@ -1433,6 +1901,12 @@
           return;
         }
 
+        if (activeSection?.id === "ojt-requirements") {
+          loadOjtRequirementsSettings();
+          showOjtStatus("Changes reverted.");
+          return;
+        }
+
         location.reload();
       }
 
@@ -1459,6 +1933,7 @@
       loadThesisArchiveSettings();
       loadThesisArchiveOptions();
       loadThesisLinkCandidates("");
+      loadOjtRequirementsSettings();
     </script>
   </body>
 </html>

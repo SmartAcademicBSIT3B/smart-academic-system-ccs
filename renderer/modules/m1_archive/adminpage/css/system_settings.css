@@ -356,6 +356,14 @@ body {
   color: var(--secondary-text);
 }
 
+.ojt-hours-wrap {
+  margin-top: 10px;
+}
+
+.ojt-hours-input {
+  min-width: 140px;
+}
+
 .tiny-btn {
   padding: 6px 10px;
   border-radius: 8px;
