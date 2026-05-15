@@ -16,7 +16,7 @@ if (isset($_SESSION['student_id'])) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CTA HTE Website | Login</title>
-<link rel="icon" type="image/x-icon" href="images/PLPLOGO.png">
+<link rel="icon" type="image/png" href="images/CTA_HTE_icon.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/login.css">

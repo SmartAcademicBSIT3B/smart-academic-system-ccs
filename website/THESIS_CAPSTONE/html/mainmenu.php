@@ -40,7 +40,7 @@ $profile_image_url = $student_profile['profile_image_url'] ?? '';
 <meta charset="UTF-8">
 
 <title>CTA HTE Website | Main Menu</title>
-<link rel="icon" type="image/x-icon" href="../images/PLPLOGO.png">
+<link rel="icon" type="image/png" href="../images/CTA_HTE_icon.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest"></script>

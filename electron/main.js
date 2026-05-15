@@ -1308,6 +1308,7 @@ function createMainWindow() {
       sandbox: true,
       preload: path.join(__dirname, "preload.js"),
     },
+    icon: path.join(__dirname, "..", "renderer", "core", "CTA_HTE_icon.png"),
   });
 
   mainWindow.loadFile(

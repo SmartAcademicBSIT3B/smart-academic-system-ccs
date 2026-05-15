@@ -28,29 +28,6 @@
       .tab-label-text {
         display: inline-block;
       }
-      .tab-rename-btn {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        background: transparent;
-        color: var(--secondary-text);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-      }
-      .tab-rename-btn:hover {
-        border-color: var(--accent-blue);
-        color: var(--accent-blue);
-        background: rgba(157, 198, 255, 0.08);
-      }
-      .tab-rename-btn svg {
-        width: 13px;
-        height: 13px;
-        stroke: currentColor;
-        fill: none;
-      }
       .tab-label-editor {
         display: none;
         align-items: center;
@@ -1711,6 +1688,28 @@
                     Mark Pending Requirements
                   </button>
                 </div>
+                <button
+                  type="button"
+                  class="status-settings-btn"
+                  id="requirementSettingsBtn"
+                  title="Requirement settings"
+                  aria-label="Open requirement settings"
+                  onclick="openRequirementSettingsModal()"
+                  style="margin-left: auto"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="19" cy="12" r="1"></circle>
+                    <circle cx="5" cy="12" r="1"></circle>
+                  </svg>
+                </button>
               </div>
             </div>
           </header>
@@ -1723,41 +1722,6 @@
                   >PRE REQUIREMENTS</span
                 >
               </button>
-              <button
-                type="button"
-                class="tab-rename-btn"
-                title="Edit tab label"
-                aria-label="Edit pre requirements tab label"
-                data-label-key="pre"
-                onclick="openTabLabelEditor('pre')"
-              >
-                <svg viewBox="0 0 16 16" stroke-width="1.8">
-                  <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
-                </svg>
-              </button>
-              <div class="tab-label-editor" id="tab-label-editor-pre">
-                <input
-                  id="tab-label-input-pre"
-                  class="tab-label-editor-input"
-                  type="text"
-                  maxlength="120"
-                  placeholder="Pre tab label"
-                />
-                <button
-                  type="button"
-                  class="tab-label-save-btn"
-                  onclick="saveTabLabelEdit('pre')"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  class="tab-label-cancel-btn"
-                  onclick="cancelTabLabelEdit('pre')"
-                >
-                  Cancel
-                </button>
-              </div>
             </div>
 
             <div class="tab-label-wrap" data-label-key="attendance">
@@ -1766,41 +1730,6 @@
                   >ATTENDANCE RECORD</span
                 >
               </button>
-              <button
-                type="button"
-                class="tab-rename-btn"
-                title="Edit tab label"
-                aria-label="Edit attendance tab label"
-                data-label-key="attendance"
-                onclick="openTabLabelEditor('attendance')"
-              >
-                <svg viewBox="0 0 16 16" stroke-width="1.8">
-                  <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
-                </svg>
-              </button>
-              <div class="tab-label-editor" id="tab-label-editor-attendance">
-                <input
-                  id="tab-label-input-attendance"
-                  class="tab-label-editor-input"
-                  type="text"
-                  maxlength="120"
-                  placeholder="Attendance tab label"
-                />
-                <button
-                  type="button"
-                  class="tab-label-save-btn"
-                  onclick="saveTabLabelEdit('attendance')"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  class="tab-label-cancel-btn"
-                  onclick="cancelTabLabelEdit('attendance')"
-                >
-                  Cancel
-                </button>
-              </div>
             </div>
 
             <div class="tab-label-wrap" data-label-key="weekly">
@@ -1809,41 +1738,6 @@
                   >WEEKLY REPORTS</span
                 >
               </button>
-              <button
-                type="button"
-                class="tab-rename-btn"
-                title="Edit tab label"
-                aria-label="Edit weekly tab label"
-                data-label-key="weekly"
-                onclick="openTabLabelEditor('weekly')"
-              >
-                <svg viewBox="0 0 16 16" stroke-width="1.8">
-                  <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
-                </svg>
-              </button>
-              <div class="tab-label-editor" id="tab-label-editor-weekly">
-                <input
-                  id="tab-label-input-weekly"
-                  class="tab-label-editor-input"
-                  type="text"
-                  maxlength="120"
-                  placeholder="Weekly tab label"
-                />
-                <button
-                  type="button"
-                  class="tab-label-save-btn"
-                  onclick="saveTabLabelEdit('weekly')"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  class="tab-label-cancel-btn"
-                  onclick="cancelTabLabelEdit('weekly')"
-                >
-                  Cancel
-                </button>
-              </div>
             </div>
 
             <div class="tab-label-wrap" data-label-key="post">
@@ -1852,41 +1746,6 @@
                   >POST REQUIREMENTS</span
                 >
               </button>
-              <button
-                type="button"
-                class="tab-rename-btn"
-                title="Edit tab label"
-                aria-label="Edit post requirements tab label"
-                data-label-key="post"
-                onclick="openTabLabelEditor('post')"
-              >
-                <svg viewBox="0 0 16 16" stroke-width="1.8">
-                  <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
-                </svg>
-              </button>
-              <div class="tab-label-editor" id="tab-label-editor-post">
-                <input
-                  id="tab-label-input-post"
-                  class="tab-label-editor-input"
-                  type="text"
-                  maxlength="120"
-                  placeholder="Post tab label"
-                />
-                <button
-                  type="button"
-                  class="tab-label-save-btn"
-                  onclick="saveTabLabelEdit('post')"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  class="tab-label-cancel-btn"
-                  onclick="cancelTabLabelEdit('post')"
-                >
-                  Cancel
-                </button>
-              </div>
             </div>
           </nav>
 
@@ -2609,6 +2468,138 @@
       </div>
     </div>
 
+    <!-- ── REQUIREMENT SETTINGS MODAL ──────────────────────────────────────────── -->
+    <div class="modal-overlay" id="requirementSettingsModal">
+      <div class="modal-box" style="max-width: 520px">
+        <div class="modal-title">Requirement Settings</div>
+
+        <div style="margin-bottom: 20px">
+          <div style="font-size: 12px; font-weight: 700; margin-bottom: 12px">
+            TAB LABELS
+          </div>
+          <div class="form-field">
+            <label>Pre Requirements Label</label>
+            <input
+              id="reqSettingsPreLabel"
+              class="form-input"
+              type="text"
+              maxlength="120"
+              placeholder="PRE REQUIREMENTS"
+            />
+          </div>
+          <div class="form-field">
+            <label>Attendance Label</label>
+            <input
+              id="reqSettingsAttendanceLabel"
+              class="form-input"
+              type="text"
+              maxlength="120"
+              placeholder="ATTENDANCE RECORD"
+            />
+          </div>
+          <div class="form-field">
+            <label>Weekly Reports Label</label>
+            <input
+              id="reqSettingsWeeklyLabel"
+              class="form-input"
+              type="text"
+              maxlength="120"
+              placeholder="WEEKLY REPORTS"
+            />
+          </div>
+          <div class="form-field">
+            <label>Post Requirements Label</label>
+            <input
+              id="reqSettingsPostLabel"
+              class="form-input"
+              type="text"
+              maxlength="120"
+              placeholder="POST REQUIREMENTS"
+            />
+          </div>
+        </div>
+
+        <div
+          style="border-top: 1px solid var(--border-color); padding-top: 16px"
+        >
+          <div style="font-size: 12px; font-weight: 700; margin-bottom: 12px">
+            TEMPLATE MANAGEMENT
+          </div>
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 12px;
+              background: rgba(157, 198, 255, 0.05);
+              border-radius: 8px;
+              border: 1px solid var(--border-color);
+            "
+          >
+            <div>
+              <div
+                style="font-size: 13px; font-weight: 600; margin-bottom: 2px"
+              >
+                Allow Template Deletion
+              </div>
+              <div style="font-size: 11px; color: var(--secondary-text)">
+                Show delete buttons on requirement cards
+              </div>
+            </div>
+            <label
+              class="toggle-switch"
+              style="
+                display: inline-flex;
+                width: 44px;
+                height: 24px;
+                background: rgba(157, 198, 255, 0.3);
+                border-radius: 12px;
+                padding: 2px;
+                cursor: pointer;
+                align-items: center;
+                position: relative;
+                transition: background 0.2s;
+              "
+            >
+              <input
+                type="checkbox"
+                id="reqSettingsAllowDelete"
+                style="display: none"
+              />
+              <span
+                style="
+                  display: inline-block;
+                  width: 20px;
+                  height: 20px;
+                  background: #fff;
+                  border-radius: 50%;
+                  transition: transform 0.2s;
+                  position: absolute;
+                  left: 2px;
+                "
+              ></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button
+            class="modal-cancel-btn"
+            onclick="closeRequirementSettingsModal()"
+          >
+            Cancel
+          </button>
+          <button
+            class="modal-save-btn"
+            id="reqSettingsSaveBtn"
+            onclick="saveRequirementSettings()"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
       // Iframe API bridge: coordinator pages run inside the main menu iframe.
       if (!window.electronAPI) {
@@ -2653,7 +2644,8 @@
         post: "POST REQUIREMENTS",
       };
       let requirementTabLabels = { ...defaultRequirementTabLabels };
-      let activeTabLabelEditorKey = "";
+      let allowTemplateDelete = false;
+      let settingsLoadedOnce = false;
 
       function buildCoordinatorNotification(
         activityType,
@@ -2964,72 +2956,107 @@
             weekly: result.labels.weeklyLabel,
             post: result.labels.postLabel,
           });
+
+          allowTemplateDelete = Boolean(result.labels.allowTemplateDelete);
+          settingsLoadedOnce = true;
         } catch (_error) {
           // Use defaults when label settings are unavailable.
         }
       }
 
-      function closeAllTabLabelEditors() {
-        ["pre", "attendance", "weekly", "post"].forEach((key) => {
-          const editor = document.getElementById(`tab-label-editor-${key}`);
-          if (editor) editor.classList.remove("active");
-        });
-        activeTabLabelEditorKey = "";
+      function openRequirementSettingsModal() {
+        const preInput = document.getElementById("reqSettingsPreLabel");
+        const attInput = document.getElementById("reqSettingsAttendanceLabel");
+        const weeklyInput = document.getElementById("reqSettingsWeeklyLabel");
+        const postInput = document.getElementById("reqSettingsPostLabel");
+        const deleteCheckbox = document.getElementById(
+          "reqSettingsAllowDelete",
+        );
+
+        if (preInput) preInput.value = requirementTabLabels.pre || "";
+        if (attInput) attInput.value = requirementTabLabels.attendance || "";
+        if (weeklyInput) weeklyInput.value = requirementTabLabels.weekly || "";
+        if (postInput) postInput.value = requirementTabLabels.post || "";
+        if (deleteCheckbox) {
+          deleteCheckbox.checked = Boolean(allowTemplateDelete);
+          deleteCheckbox.addEventListener("change", syncDeleteToggleDisplay);
+        }
+
+        syncDeleteToggleDisplay();
+        document
+          .getElementById("requirementSettingsModal")
+          .classList.add("open");
       }
 
-      function openTabLabelEditor(key) {
-        const safeKey = String(key || "").trim();
-        if (!requirementTabLabels[safeKey]) return;
-
-        closeAllTabLabelEditors();
-        const editor = document.getElementById(`tab-label-editor-${safeKey}`);
-        const input = document.getElementById(`tab-label-input-${safeKey}`);
-        if (!editor || !input) return;
-
-        input.value = requirementTabLabels[safeKey];
-        editor.classList.add("active");
-        activeTabLabelEditorKey = safeKey;
-        input.focus();
-        input.select();
+      function closeRequirementSettingsModal() {
+        document
+          .getElementById("requirementSettingsModal")
+          .classList.remove("open");
       }
 
-      function cancelTabLabelEdit(key) {
-        const safeKey = String(key || "").trim();
-        const editor = document.getElementById(`tab-label-editor-${safeKey}`);
-        if (editor) editor.classList.remove("active");
-        if (activeTabLabelEditorKey === safeKey) {
-          activeTabLabelEditorKey = "";
+      function syncDeleteToggleDisplay() {
+        const checkbox = document.getElementById("reqSettingsAllowDelete");
+        const label = checkbox?.parentElement;
+        if (!checkbox || !label) return;
+
+        if (checkbox.checked) {
+          label.style.background = "rgba(157, 198, 255, 0.5)";
+          const span = label.querySelector("span");
+          if (span) span.style.transform = "translateX(20px)";
+        } else {
+          label.style.background = "rgba(157, 198, 255, 0.3)";
+          const span = label.querySelector("span");
+          if (span) span.style.transform = "translateX(0)";
         }
       }
 
-      async function saveTabLabelEdit(key) {
-        const safeKey = String(key || "").trim();
-        const input = document.getElementById(`tab-label-input-${safeKey}`);
-        if (!input) return;
-
-        const nextValue = normalizeRequirementTabLabel(
-          input.value,
-          requirementTabLabels[safeKey] || defaultRequirementTabLabels[safeKey],
+      async function saveRequirementSettings() {
+        const preInput = document.getElementById("reqSettingsPreLabel");
+        const attInput = document.getElementById("reqSettingsAttendanceLabel");
+        const weeklyInput = document.getElementById("reqSettingsWeeklyLabel");
+        const postInput = document.getElementById("reqSettingsPostLabel");
+        const deleteCheckbox = document.getElementById(
+          "reqSettingsAllowDelete",
         );
-        const payload = {
-          preLabel: requirementTabLabels.pre,
-          attendanceLabel: requirementTabLabels.attendance,
-          weeklyLabel: requirementTabLabels.weekly,
-          postLabel: requirementTabLabels.post,
-        };
+        const saveBtn = document.getElementById("reqSettingsSaveBtn");
 
-        if (safeKey === "pre") payload.preLabel = nextValue;
-        if (safeKey === "attendance") payload.attendanceLabel = nextValue;
-        if (safeKey === "weekly") payload.weeklyLabel = nextValue;
-        if (safeKey === "post") payload.postLabel = nextValue;
+        if (!preInput || !attInput || !weeklyInput || !postInput) return;
 
+        const preLabel = normalizeRequirementTabLabel(
+          preInput.value,
+          defaultRequirementTabLabels.pre,
+        );
+        const attLabel = normalizeRequirementTabLabel(
+          attInput.value,
+          defaultRequirementTabLabels.attendance,
+        );
+        const weeklyLabel = normalizeRequirementTabLabel(
+          weeklyInput.value,
+          defaultRequirementTabLabels.weekly,
+        );
+        const postLabel = normalizeRequirementTabLabel(
+          postInput.value,
+          defaultRequirementTabLabels.post,
+        );
+        const allowDelete = Boolean(deleteCheckbox?.checked);
+
+        saveBtn.disabled = true;
         try {
-          const result =
-            await window.electronAPI.updateOjtRequirementTabLabels(payload);
+          const result = await window.electronAPI.updateOjtRequirementTabLabels(
+            {
+              preLabel,
+              attendanceLabel: attLabel,
+              weeklyLabel,
+              postLabel,
+              allowTemplateDelete: allowDelete,
+            },
+          );
+
           if (!result?.success || !result.labels) {
-            throw new Error(result?.message || "Failed to save tab label.");
+            throw new Error(result?.message || "Failed to save settings.");
           }
 
+          allowTemplateDelete = Boolean(result.labels.allowTemplateDelete);
           applyRequirementTabLabels({
             pre: result.labels.preLabel,
             attendance: result.labels.attendanceLabel,
@@ -3037,10 +3064,15 @@
             post: result.labels.postLabel,
           });
 
-          cancelTabLabelEdit(safeKey);
-          showToast("Requirement tab label updated.", "success");
+          closeRequirementSettingsModal();
+          showToast("Requirement settings updated.", "success");
+
+          await loadRequirements("pre");
+          await loadRequirements("post");
         } catch (error) {
-          showToast(error?.message || "Failed to save tab label.", "error");
+          showToast(error?.message || "Failed to save settings.", "error");
+        } finally {
+          saveBtn.disabled = false;
         }
       }
 
@@ -3446,6 +3478,7 @@
                     class="req-template-delete-btn"
                     title="Delete requirement"
                     onclick="event.stopPropagation(); openDeleteRequirementModal('${esc(t.id)}','${encodedTemplateName}','${type}')"
+                    style="${allowTemplateDelete ? "" : "display: none !important"}"
                   >
                     <svg viewBox="0 0 16 16"><polyline points="2,4 3.5,4 13.5,4"></polyline><path d="M12.5 4v8.5a1.1 1.1 0 0 1-1.1 1.1H4.6a1.1 1.1 0 0 1-1.1-1.1V4"></path><path d="M5.8 4V2.9c0-.4.3-.7.7-.7h3c.4 0 .7.3.7.7V4"></path><line x1="6.5" y1="6.2" x2="6.5" y2="11.3"></line><line x1="9.5" y1="6.2" x2="9.5" y2="11.3"></line></svg>
                   </button>

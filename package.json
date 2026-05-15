@@ -37,6 +37,7 @@
   "build": {
     "appId": "com.smartacademic.ccs",
     "productName": "Smart Academic System CCS",
+    "icon": "renderer/core/CTA_HTE_icon.png",
     "directories": {
       "output": "release"
     },
@@ -68,6 +69,7 @@
       }
     ],
     "win": {
+      "icon": "renderer/core/CTA_HTE_icon.png",
       "target": [
         "nsis"
       ]

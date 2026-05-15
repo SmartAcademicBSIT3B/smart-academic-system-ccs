@@ -123,11 +123,24 @@ async function ensureTables() {
       attendance_label VARCHAR(120) NOT NULL DEFAULT 'ATTENDANCE RECORD',
       weekly_label VARCHAR(120) NOT NULL DEFAULT 'WEEKLY REPORTS',
       post_label VARCHAR(120) NOT NULL DEFAULT 'POST REQUIREMENTS',
+      allow_template_delete TINYINT(1) NOT NULL DEFAULT 0,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY uk_ortl_department (department)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
+
+  const allowTemplateDeleteColCheck = await query(
+    `SHOW COLUMNS FROM ojt_requirement_tab_labels LIKE 'allow_template_delete'`,
+  );
+  if (
+    !Array.isArray(allowTemplateDeleteColCheck) ||
+    allowTemplateDeleteColCheck.length === 0
+  ) {
+    await query(
+      `ALTER TABLE ojt_requirement_tab_labels ADD COLUMN allow_template_delete TINYINT(1) NOT NULL DEFAULT 0`,
+    );
+  }
 
   await query(`
     CREATE TABLE IF NOT EXISTS ojt_department_hours (
@@ -364,7 +377,12 @@ function toTabLabelsResponse(row = {}) {
       row.post_label,
       DEFAULT_OJT_TAB_LABELS.postLabel,
     ),
+    allowTemplateDelete: Boolean(row.allow_template_delete),
   };
+}
+
+function normalizeAllowTemplateDelete(value) {
+  return value ? 1 : 0;
 }
 
 async function logSettingsActivity(req, activityType, details = null) {
@@ -759,6 +777,10 @@ router.patch("/tab-labels", requireAuth, async (req, res) => {
           DEFAULT_OJT_TAB_LABELS.postLabel,
         ),
       ),
+      allowTemplateDelete:
+        req.body?.allowTemplateDelete !== undefined
+          ? normalizeAllowTemplateDelete(req.body.allowTemplateDelete)
+          : current?.allow_template_delete || 0,
     };
 
     await query(
@@ -766,13 +788,15 @@ router.patch("/tab-labels", requireAuth, async (req, res) => {
        SET pre_label = ?,
            attendance_label = ?,
            weekly_label = ?,
-           post_label = ?
+           post_label = ?,
+           allow_template_delete = ?
        WHERE department = ?`,
       [
         next.preLabel,
         next.attendanceLabel,
         next.weeklyLabel,
         next.postLabel,
+        next.allowTemplateDelete,
         dept,
       ],
     );

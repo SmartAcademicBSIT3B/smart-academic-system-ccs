@@ -165,7 +165,7 @@ if (!$thesis_data) {
 <head>
     <meta charset="UTF-8">
     <title>CTA HTE Website | Dashboard</title>
-    <link rel="icon" type="image/x-icon" href="../images/PLPLOGO.png">
+    <link rel="icon" type="image/png" href="../images/CTA_HTE_icon.png">
     <link rel="stylesheet" href="../css/dashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
