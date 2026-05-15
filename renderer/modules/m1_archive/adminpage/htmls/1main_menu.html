@@ -476,8 +476,8 @@
           loadPageByKey("dashboard", dashboardMenu);
         }
 
-        // Start notification polling if coordinator
-        if (role === "coordinator") {
+        // Start notification polling for both admin and coordinator.
+        if (role === "coordinator" || role === "admin") {
           startNotificationPolling();
         }
       }
@@ -555,7 +555,8 @@
 
       window.addEventListener("message", (event) => {
         if (event?.data?.type !== "coordinator-activity-updated") return;
-        if (getCurrentRole() !== "coordinator") return;
+        const role = getCurrentRole();
+        if (role !== "coordinator" && role !== "admin") return;
 
         if (event.data.notification) {
           prependCoordinatorNotification(event.data.notification);
@@ -676,7 +677,7 @@
       }
 
       // ════════════════════════════════════════════════════════════════
-      // NOTIFICATIONS SYSTEM (Coordinators Only)
+      // NOTIFICATIONS SYSTEM (Admin + Coordinator)
       // ════════════════════════════════════════════════════════════════
 
       let coordinatorNotifications = [];
@@ -698,7 +699,7 @@
 
       async function fetchCoordinatorNotifications() {
         const role = getCurrentRole();
-        if (role !== "coordinator") return;
+        if (role !== "coordinator" && role !== "admin") return;
 
         if (
           !window.electronAPI ||
@@ -763,13 +764,14 @@
           let notifContent = "";
 
           if (isCoordinatorAction) {
-            // Coordinator action format
+            // Coordinator action format (always show coordinator name/email)
             notifContent = `
               <div style="display: flex; gap: 8px; align-items: flex-start;">
                 <div style="flex-shrink: 0; margin-top: 2px;">${activityIcon}</div>
                 <div style="flex: 1; min-width: 0;">
                   <div class="notif-text" style="color: #a7d8ff;">
-                    <b>${escapeHtml(notif.coordinator_name || notif.coordinator_email)}</b> ${escapeHtml(notif.message || "")}
+                    <b>Coordinator:</b> ${escapeHtml(notif.coordinator_name || notif.coordinator_email)}<br />
+                    <span>${escapeHtml(notif.message || "")}</span>
                   </div>
                   <div style="font-size: 11px; color: #666; margin-top: 2px;">
                     Student: <b>${escapeHtml(notif.student_name || notif.student_id)}</b>

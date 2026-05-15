@@ -220,6 +220,16 @@ async function logCoordinatorActivity(
   metadata = {},
 ) {
   try {
+    console.log("[Coordinator Activity Log] Attempting to log activity:", {
+      dept,
+      coordinatorEmail,
+      coordinatorName,
+      actionType,
+      studentId,
+      studentName,
+      description,
+      metadata,
+    });
     // Ensure table exists
     await db(
       `CREATE TABLE IF NOT EXISTS coordinator_activity_log (
@@ -255,9 +265,10 @@ async function logCoordinatorActivity(
       ],
     );
 
+    console.log("[Coordinator Activity Log] Successfully logged activity.");
     return true;
   } catch (error) {
-    console.error("[Coordinator Activity Log] Error:", error.message);
+    console.error("[Coordinator Activity Log] Error:", error);
     return false;
   }
 }

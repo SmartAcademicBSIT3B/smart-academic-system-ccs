@@ -547,6 +547,7 @@ router.get("/capstone-approval/:studentId", requireAuth, async (req, res) => {
 router.get("/notifications", requireAuth, async (req, res) => {
   try {
     const { email, dept } = await resolveCoordinatorEmail(req);
+    const isAdmin = req.user?.role === "admin";
     const sinceRaw = String(req.query.since || "").trim();
     const sinceDate = sinceRaw ? new Date(sinceRaw) : null;
     const hasSince =
@@ -582,170 +583,160 @@ router.get("/notifications", requireAuth, async (req, res) => {
       }
     }
 
-    // If no sections assigned, return empty
-    if (!assignments.length) {
-      return res.json({ success: true, notifications: [] });
-    }
-
-    const sectionNames = assignments.map((r) => r.section_name);
-
-    // Get all students in coordinator's sections
-    const placeholders = sectionNames.map(() => "?").join(",");
-    const students = await query(
-      `SELECT id, student_id, name FROM ojt_students
-       WHERE department = ? AND section IN (${placeholders})`,
-      [dept, ...sectionNames],
-    );
-
-    if (!students.length) {
-      return res.json({ success: true, notifications: [] });
-    }
-
-    const studentIds = students.map((s) => s.id);
-    const studentMap = {};
-    students.forEach((s) => {
-      studentMap[s.id] = { student_id: s.student_id, name: s.name };
-    });
-
     // Time window for "recent" activities
     const cutoffTime = new Date(Date.now() - minutesBack * 60 * 1000);
     const windowStart = hasSince ? sinceDate : cutoffTime;
 
-    // Fetch requirement submissions
-    const reqPlaceholders = studentIds.map(() => "?").join(",");
-    const requirements = await query(
-      `SELECT 
-         'requirement' AS activity_type,
-         ors.ojt_student_id,
-         ors.status,
-         LOWER(COALESCE(ort.type, 'pre')) AS requirement_type,
-         ors.created_at,
-         ors.updated_at,
-         ors.file_name
-       FROM ojt_requirement_submissions ors
-       LEFT JOIN ojt_requirement_templates ort ON ort.id = ors.template_id
-       WHERE ors.ojt_student_id IN (${reqPlaceholders})
-         AND ors.updated_at >= ?
-       ORDER BY ors.updated_at DESC`,
-      [...studentIds, windowStart],
-    );
-
-    // Fetch attendance records
-    const attendance = await query(
-      `SELECT
-         'attendance' AS activity_type,
-         oa.ojt_student_id,
-         oa.status,
-         oa.attendance_date,
-         oa.created_at,
-         oa.updated_at
-       FROM ojt_attendance oa
-       WHERE oa.ojt_student_id IN (${reqPlaceholders})
-         AND oa.updated_at >= ?
-       ORDER BY oa.updated_at DESC`,
-      [...studentIds, windowStart],
-    );
-
-    // Fetch weekly reports
-    const weeklyReports = await query(
-      `SELECT
-         'weekly_report' AS activity_type,
-         owr.ojt_student_id,
-         owr.status,
-         owr.week_number,
-         owr.created_at,
-         owr.updated_at,
-         owr.feedback
-       FROM ojt_weekly_reports owr
-       WHERE owr.ojt_student_id IN (${reqPlaceholders})
-         AND owr.updated_at >= ?
-       ORDER BY owr.updated_at DESC`,
-      [...studentIds, windowStart],
-    );
-
     // Aggregate and format notifications
     const notifications = [];
+    if (assignments.length) {
+      const sectionNames = assignments.map((r) => r.section_name);
 
-    // Add requirement notifications
-    requirements.forEach((req) => {
-      const student = studentMap[req.ojt_student_id];
-      if (!student) return;
-      const reqType = req.requirement_type === "post" ? "post" : "pre";
-      let message = "";
-      if (req.status === "submitted" || req.status === "pending") {
-        message = `submitted a ${reqType}-requirement file`;
-      } else if (req.status === "verified") {
-        message = `${reqType}-requirement was verified`;
-      } else if (req.status === "rejected") {
-        message = `${reqType}-requirement was rejected`;
-      } else {
-        message = `updated a ${reqType}-requirement`;
+      // Get all students in coordinator's sections.
+      const placeholders = sectionNames.map(() => "?").join(",");
+      const students = await query(
+        `SELECT id, student_id, name FROM ojt_students
+         WHERE department = ? AND section IN (${placeholders})`,
+        [dept, ...sectionNames],
+      );
+
+      if (students.length) {
+        const studentIds = students.map((s) => s.id);
+        const studentMap = {};
+        students.forEach((s) => {
+          studentMap[s.id] = { student_id: s.student_id, name: s.name };
+        });
+
+        // Fetch requirement submissions
+        const reqPlaceholders = studentIds.map(() => "?").join(",");
+        const requirements = await query(
+          `SELECT 
+             'requirement' AS activity_type,
+             ors.ojt_student_id,
+             ors.status,
+             LOWER(COALESCE(ort.type, 'pre')) AS requirement_type,
+             ors.created_at,
+             ors.updated_at,
+             ors.file_name
+           FROM ojt_requirement_submissions ors
+           LEFT JOIN ojt_requirement_templates ort ON ort.id = ors.template_id
+           WHERE ors.ojt_student_id IN (${reqPlaceholders})
+             AND ors.updated_at >= ?
+           ORDER BY ors.updated_at DESC`,
+          [...studentIds, windowStart],
+        );
+
+        // Fetch attendance records
+        const attendance = await query(
+          `SELECT
+             'attendance' AS activity_type,
+             oa.ojt_student_id,
+             oa.status,
+             oa.attendance_date,
+             oa.created_at,
+             oa.updated_at
+           FROM ojt_attendance oa
+           WHERE oa.ojt_student_id IN (${reqPlaceholders})
+             AND oa.updated_at >= ?
+           ORDER BY oa.updated_at DESC`,
+          [...studentIds, windowStart],
+        );
+
+        // Fetch weekly reports
+        const weeklyReports = await query(
+          `SELECT
+             'weekly_report' AS activity_type,
+             owr.ojt_student_id,
+             owr.status,
+             owr.week_number,
+             owr.created_at,
+             owr.updated_at,
+             owr.feedback
+           FROM ojt_weekly_reports owr
+           WHERE owr.ojt_student_id IN (${reqPlaceholders})
+             AND owr.updated_at >= ?
+           ORDER BY owr.updated_at DESC`,
+          [...studentIds, windowStart],
+        );
+
+        // Add requirement notifications
+        requirements.forEach((req) => {
+          const student = studentMap[req.ojt_student_id];
+          if (!student) return;
+          const reqType = req.requirement_type === "post" ? "post" : "pre";
+          let message = "";
+          if (req.status === "submitted" || req.status === "pending") {
+            message = `submitted a ${reqType}-requirement file`;
+          } else if (req.status === "verified") {
+            message = `${reqType}-requirement was verified`;
+          } else if (req.status === "rejected") {
+            message = `${reqType}-requirement was rejected`;
+          } else {
+            message = `updated a ${reqType}-requirement`;
+          }
+
+          notifications.push({
+            id: `req-${req.ojt_student_id}-${req.created_at}`,
+            activity_type: "requirement",
+            status: req.status,
+            student_id: student.student_id,
+            student_name: student.name,
+            message: message,
+            file_name: req.file_name || "(File)",
+            timestamp: req.updated_at,
+          });
+        });
+
+        // Add attendance notifications
+        attendance.forEach((att) => {
+          const student = studentMap[att.ojt_student_id];
+          if (!student) return;
+          const dateStr = att.attendance_date
+            ? new Date(att.attendance_date).toLocaleDateString()
+            : "Unknown date";
+          const message = `recorded attendance (${att.status}) on ${dateStr}`;
+
+          notifications.push({
+            id: `att-${att.ojt_student_id}-${att.attendance_date}`,
+            activity_type: "attendance",
+            status: att.status,
+            student_id: student.student_id,
+            student_name: student.name,
+            message: message,
+            timestamp: att.updated_at,
+          });
+        });
+
+        // Add weekly report notifications
+        weeklyReports.forEach((report) => {
+          const student = studentMap[report.ojt_student_id];
+          if (!student) return;
+          let message = "";
+          if (report.status === "submitted" || report.status === "pending") {
+            message = `submitted week ${report.week_number} report`;
+          } else if (report.status === "reviewed") {
+            message = `week ${report.week_number} report was reviewed`;
+          } else if (report.status === "returned") {
+            message = `week ${report.week_number} report was returned for revision`;
+          } else {
+            message = `updated week ${report.week_number} report`;
+          }
+
+          notifications.push({
+            id: `report-${report.ojt_student_id}-${report.week_number}`,
+            activity_type: "weekly_report",
+            status: report.status,
+            student_id: student.student_id,
+            student_name: student.name,
+            message: message,
+            has_feedback: !!report.feedback,
+            timestamp: report.updated_at,
+          });
+        });
       }
-
-      notifications.push({
-        id: `req-${req.ojt_student_id}-${req.created_at}`,
-        activity_type: "requirement",
-        status: req.status,
-        student_id: student.student_id,
-        student_name: student.name,
-        message: message,
-        file_name: req.file_name || "(File)",
-        timestamp: req.updated_at,
-      });
-    });
-
-    // Add attendance notifications
-    attendance.forEach((att) => {
-      const student = studentMap[att.ojt_student_id];
-      if (!student) return;
-      const dateStr = att.attendance_date
-        ? new Date(att.attendance_date).toLocaleDateString()
-        : "Unknown date";
-      const message = `recorded attendance (${att.status}) on ${dateStr}`;
-
-      notifications.push({
-        id: `att-${att.ojt_student_id}-${att.attendance_date}`,
-        activity_type: "attendance",
-        status: att.status,
-        student_id: student.student_id,
-        student_name: student.name,
-        message: message,
-        timestamp: att.updated_at,
-      });
-    });
-
-    // Add weekly report notifications
-    weeklyReports.forEach((report) => {
-      const student = studentMap[report.ojt_student_id];
-      if (!student) return;
-      let message = "";
-      if (report.status === "submitted" || report.status === "pending") {
-        message = `submitted week ${report.week_number} report`;
-      } else if (report.status === "reviewed") {
-        message = `week ${report.week_number} report was reviewed`;
-      } else if (report.status === "returned") {
-        message = `week ${report.week_number} report was returned for revision`;
-      } else {
-        message = `updated week ${report.week_number} report`;
-      }
-
-      notifications.push({
-        id: `report-${report.ojt_student_id}-${report.week_number}`,
-        activity_type: "weekly_report",
-        status: report.status,
-        student_id: student.student_id,
-        student_name: student.name,
-        message: message,
-        has_feedback: !!report.feedback,
-        timestamp: report.updated_at,
-      });
-    });
-
-    // Sort by timestamp (most recent first) and limit
-    notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    }
 
     // For admins, also include coordinator activity logs
-    const isAdmin = req.user?.role === "admin";
     if (isAdmin) {
       try {
         const coordinatorActivities = await query(
@@ -771,12 +762,17 @@ router.get("/notifications", requireAuth, async (req, res) => {
             typeof activity.metadata === "string"
               ? JSON.parse(activity.metadata)
               : activity.metadata || {};
+          // Fallback: if coordinator_name is missing, use coordinator_email
+          const coordinatorName =
+            activity.coordinator_name && activity.coordinator_name.trim()
+              ? activity.coordinator_name
+              : activity.coordinator_email;
           notifications.push({
             id: `coord-${activity.coordinator_email}-${activity.created_at}`,
             activity_type: "coordinator_action",
             action_type: activity.action_type,
             coordinator_email: activity.coordinator_email,
-            coordinator_name: activity.coordinator_name,
+            coordinator_name: coordinatorName,
             student_id: activity.student_id,
             student_name: activity.student_name,
             message: activity.description,
@@ -789,6 +785,9 @@ router.get("/notifications", requireAuth, async (req, res) => {
         // Continue without coordinator activities on error
       }
     }
+
+    // Sort by timestamp (most recent first) after all sources are merged.
+    notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     const result = notifications.slice(0, limit);
     const lastCursor = result.length
