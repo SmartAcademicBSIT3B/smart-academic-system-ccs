@@ -17,6 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../api/export_heading_utils.js"></script>
     <script src="../api/multi_select.js"></script>
   </head>
 
@@ -2364,13 +2365,56 @@
           URL.revokeObjectURL(url);
         }
 
-        function exportExcel() {
+        async function exportExcel() {
           const table = document.getElementById("archives-table");
           if (!table) return;
-          const html = `<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body>${table.outerHTML}</body></html>`;
+
+          const columns = getExportColumnsForPdf(table);
+          const rows = getVisibleRowsForPdf(table);
+          if (!columns.length) {
+            throw new Error("No exportable columns found.");
+          }
+
+          const headingUtils = window.ReportExportUtils;
+          if (
+            !headingUtils?.buildExcelWorkbookHtml ||
+            !headingUtils?.escapeHtml
+          ) {
+            throw new Error("The export heading utility is unavailable.");
+          }
+
+          const generatedText = new Date().toLocaleString("en-US");
+          const headerCells = ["No.", ...columns.map(({ label }) => label)]
+            .map((label) => `<th>${headingUtils.escapeHtml(label)}</th>`)
+            .join("");
+
+          const bodyRows = rows
+            .map((row, rowIndex) => {
+              const cells = [
+                `<td style=\"text-align:center\">${rowIndex + 1}</td>`,
+                ...columns.map(
+                  ({ index }) =>
+                    `<td>${headingUtils.escapeHtml(resolveExportCellText(row.cells[index]))}</td>`,
+                ),
+              ].join("");
+              return `<tr>${cells}</tr>`;
+            })
+            .join("");
+
+          const html = await headingUtils.buildExcelWorkbookHtml({
+            reportTitle: "Section Assignment Report",
+            generatedText,
+            rowsCount: rows.length,
+            filterSummary: "Current view",
+            headerCellsHtml: headerCells,
+            bodyRowsHtml: bodyRows,
+          });
+
           downloadBlob(
-            html,
-            "application/vnd.ms-excel",
+            new Blob(["\ufeff", html], {
+              type: "application/vnd.ms-excel;charset=utf-8",
+            }),
+            "application/vnd.ms-excel;charset=utf-8",
             `${getReportName()}.xls`,
           );
         }
@@ -2449,6 +2493,161 @@
           });
         }
 
+        function toHeaderImageUrl(pathValue) {
+          const raw = String(pathValue || "").trim();
+          if (!raw) return "";
+          if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw)) return raw;
+          if (/^[a-zA-Z]:\\/.test(raw)) {
+            return `file:///${raw.replace(/\\/g, "/")}`;
+          }
+          if (raw.startsWith("/")) return `file://${raw}`;
+          return raw;
+        }
+
+        async function resolveHeaderImageDataUrl() {
+          const defaultHeaderUrl = new URL(
+            "../../images/header-template.png",
+            window.location.href,
+          ).href;
+          let candidateUrl = defaultHeaderUrl;
+
+          try {
+            const api = window.electronAPI || window.parent?.electronAPI;
+            if (api?.getAppSettings) {
+              const settingsResult = await api.getAppSettings();
+              if (settingsResult?.success && settingsResult.settings) {
+                const selectedPath = String(
+                  settingsResult.settings.selectedPdfReportHeaderPath || "",
+                ).trim();
+                if (selectedPath) {
+                  candidateUrl =
+                    toHeaderImageUrl(selectedPath) || defaultHeaderUrl;
+                }
+              }
+            }
+          } catch (_error) {
+            candidateUrl = defaultHeaderUrl;
+          }
+
+          try {
+            return await loadImageAsDataUrl(candidateUrl);
+          } catch (_error) {
+            return await loadImageAsDataUrl(defaultHeaderUrl);
+          }
+        }
+
+        function ensureInlinePreviewElements() {
+          const existing = document.getElementById(
+            "section-pdf-preview-overlay",
+          );
+          if (existing) {
+            return {
+              overlay: existing,
+              frame: document.getElementById("section-pdf-preview-frame"),
+              title: document.getElementById("section-pdf-preview-title"),
+              closeBtn: document.getElementById("section-pdf-preview-close"),
+              printBtn: document.getElementById("section-pdf-preview-print"),
+              downloadBtn: document.getElementById(
+                "section-pdf-preview-download",
+              ),
+            };
+          }
+
+          const overlay = document.createElement("div");
+          overlay.id = "section-pdf-preview-overlay";
+          overlay.style.cssText =
+            "position:fixed;inset:0;display:none;z-index:20000;background:rgba(7,9,12,0.72);backdrop-filter:blur(1.5px);";
+
+          overlay.innerHTML = `
+            <div style="position:absolute;inset:26px;background:#f3f5f8;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 48px rgba(0,0,0,0.45);">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid #d8dee8;background:#fff;">
+                <div id="section-pdf-preview-title" style="font:600 14px 'Segoe UI',Arial,sans-serif;color:#2a3340;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Print Preview</div>
+                <div style="display:flex;gap:8px;">
+                  <button id="section-pdf-preview-print" type="button" style="border:1px solid #243041;background:#243041;color:#fff;padding:7px 12px;border-radius:7px;font:500 13px 'Segoe UI',Arial,sans-serif;cursor:pointer;">Print</button>
+                  <button id="section-pdf-preview-download" type="button" style="border:1px solid #c6cedb;background:#fff;color:#243041;padding:7px 12px;border-radius:7px;font:500 13px 'Segoe UI',Arial,sans-serif;cursor:pointer;">Download PDF</button>
+                  <button id="section-pdf-preview-close" type="button" style="border:1px solid #c6cedb;background:#fff;color:#243041;padding:7px 12px;border-radius:7px;font:500 13px 'Segoe UI',Arial,sans-serif;cursor:pointer;">Close</button>
+                </div>
+              </div>
+              <iframe id="section-pdf-preview-frame" title="PDF preview" style="border:0;width:100%;height:100%;background:#f3f5f8;"></iframe>
+            </div>
+          `;
+
+          document.body.appendChild(overlay);
+
+          return {
+            overlay,
+            frame: document.getElementById("section-pdf-preview-frame"),
+            title: document.getElementById("section-pdf-preview-title"),
+            closeBtn: document.getElementById("section-pdf-preview-close"),
+            printBtn: document.getElementById("section-pdf-preview-print"),
+            downloadBtn: document.getElementById(
+              "section-pdf-preview-download",
+            ),
+          };
+        }
+
+        function openInlinePdfPreview(pdfBlobUrl, fileName) {
+          const safeFileName = String(
+            fileName || "section_assignment_report.pdf",
+          ).trim();
+          const ui = ensureInlinePreviewElements();
+
+          const previousUrl = ui.overlay.dataset.blobUrl || "";
+          if (previousUrl) {
+            try {
+              URL.revokeObjectURL(previousUrl);
+            } catch (_error) {
+              // Ignore stale URL cleanup failures.
+            }
+          }
+
+          ui.overlay.dataset.blobUrl = pdfBlobUrl;
+          ui.overlay.style.display = "block";
+          ui.title.textContent = `Print Preview: ${safeFileName}`;
+          ui.frame.src = pdfBlobUrl;
+
+          const closePreview = () => {
+            ui.overlay.style.display = "none";
+            ui.frame.src = "about:blank";
+            const activeUrl = ui.overlay.dataset.blobUrl || "";
+            ui.overlay.dataset.blobUrl = "";
+            if (activeUrl) {
+              try {
+                URL.revokeObjectURL(activeUrl);
+              } catch (_error) {
+                // Ignore cleanup failures.
+              }
+            }
+          };
+
+          ui.closeBtn.onclick = closePreview;
+          ui.overlay.onclick = (event) => {
+            if (event.target === ui.overlay) closePreview();
+          };
+
+          ui.downloadBtn.onclick = () => {
+            const a = document.createElement("a");
+            a.href = pdfBlobUrl;
+            a.download = safeFileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          };
+
+          ui.printBtn.onclick = () => {
+            try {
+              if (ui.frame.contentWindow) {
+                ui.frame.contentWindow.focus();
+                ui.frame.contentWindow.print();
+                return;
+              }
+            } catch (_error) {
+              // Fall back to top-level print if iframe print fails.
+            }
+            window.print();
+          };
+        }
+
         async function exportSectionAssignmentsToPdf() {
           const table = document.getElementById("archives-table");
           if (!table) {
@@ -2470,38 +2669,34 @@
 
           const { jsPDF } = window.jspdf;
           const doc = new jsPDF({
-            orientation: "landscape",
+            orientation: "portrait",
             unit: "pt",
             format: "a4",
             compress: true,
           });
 
+          const headerImageDataUrl = await resolveHeaderImageDataUrl();
+
           const pageWidth = doc.internal.pageSize.getWidth();
           const pageHeight = doc.internal.pageSize.getHeight();
-          const marginX = 30;
-          const contentWidth = pageWidth - marginX * 2;
-          let cursorY = 24;
+          const marginX = 32;
+          let cursorY = 26;
 
-          try {
-            const headerImageUrl = new URL(
-              "../../images/header-template.png",
-              window.location.href,
-            ).href;
-            const headerImageDataUrl = await loadImageAsDataUrl(headerImageUrl);
-            const aspectRatio = 1300 / 220;
-            const headerHeight = Math.min(contentWidth / aspectRatio, 90);
-            doc.addImage(
-              headerImageDataUrl,
-              "PNG",
-              marginX,
-              cursorY,
-              contentWidth,
-              headerHeight,
-            );
-            cursorY += headerHeight + 12;
-          } catch (_error) {
-            cursorY += 8;
-          }
+          const imageProps = doc.getImageProperties(headerImageDataUrl);
+          const headerWidth = pageWidth - marginX * 2;
+          const headerHeight = Math.min(
+            92,
+            (imageProps.height / imageProps.width) * headerWidth,
+          );
+          doc.addImage(
+            headerImageDataUrl,
+            "PNG",
+            marginX,
+            cursorY,
+            headerWidth,
+            headerHeight,
+          );
+          cursorY += headerHeight + 14;
 
           doc.setFont("helvetica", "bold");
           doc.setFontSize(17);
@@ -2523,7 +2718,7 @@
             align: "right",
           });
 
-          cursorY += 14;
+          cursorY += 16;
           doc.autoTable({
             startY: cursorY,
             head: [["No.", ...columns.map(({ label }) => label)]],
@@ -2537,7 +2732,7 @@
             theme: "grid",
             styles: {
               font: "helvetica",
-              fontSize: 7.6,
+              fontSize: 7.4,
               cellPadding: 4.5,
               overflow: "linebreak",
               lineColor: [210, 216, 224],
@@ -2546,7 +2741,7 @@
               valign: "middle",
             },
             headStyles: {
-              fillColor: [24, 28, 34],
+              fillColor: [25, 61, 109],
               textColor: [255, 255, 255],
               fontStyle: "bold",
             },
@@ -2554,7 +2749,7 @@
               fillColor: [246, 248, 251],
             },
             columnStyles: {
-              0: { cellWidth: 28, halign: "center" },
+              0: { cellWidth: 30, halign: "center" },
             },
             didDrawPage() {
               const pageNumber = doc.getNumberOfPages();
@@ -2571,7 +2766,10 @@
             },
           });
 
-          doc.save(`${getReportName()}.pdf`);
+          const fileName = `${getReportName()}.pdf`;
+          const pdfBlob = doc.output("blob");
+          const pdfBlobUrl = URL.createObjectURL(pdfBlob);
+          openInlinePdfPreview(pdfBlobUrl, fileName);
         }
 
         function bindEvents() {
@@ -2710,20 +2908,35 @@
 
           document
             .getElementById("section-export-excel-btn")
-            ?.addEventListener("click", () => {
-              exportExcel();
-              closeModal(document.getElementById("section-export-modal"));
+            ?.addEventListener("click", async () => {
+              try {
+                await exportExcel();
+                closeModal(document.getElementById("section-export-modal"));
+                showToast("Excel report downloaded.", "success");
+              } catch (error) {
+                showToast(error?.message || "Excel export failed.", "error");
+              }
             });
 
           document
             .getElementById("section-export-pdf-btn")
             ?.addEventListener("click", async () => {
-              closeModal(document.getElementById("section-export-modal"));
+              const loadingToast = showToast(
+                "Preparing PDF preview...",
+                "info",
+                0,
+              );
+
               try {
                 await exportSectionAssignmentsToPdf();
-                showToast("PDF report downloaded.", "success");
+                closeModal(document.getElementById("section-export-modal"));
+                showToast("PDF preview is ready.", "success");
               } catch (error) {
                 showToast(error?.message || "PDF export failed.", "error");
+              } finally {
+                if (loadingToast && typeof loadingToast.remove === "function") {
+                  loadingToast.remove();
+                }
               }
             });
 

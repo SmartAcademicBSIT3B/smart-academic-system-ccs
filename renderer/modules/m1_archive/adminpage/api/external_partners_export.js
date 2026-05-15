@@ -23,8 +23,10 @@
     });
   }
 
-  function getExportableColumns(table) {
+  function getExportableColumns(table, options = {}) {
     if (!table) return [];
+    const excludeIdAndLogo = Boolean(options.excludeIdAndLogo);
+
     return Array.from(table.querySelectorAll("thead th"))
       .map((headerCell, index) => ({
         index,
@@ -35,8 +37,28 @@
         if (!label) return false;
         if (headerCell.classList.contains("col-check")) return false;
         if (headerCell.classList.contains("col-actions")) return false;
+        if (excludeIdAndLogo) {
+          const normalized = label.trim().toLowerCase();
+          if (normalized === "id" || normalized === "logo") return false;
+        }
         return true;
       });
+  }
+
+  function resolveFilterSummary() {
+    const tags = Array.from(
+      document.querySelectorAll("#active-filter-tags .filter-tag"),
+    )
+      .map((tag) => {
+        const clone = tag.cloneNode(true);
+        clone.querySelector(".filter-tag-remove")?.remove();
+        return String(clone.textContent || "")
+          .replace(/\s+/g, " ")
+          .trim();
+      })
+      .filter(Boolean);
+
+    return tags.length ? tags.join(" | ") : "Current view";
   }
 
   function escapeCsvCell(value) {
@@ -93,21 +115,18 @@
     downloadBlob(html, mime, filename);
   }
 
-  function escapeHtml(value) {
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  function buildExcelHtml(table) {
+  async function buildExcelHtml(table) {
     const columns = getExportableColumns(table);
     const rows = getVisibleRows(table);
+    const generatedText = new Date().toLocaleString("en-US");
+    const headingUtils = window.ReportExportUtils;
+
+    if (!headingUtils?.buildExcelWorkbookHtml || !headingUtils?.escapeHtml) {
+      throw new Error("The export heading utility is unavailable.");
+    }
 
     const headerCells = columns
-      .map(({ label }) => `<th>${escapeHtml(label)}</th>`)
+      .map(({ label }) => `<th>${headingUtils.escapeHtml(label)}</th>`)
       .join("");
 
     const bodyRows = rows
@@ -115,42 +134,21 @@
         const cells = columns
           .map(
             ({ index }) =>
-              `<td>${escapeHtml(resolveCellText(row, index))}</td>`,
+              `<td>${headingUtils.escapeHtml(resolveCellText(row, index))}</td>`,
           )
           .join("");
         return `<tr>${cells}</tr>`;
       })
       .join("");
 
-    return `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <style>
-      body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1d2430; }
-      .title { font-weight: 700; font-size: 14pt; margin-bottom: 10px; }
-      .meta { margin-bottom: 6px; }
-      table { border-collapse: collapse; width: 100%; }
-      th, td { border: 1px solid #c6cedb; padding: 6px 8px; vertical-align: middle; }
-      th { background: #1f2937; color: #ffffff; font-weight: 700; }
-      tr:nth-child(even) td { background: #f8fafc; }
-    </style>
-  </head>
-  <body>
-    <div class="title">External Partners Report</div>
-    <div class="meta"><strong>Generated:</strong> ${escapeHtml(new Date().toLocaleString("en-US"))}</div>
-    <div class="meta"><strong>Rows:</strong> ${rows.length}</div>
-    <br />
-    <table>
-      <thead>
-        <tr>${headerCells}</tr>
-      </thead>
-      <tbody>
-        ${bodyRows}
-      </tbody>
-    </table>
-  </body>
-</html>`;
+    return headingUtils.buildExcelWorkbookHtml({
+      reportTitle: "External Partners Report",
+      generatedText,
+      rowsCount: rows.length,
+      filterSummary: resolveFilterSummary(),
+      headerCellsHtml: headerCells,
+      bodyRowsHtml: bodyRows,
+    });
   }
 
   function loadImageAsDataUrl(src) {
@@ -325,7 +323,7 @@
   async function exportVisibleExternalPartnersToPdf(options = {}) {
     const table = getTable();
     const rows = getVisibleRows(table);
-    const columns = getExportableColumns(table);
+    const columns = getExportableColumns(table, { excludeIdAndLogo: true });
 
     if (!rows.length) {
       throw new Error("There are no visible external partner rows to export.");
@@ -416,7 +414,7 @@
         valign: "middle",
       },
       headStyles: {
-        fillColor: [24, 28, 34],
+        fillColor: [25, 61, 109],
         textColor: [255, 255, 255],
         fontStyle: "bold",
       },
@@ -478,19 +476,23 @@
       ui.showToast("CSV report downloaded.", "success");
     });
 
-    excelBtn?.addEventListener("click", () => {
+    excelBtn?.addEventListener("click", async () => {
       const table = getTable();
       if (!table) return;
-      const excelHtml = buildExcelHtml(table);
-      downloadBlob(
-        new Blob(["\ufeff", excelHtml], {
-          type: "application/vnd.ms-excel;charset=utf-8",
-        }),
-        "application/vnd.ms-excel;charset=utf-8",
-        `${getReportName()}.xls`,
-      );
-      ui.closeModal(exportModal);
-      ui.showToast("Excel report downloaded.", "success");
+      try {
+        const excelHtml = await buildExcelHtml(table);
+        downloadBlob(
+          new Blob(["\ufeff", excelHtml], {
+            type: "application/vnd.ms-excel;charset=utf-8",
+          }),
+          "application/vnd.ms-excel;charset=utf-8",
+          `${getReportName()}.xls`,
+        );
+        ui.closeModal(exportModal);
+        ui.showToast("Excel report downloaded.", "success");
+      } catch (error) {
+        ui.showToast(error?.message || "Excel export failed.", "error");
+      }
     });
 
     pdfBtn?.addEventListener("click", async () => {

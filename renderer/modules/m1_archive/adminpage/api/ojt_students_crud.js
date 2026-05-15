@@ -41,6 +41,76 @@
       .replace(/'/g, "&#39;");
   }
 
+  function getMiddleInitial(value) {
+    const middle = asText(value);
+    if (!middle) return "";
+    return middle.charAt(0).toUpperCase();
+  }
+
+  function formatStudentNameForTable(nameValue) {
+    const raw = asText(nameValue);
+    if (!raw) return "";
+
+    const suffixPattern = /^(jr\.?|sr\.?|ii|iii|iv|v)$/i;
+    let lastName = "";
+    let firstName = "";
+    let middleName = "";
+    let suffix = "";
+
+    if (raw.includes(",")) {
+      const parts = raw
+        .split(",")
+        .map((part) => asText(part))
+        .filter(Boolean);
+
+      lastName = parts[0] || "";
+      firstName = parts[1] || "";
+      middleName = parts[2] || "";
+      suffix = parts[3] || "";
+
+      if (!middleName && firstName.includes(" ")) {
+        const firstParts = firstName.split(/\s+/).filter(Boolean);
+        if (firstParts.length > 1) {
+          firstName = firstParts.shift() || "";
+          middleName = firstParts.join(" ");
+        }
+      }
+
+      if (!suffix && middleName && suffixPattern.test(middleName)) {
+        suffix = middleName;
+        middleName = "";
+      }
+    } else {
+      const parts = raw.split(/\s+/).filter(Boolean);
+      if (parts.length === 1) return parts[0];
+
+      if (suffixPattern.test(parts[parts.length - 1])) {
+        suffix = parts.pop() || "";
+      }
+
+      if (parts.length === 1) {
+        firstName = parts[0] || "";
+      } else {
+        lastName = parts.pop() || "";
+        // Keep all remaining words as given name so multi-word first names stay intact.
+        firstName = parts.join(" ");
+        middleName = "";
+      }
+    }
+
+    if (!lastName && !firstName) return raw;
+
+    const middleInitial = getMiddleInitial(middleName);
+    const displayParts = [
+      asText(lastName),
+      asText(firstName),
+      middleInitial,
+      asText(suffix),
+    ].filter(Boolean);
+
+    return displayParts.join(", ");
+  }
+
   function resolveDepartmentFallback(value) {
     return asText(value) || appDefaultDepartment;
   }
@@ -528,11 +598,12 @@
 
   function buildRowMarkup(student) {
     const statusValue = normalizeOjtStatus(student.status);
+    const displayName = formatStudentNameForTable(student.name);
 
     return `
       <td><input type="checkbox" class="archive-checkbox row-check" /></td>
       <td>${esc(student.student_id)}</td>
-      <td>${esc(student.name)}</td>
+      <td>${esc(displayName)}</td>
       <td class="col-linked">${renderLinkedArchiveCell(student)}</td>
       <td>${esc(student.section)}</td>
       <td>${esc(student.email)}</td>

@@ -15,6 +15,13 @@ const DEFAULT_OJT_MANAGER_SETTINGS = {
   weeklyMaxFileSizeMB: 25,
 };
 
+const DEFAULT_OJT_TAB_LABELS = {
+  preLabel: "PRE REQUIREMENTS",
+  attendanceLabel: "ATTENDANCE RECORD",
+  weeklyLabel: "WEEKLY REPORTS",
+  postLabel: "POST REQUIREMENTS",
+};
+
 const DEPT_HEADER = "x-department";
 function getDept(req) {
   return (
@@ -109,6 +116,20 @@ async function ensureTables() {
   `);
 
   await query(`
+    CREATE TABLE IF NOT EXISTS ojt_requirement_tab_labels (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      department VARCHAR(120) NOT NULL,
+      pre_label VARCHAR(120) NOT NULL DEFAULT 'PRE REQUIREMENTS',
+      attendance_label VARCHAR(120) NOT NULL DEFAULT 'ATTENDANCE RECORD',
+      weekly_label VARCHAR(120) NOT NULL DEFAULT 'WEEKLY REPORTS',
+      post_label VARCHAR(120) NOT NULL DEFAULT 'POST REQUIREMENTS',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_ortl_department (department)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  await query(`
     CREATE TABLE IF NOT EXISTS ojt_department_hours (
       id INT AUTO_INCREMENT PRIMARY KEY,
       department VARCHAR(120) NOT NULL,
@@ -189,6 +210,12 @@ function normalizeManagerSettingsPayload(value = {}) {
   };
 }
 
+function normalizeTabLabel(value, fallback) {
+  const text = String(value || "").trim();
+  if (!text) return fallback;
+  return text.slice(0, 120);
+}
+
 async function ensureManagerSettingsRow(dept) {
   const rows = await query(
     `SELECT *
@@ -237,6 +264,46 @@ async function ensureManagerSettingsRow(dept) {
   return created[0] || null;
 }
 
+async function ensureTabLabelsRow(dept) {
+  const rows = await query(
+    `SELECT *
+     FROM ojt_requirement_tab_labels
+     WHERE department = ?
+     LIMIT 1`,
+    [dept],
+  );
+
+  if (Array.isArray(rows) && rows.length > 0) {
+    return rows[0];
+  }
+
+  await query(
+    `INSERT INTO ojt_requirement_tab_labels (
+      department,
+      pre_label,
+      attendance_label,
+      weekly_label,
+      post_label
+    ) VALUES (?, ?, ?, ?, ?)`,
+    [
+      dept,
+      DEFAULT_OJT_TAB_LABELS.preLabel,
+      DEFAULT_OJT_TAB_LABELS.attendanceLabel,
+      DEFAULT_OJT_TAB_LABELS.weeklyLabel,
+      DEFAULT_OJT_TAB_LABELS.postLabel,
+    ],
+  );
+
+  const created = await query(
+    `SELECT *
+     FROM ojt_requirement_tab_labels
+     WHERE department = ?
+     LIMIT 1`,
+    [dept],
+  );
+  return created[0] || null;
+}
+
 function toManagerSettingsResponse(row = {}) {
   return {
     preRateLimitPerDay: normalizePositiveInt(
@@ -278,6 +345,24 @@ function toManagerSettingsResponse(row = {}) {
       row.weekly_max_file_size_mb,
       DEFAULT_OJT_MANAGER_SETTINGS.weeklyMaxFileSizeMB,
       50,
+    ),
+  };
+}
+
+function toTabLabelsResponse(row = {}) {
+  return {
+    preLabel: normalizeTabLabel(row.pre_label, DEFAULT_OJT_TAB_LABELS.preLabel),
+    attendanceLabel: normalizeTabLabel(
+      row.attendance_label,
+      DEFAULT_OJT_TAB_LABELS.attendanceLabel,
+    ),
+    weeklyLabel: normalizeTabLabel(
+      row.weekly_label,
+      DEFAULT_OJT_TAB_LABELS.weeklyLabel,
+    ),
+    postLabel: normalizeTabLabel(
+      row.post_label,
+      DEFAULT_OJT_TAB_LABELS.postLabel,
     ),
   };
 }
@@ -619,6 +704,91 @@ router.patch("/settings", requireAuth, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to update OJT settings.",
+    });
+  }
+});
+
+// ── GET /api/ojt-requirements/tab-labels ───────────────────────────────────
+router.get("/tab-labels", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+    const row = await ensureTabLabelsRow(dept);
+    return res.json({
+      success: true,
+      labels: toTabLabelsResponse(row),
+    });
+  } catch (error) {
+    console.error("getOjtTabLabels error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch OJT tab labels.",
+    });
+  }
+});
+
+// ── PATCH /api/ojt-requirements/tab-labels ─────────────────────────────────
+router.patch("/tab-labels", requireAuth, async (req, res) => {
+  try {
+    const dept = getDept(req);
+    await ensureTables();
+    const current = await ensureTabLabelsRow(dept);
+    const next = {
+      preLabel: normalizeTabLabel(
+        req.body?.preLabel,
+        normalizeTabLabel(current?.pre_label, DEFAULT_OJT_TAB_LABELS.preLabel),
+      ),
+      attendanceLabel: normalizeTabLabel(
+        req.body?.attendanceLabel,
+        normalizeTabLabel(
+          current?.attendance_label,
+          DEFAULT_OJT_TAB_LABELS.attendanceLabel,
+        ),
+      ),
+      weeklyLabel: normalizeTabLabel(
+        req.body?.weeklyLabel,
+        normalizeTabLabel(
+          current?.weekly_label,
+          DEFAULT_OJT_TAB_LABELS.weeklyLabel,
+        ),
+      ),
+      postLabel: normalizeTabLabel(
+        req.body?.postLabel,
+        normalizeTabLabel(
+          current?.post_label,
+          DEFAULT_OJT_TAB_LABELS.postLabel,
+        ),
+      ),
+    };
+
+    await query(
+      `UPDATE ojt_requirement_tab_labels
+       SET pre_label = ?,
+           attendance_label = ?,
+           weekly_label = ?,
+           post_label = ?
+       WHERE department = ?`,
+      [
+        next.preLabel,
+        next.attendanceLabel,
+        next.weeklyLabel,
+        next.postLabel,
+        dept,
+      ],
+    );
+
+    await logSettingsActivity(req, "tab_labels_updated", { labels: next });
+
+    const row = await ensureTabLabelsRow(dept);
+    return res.json({
+      success: true,
+      labels: toTabLabelsResponse(row),
+    });
+  } catch (error) {
+    console.error("updateOjtTabLabels error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update OJT tab labels.",
     });
   }
 });

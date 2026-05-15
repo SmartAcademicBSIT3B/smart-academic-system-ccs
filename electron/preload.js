@@ -271,6 +271,36 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   updateOjtRequirementsManagerSettings: (payload) =>
     ipcRenderer.invoke("updateOjtRequirementsManagerSettings", payload),
+  getOjtRequirementTabLabels: async () => {
+    try {
+      return await ipcRenderer.invoke("getOjtRequirementTabLabels");
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          labels: null,
+          message:
+            "OJT tab label handlers are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
+  updateOjtRequirementTabLabels: async (payload) => {
+    try {
+      return await ipcRenderer.invoke("updateOjtRequirementTabLabels", payload);
+    } catch (error) {
+      if (String(error?.message || "").includes("No handler registered")) {
+        return {
+          success: false,
+          labels: null,
+          message:
+            "OJT tab label handlers are unavailable in this app session. Please restart the app.",
+        };
+      }
+      throw error;
+    }
+  },
   getOjtDepartmentHours: async () => {
     try {
       return await ipcRenderer.invoke("getOjtDepartmentHours");

@@ -3022,6 +3022,28 @@ ipcMain.handle("getOjtRequirementsManagerSettings", async () => {
   }
 });
 
+ipcMain.handle("getOjtRequirementTabLabels", async () => {
+  try {
+    return await api.get("/ojt-requirements/tab-labels");
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to fetch OJT tab labels.",
+    };
+  }
+});
+
+ipcMain.handle("updateOjtRequirementTabLabels", async (event, payload) => {
+  try {
+    return await api.patch("/ojt-requirements/tab-labels", payload || {});
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to update OJT tab labels.",
+    };
+  }
+});
+
 ipcMain.handle(
   "updateOjtRequirementsManagerSettings",
   async (event, payload) => {

@@ -23,17 +23,20 @@
       <div class="setting-header">
         <h2>System Settings</h2>
         <p>
-          Manage account and OJT requirement preferences for coordinator use.
+          Manage account, PDF header, and OJT requirement preferences for
+          coordinator use.
         </p>
       </div>
 
       <div class="settings-wrapper">
         <div class="settings-container">
-          <!-- LEFT MENU -->
           <div class="settings-menu">
             <ul>
               <li class="active" data-section="profile">
                 <i class="fa-solid fa-user"></i> Profile
+              </li>
+              <li data-section="general">
+                <i class="fa-solid fa-gear"></i> General
               </li>
               <li data-section="ojt-requirements">
                 <i class="fa-solid fa-list-check"></i> OJT Requirements Manager
@@ -41,9 +44,7 @@
             </ul>
           </div>
 
-          <!-- RIGHT CONTENT -->
           <div class="settings-content">
-            <!-- ================= PROFILE ================= -->
             <div id="profile" class="settings-section active">
               <h3>Profile</h3>
               <div class="section-description">
@@ -143,41 +144,176 @@
               <div id="profileStatusMessage" class="profile-status"></div>
             </div>
 
-            <!-- ================= OJT REQUIREMENTS ================= -->
-            <div id="ojt-requirements" class="settings-section">
-              <h3>OJT Requirements Manager</h3>
+            <div id="general" class="settings-section">
+              <h3>General</h3>
               <div class="section-description">
-                Set and review OJT submission and internship rules for students.
+                Manage PDF report header selection for generated documents.
               </div>
 
-              <div class="setting-grid two-column">
-                <label>
-                  Required Documents
-                  <input
-                    type="text"
-                    placeholder="e.g. Resume, Weekly Report, Certificate"
-                  />
-                </label>
-                <label>
-                  Allowed File Type
-                  <select>
-                    <option selected>PDF Only (Recommended)</option>
-                    <option>PDF and DOCX</option>
-                    <option>All File Types</option>
-                  </select>
-                </label>
-                <label>
-                  Submission Deadline (Days)
-                  <input type="number" min="1" step="1" value="90" />
-                </label>
-                <label>
-                  Required OJT Hours
-                  <input type="number" min="1" step="1" value="486" />
-                </label>
+              <div class="general-card">
+                <h4>PDF Report Header Format</h4>
+                <p>
+                  Upload header images, preview the selected header, and choose
+                  which one is used for PDF reports.
+                </p>
+
+                <div class="general-header-layout">
+                  <div class="general-header-preview-wrap">
+                    <img
+                      id="generalHeaderPreview"
+                      class="general-header-preview"
+                      src="../../images/header-template.png"
+                      alt="Report header preview"
+                    />
+                  </div>
+                  <div class="general-header-actions">
+                    <div class="inline-actions">
+                      <button
+                        type="button"
+                        class="save-btn"
+                        onclick="addPdfReportHeaderFromPicker()"
+                      >
+                        Upload Header Image
+                      </button>
+                      <button
+                        type="button"
+                        class="cancel-btn"
+                        onclick="useDefaultPdfReportHeader()"
+                      >
+                        Use Default Header
+                      </button>
+                      <button
+                        type="button"
+                        class="cancel-btn"
+                        onclick="removeSelectedPdfReportHeader()"
+                      >
+                        Remove Selected Header
+                      </button>
+                    </div>
+
+                    <div
+                      id="generalHeaderList"
+                      class="header-image-select-grid"
+                    ></div>
+                  </div>
+                </div>
+
+                <div id="generalStatusMessage" class="general-status"></div>
               </div>
             </div>
 
-            <!-- ACTION BUTTONS -->
+            <div id="ojt-requirements" class="settings-section">
+              <h3>OJT Requirements Manager</h3>
+              <div class="section-description">
+                Set department-wide requirement templates, upload limits, and
+                required internship hours.
+              </div>
+
+              <div class="general-card">
+                <h4>Department-Wide Requirement Templates</h4>
+                <p>
+                  Each line is one required document template for the selected
+                  type.
+                </p>
+                <div class="setting-grid two-column">
+                  <label>
+                    Pre-OJT Requirements (one per line)
+                    <textarea
+                      id="ojtPreRequirements"
+                      rows="8"
+                      placeholder="Resume&#10;MOA&#10;Endorsement Letter"
+                    ></textarea>
+                  </label>
+                  <label>
+                    Post-OJT Requirements (one per line)
+                    <textarea
+                      id="ojtPostRequirements"
+                      rows="8"
+                      placeholder="Completion Certificate&#10;Final Evaluation"
+                    ></textarea>
+                  </label>
+                </div>
+              </div>
+
+              <div class="general-card">
+                <h4>Upload Rate Limits (Per Student / 24 Hours)</h4>
+                <div class="setting-grid two-column">
+                  <label>
+                    Pre Requirements Uploads
+                    <input id="ojtRatePre" type="number" min="1" max="100" />
+                  </label>
+                  <label>
+                    Post Requirements Uploads
+                    <input id="ojtRatePost" type="number" min="1" max="100" />
+                  </label>
+                  <label>
+                    Daily Reports Uploads
+                    <input id="ojtRateDaily" type="number" min="1" max="100" />
+                  </label>
+                  <label>
+                    Weekly Reports Uploads
+                    <input id="ojtRateWeekly" type="number" min="1" max="100" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="general-card">
+                <h4>Maximum Upload Size (MB)</h4>
+                <div class="setting-grid two-column">
+                  <label>
+                    Pre Requirements Max Size
+                    <input id="ojtMaxPre" type="number" min="1" max="50" />
+                  </label>
+                  <label>
+                    Post Requirements Max Size
+                    <input id="ojtMaxPost" type="number" min="1" max="50" />
+                  </label>
+                  <label>
+                    Daily Reports Max Size
+                    <input id="ojtMaxDaily" type="number" min="1" max="50" />
+                  </label>
+                  <label>
+                    Weekly Reports Max Size
+                    <input id="ojtMaxWeekly" type="number" min="1" max="50" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="general-card">
+                <h4>Required OJT Hours by Section Prefix</h4>
+                <p>
+                  These entries update the required hours in the department
+                  hours table.
+                </p>
+
+                <div class="thesis-link-table-wrap ojt-hours-wrap">
+                  <table class="thesis-link-table">
+                    <thead>
+                      <tr>
+                        <th>Section Prefix</th>
+                        <th>Required Hours</th>
+                        <th>Notes</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ojtDeptHoursBody"></tbody>
+                  </table>
+                </div>
+
+                <div class="inline-actions">
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="addOjtDepartmentHoursRow()"
+                  >
+                    Add Hours Row
+                  </button>
+                </div>
+              </div>
+
+              <div id="ojtStatusMessage" class="general-status"></div>
+            </div>
+
             <div class="settings-actions">
               <button class="cancel-btn" onclick="cancelChanges()">
                 Cancel
@@ -204,8 +340,26 @@
     <script>
       const electronAPI = window.electronAPI || window.parent?.electronAPI;
       const DEFAULT_PROFILE_IMAGE = "../../images/default_avatar.jpg";
+      const DEFAULT_REPORT_HEADER_IMAGE = "../../images/header-template.png";
+      const DEFAULT_OJT_MANAGER_SETTINGS = {
+        preRateLimitPerDay: 10,
+        postRateLimitPerDay: 10,
+        dailyRateLimitPerDay: 5,
+        weeklyRateLimitPerDay: 3,
+        preMaxFileSizeMB: 25,
+        postMaxFileSizeMB: 25,
+        dailyMaxFileSizeMB: 25,
+        weeklyMaxFileSizeMB: 25,
+      };
       let activeUser = null;
       let profileImagePath = "";
+      let generalSettingsState = {
+        pdfReportHeaders: [],
+        selectedPdfReportHeaderPath: "",
+      };
+      let ojtSettingsState = { ...DEFAULT_OJT_MANAGER_SETTINGS };
+      let ojtDeletedHoursIds = [];
+      const confirmModal = document.getElementById("confirmModal");
 
       document.querySelectorAll(".settings-menu li").forEach((item) => {
         item.onclick = () => {
@@ -220,6 +374,12 @@
           const section = document.getElementById(item.dataset.section);
           if (section) {
             section.classList.add("active");
+            if (section.id === "general") {
+              loadGeneralSettings();
+            }
+            if (section.id === "ojt-requirements") {
+              loadOjtRequirementsSettings();
+            }
           }
         };
       });
@@ -236,6 +396,620 @@
 
       function writeStoredUser(nextUser) {
         localStorage.setItem("user", JSON.stringify(nextUser));
+      }
+
+      function toFileUrl(pathValue = "") {
+        const raw = String(pathValue || "").trim();
+        if (!raw) return "";
+        if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw)) return raw;
+        if (/^[a-zA-Z]:\\/.test(raw)) {
+          return `file:///${raw.replace(/\\/g, "/")}`;
+        }
+        if (raw.startsWith("/")) return `file://${raw}`;
+        return raw;
+      }
+
+      function escapeHtml(value = "") {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function normalizeHeaderList(value) {
+        if (!Array.isArray(value)) return [];
+        return value
+          .map((item) => {
+            const path = String(item?.path || "").trim();
+            if (!path) return null;
+            return {
+              id: String(
+                item?.id ||
+                  `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+              ).trim(),
+              name: String(item?.name || "Header").trim() || "Header",
+              path,
+            };
+          })
+          .filter(Boolean);
+      }
+
+      function normalizeOjtManagerSettings(value = {}) {
+        const input = value && typeof value === "object" ? value : {};
+        const toInt = (raw, fallback, max) => {
+          const parsed = Number.parseInt(raw, 10);
+          if (!Number.isInteger(parsed) || parsed < 1) return fallback;
+          return Math.min(parsed, max);
+        };
+        return {
+          preRateLimitPerDay: toInt(
+            input.preRateLimitPerDay,
+            DEFAULT_OJT_MANAGER_SETTINGS.preRateLimitPerDay,
+            100,
+          ),
+          postRateLimitPerDay: toInt(
+            input.postRateLimitPerDay,
+            DEFAULT_OJT_MANAGER_SETTINGS.postRateLimitPerDay,
+            100,
+          ),
+          dailyRateLimitPerDay: toInt(
+            input.dailyRateLimitPerDay,
+            DEFAULT_OJT_MANAGER_SETTINGS.dailyRateLimitPerDay,
+            100,
+          ),
+          weeklyRateLimitPerDay: toInt(
+            input.weeklyRateLimitPerDay,
+            DEFAULT_OJT_MANAGER_SETTINGS.weeklyRateLimitPerDay,
+            100,
+          ),
+          preMaxFileSizeMB: toInt(
+            input.preMaxFileSizeMB,
+            DEFAULT_OJT_MANAGER_SETTINGS.preMaxFileSizeMB,
+            50,
+          ),
+          postMaxFileSizeMB: toInt(
+            input.postMaxFileSizeMB,
+            DEFAULT_OJT_MANAGER_SETTINGS.postMaxFileSizeMB,
+            50,
+          ),
+          dailyMaxFileSizeMB: toInt(
+            input.dailyMaxFileSizeMB,
+            DEFAULT_OJT_MANAGER_SETTINGS.dailyMaxFileSizeMB,
+            50,
+          ),
+          weeklyMaxFileSizeMB: toInt(
+            input.weeklyMaxFileSizeMB,
+            DEFAULT_OJT_MANAGER_SETTINGS.weeklyMaxFileSizeMB,
+            50,
+          ),
+        };
+      }
+
+      function normalizeRequirementLines(value = "") {
+        const seen = new Set();
+        return String(value || "")
+          .split(/\r?\n/)
+          .map((line) => String(line || "").trim())
+          .filter((line) => {
+            if (!line) return false;
+            const key = line.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+      }
+
+      function showGeneralStatus(message, isError = false) {
+        const el = document.getElementById("generalStatusMessage");
+        if (!el) return;
+        el.textContent = message || "";
+        el.classList.toggle("error", Boolean(isError));
+      }
+
+      function showOjtStatus(message, isError = false) {
+        const el = document.getElementById("ojtStatusMessage");
+        if (!el) return;
+        el.textContent = message || "";
+        el.classList.toggle("error", Boolean(isError));
+      }
+
+      function renderGeneralHeaderSelection() {
+        const list = document.getElementById("generalHeaderList");
+        const preview = document.getElementById("generalHeaderPreview");
+
+        if (!list || !preview) return;
+        list.innerHTML = "";
+
+        const defaultCard = document.createElement("button");
+        defaultCard.type = "button";
+        defaultCard.className = "header-image-card";
+        if (!generalSettingsState.selectedPdfReportHeaderPath) {
+          defaultCard.classList.add("active");
+        }
+        defaultCard.innerHTML = `
+          <img src="${DEFAULT_REPORT_HEADER_IMAGE}" alt="Default header" />
+          <span>Default Header</span>
+        `;
+        defaultCard.onclick = () => {
+          generalSettingsState.selectedPdfReportHeaderPath = "";
+          renderGeneralHeaderSelection();
+        };
+        list.appendChild(defaultCard);
+
+        generalSettingsState.pdfReportHeaders.forEach((header) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "header-image-card";
+          if (
+            String(header.path || "").trim() ===
+            generalSettingsState.selectedPdfReportHeaderPath
+          ) {
+            card.classList.add("active");
+          }
+          card.innerHTML = `
+            <img src="${toFileUrl(header.path)}" alt="${escapeHtml(header.name)}" />
+            <span>${escapeHtml(header.name)}</span>
+          `;
+          card.onclick = () => {
+            generalSettingsState.selectedPdfReportHeaderPath = String(
+              header.path || "",
+            ).trim();
+            renderGeneralHeaderSelection();
+          };
+          list.appendChild(card);
+        });
+
+        const selected = generalSettingsState.pdfReportHeaders.find(
+          (header) =>
+            String(header.path || "").trim() ===
+            generalSettingsState.selectedPdfReportHeaderPath,
+        );
+        preview.src = selected
+          ? toFileUrl(selected.path)
+          : DEFAULT_REPORT_HEADER_IMAGE;
+      }
+
+      async function loadGeneralSettings() {
+        if (!electronAPI) return;
+
+        const result = await electronAPI.getAppSettings();
+        if (!result?.success || !result.settings) {
+          showGeneralStatus(
+            result?.message || "Failed to load general settings.",
+            true,
+          );
+          return;
+        }
+
+        generalSettingsState = {
+          pdfReportHeaders: normalizeHeaderList(
+            result.settings.pdfReportHeaders,
+          ),
+          selectedPdfReportHeaderPath: String(
+            result.settings.selectedPdfReportHeaderPath || "",
+          ).trim(),
+        };
+
+        if (
+          generalSettingsState.selectedPdfReportHeaderPath &&
+          !generalSettingsState.pdfReportHeaders.some(
+            (header) =>
+              String(header.path || "").trim() ===
+              generalSettingsState.selectedPdfReportHeaderPath,
+          )
+        ) {
+          generalSettingsState.selectedPdfReportHeaderPath = "";
+        }
+
+        renderGeneralHeaderSelection();
+        showGeneralStatus("");
+      }
+
+      async function addPdfReportHeaderFromPicker() {
+        if (!electronAPI) {
+          showGeneralStatus("Header upload is unavailable.", true);
+          return;
+        }
+
+        const result = await electronAPI.selectPdfReportHeaderImage();
+        if (!result || result.canceled || !result.success) {
+          return;
+        }
+
+        const header = result.header;
+        if (!header?.path) {
+          showGeneralStatus("Failed to load selected header image.", true);
+          return;
+        }
+
+        generalSettingsState.pdfReportHeaders = [
+          ...generalSettingsState.pdfReportHeaders.filter(
+            (item) =>
+              String(item.path || "").trim() !==
+              String(header.path || "").trim(),
+          ),
+          {
+            id: header.id,
+            name: String(header.name || "Header").trim() || "Header",
+            path: String(header.path || "").trim(),
+          },
+        ];
+        generalSettingsState.selectedPdfReportHeaderPath = String(
+          header.path || "",
+        ).trim();
+
+        renderGeneralHeaderSelection();
+        showGeneralStatus(
+          "Header image uploaded. Click Save to apply changes.",
+        );
+      }
+
+      function useDefaultPdfReportHeader() {
+        generalSettingsState.selectedPdfReportHeaderPath = "";
+        renderGeneralHeaderSelection();
+        showGeneralStatus(
+          "Default report header selected. Click Save to apply changes.",
+        );
+      }
+
+      function removeSelectedPdfReportHeader() {
+        const selectedPath = generalSettingsState.selectedPdfReportHeaderPath;
+        if (!selectedPath) {
+          showGeneralStatus("No uploaded header is selected.", true);
+          return;
+        }
+
+        generalSettingsState.pdfReportHeaders =
+          generalSettingsState.pdfReportHeaders.filter(
+            (header) => String(header.path || "").trim() !== selectedPath,
+          );
+        generalSettingsState.selectedPdfReportHeaderPath = "";
+        renderGeneralHeaderSelection();
+        showGeneralStatus("Selected header removed from saved choices.");
+      }
+
+      async function saveGeneralSettings() {
+        if (!electronAPI) {
+          showGeneralStatus("General settings update is unavailable.", true);
+          return false;
+        }
+
+        const result = await electronAPI.saveAppSettings({
+          pdfReportHeaders: generalSettingsState.pdfReportHeaders,
+          selectedPdfReportHeaderPath:
+            generalSettingsState.selectedPdfReportHeaderPath,
+        });
+
+        if (!result?.success || !result.settings) {
+          showGeneralStatus(
+            result?.message || "Failed to save general settings.",
+            true,
+          );
+          return false;
+        }
+
+        generalSettingsState = {
+          pdfReportHeaders: normalizeHeaderList(
+            result.settings.pdfReportHeaders,
+          ),
+          selectedPdfReportHeaderPath: String(
+            result.settings.selectedPdfReportHeaderPath || "",
+          ).trim(),
+        };
+
+        if (
+          generalSettingsState.selectedPdfReportHeaderPath &&
+          !generalSettingsState.pdfReportHeaders.some(
+            (header) =>
+              String(header.path || "").trim() ===
+              generalSettingsState.selectedPdfReportHeaderPath,
+          )
+        ) {
+          generalSettingsState.selectedPdfReportHeaderPath = "";
+        }
+
+        renderGeneralHeaderSelection();
+        showGeneralStatus("General settings updated successfully.");
+        return true;
+      }
+
+      function renderOjtManagerSettings() {
+        const setValue = (id, value) => {
+          const el = document.getElementById(id);
+          if (el) el.value = value;
+        };
+
+        setValue("ojtRatePre", ojtSettingsState.preRateLimitPerDay);
+        setValue("ojtRatePost", ojtSettingsState.postRateLimitPerDay);
+        setValue("ojtRateDaily", ojtSettingsState.dailyRateLimitPerDay);
+        setValue("ojtRateWeekly", ojtSettingsState.weeklyRateLimitPerDay);
+        setValue("ojtMaxPre", ojtSettingsState.preMaxFileSizeMB);
+        setValue("ojtMaxPost", ojtSettingsState.postMaxFileSizeMB);
+        setValue("ojtMaxDaily", ojtSettingsState.dailyMaxFileSizeMB);
+        setValue("ojtMaxWeekly", ojtSettingsState.weeklyMaxFileSizeMB);
+      }
+
+      function addOjtDepartmentHoursRow(row = {}) {
+        const body = document.getElementById("ojtDeptHoursBody");
+        if (!body) return;
+
+        const tr = document.createElement("tr");
+        if (row.id) tr.dataset.id = String(row.id);
+        tr.innerHTML = `
+          <td>
+            <input class="ojt-hours-input" data-field="section_prefix" type="text" maxlength="50" value="${escapeHtml(row.section_prefix || "")}" placeholder="BSIT" />
+          </td>
+          <td>
+            <input class="ojt-hours-input" data-field="required_hours" type="number" min="1" max="2000" value="${Number.parseInt(row.required_hours, 10) || 486}" />
+          </td>
+          <td>
+            <input class="ojt-hours-input" data-field="notes" type="text" maxlength="255" value="${escapeHtml(row.notes || "")}" placeholder="Optional" />
+          </td>
+          <td>
+            <button type="button" class="tiny-btn" onclick="removeOjtDepartmentHoursRow(this)">Remove</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      }
+
+      function removeOjtDepartmentHoursRow(button) {
+        const row = button?.closest("tr");
+        if (!row) return;
+        const id = Number.parseInt(row.dataset.id, 10);
+        if (Number.isInteger(id)) {
+          ojtDeletedHoursIds.push(id);
+        }
+        row.remove();
+      }
+
+      function collectOjtDepartmentHoursRows() {
+        return Array.from(
+          document.querySelectorAll("#ojtDeptHoursBody tr"),
+        ).map((row) => {
+          const getField = (name) =>
+            row.querySelector(`[data-field="${name}"]`)?.value || "";
+          return {
+            id: Number.parseInt(row.dataset.id, 10) || null,
+            section_prefix: String(getField("section_prefix") || "")
+              .trim()
+              .toUpperCase(),
+            required_hours: Number.parseInt(getField("required_hours"), 10),
+            notes: String(getField("notes") || "").trim(),
+          };
+        });
+      }
+
+      async function syncDepartmentTemplates(type, textareaId) {
+        const textarea = document.getElementById(textareaId);
+        const desiredNames = normalizeRequirementLines(textarea?.value || "");
+        const existingResult = await electronAPI.getOjtRequirementTemplates({
+          type,
+        });
+
+        if (!existingResult?.success) {
+          throw new Error(
+            existingResult?.message ||
+              `Failed to load ${type.toUpperCase()} templates.`,
+          );
+        }
+
+        const existing = (existingResult.templates || []).filter((item) => {
+          return String(item.scope || "").toLowerCase() === "department";
+        });
+
+        const byName = new Map(
+          existing.map((item) => [
+            String(item.name || "")
+              .trim()
+              .toLowerCase(),
+            item,
+          ]),
+        );
+
+        const desiredKeys = new Set(
+          desiredNames.map((name) => name.toLowerCase()),
+        );
+
+        for (const item of existing) {
+          const key = String(item.name || "")
+            .trim()
+            .toLowerCase();
+          if (key && !desiredKeys.has(key)) {
+            const delRes = await electronAPI.deleteOjtRequirementTemplate(
+              item.id,
+            );
+            if (!delRes?.success) {
+              throw new Error(
+                delRes?.message || `Failed to delete template: ${item.name}`,
+              );
+            }
+          }
+        }
+
+        for (const name of desiredNames) {
+          const key = name.toLowerCase();
+          if (byName.has(key)) continue;
+          const createRes = await electronAPI.createOjtRequirementTemplate({
+            type,
+            name,
+            is_required: 1,
+            scope: "department",
+            scope_value:
+              activeUser?.department_code || activeUser?.department || "CCS",
+          });
+          if (!createRes?.success) {
+            throw new Error(
+              createRes?.message || `Failed to create template: ${name}`,
+            );
+          }
+        }
+      }
+
+      async function loadOjtRequirementsSettings() {
+        if (!electronAPI) return;
+        showOjtStatus("");
+
+        const [settingsRes, preRes, postRes, hoursRes] = await Promise.all([
+          electronAPI.getOjtRequirementsManagerSettings(),
+          electronAPI.getOjtRequirementTemplates({ type: "pre" }),
+          electronAPI.getOjtRequirementTemplates({ type: "post" }),
+          electronAPI.getOjtDepartmentHours(),
+        ]);
+
+        if (!settingsRes?.success) {
+          showOjtStatus(
+            settingsRes?.message || "Failed to load OJT manager settings.",
+            true,
+          );
+          return;
+        }
+
+        ojtSettingsState = normalizeOjtManagerSettings(settingsRes.settings);
+        renderOjtManagerSettings();
+
+        const departmentTemplatesOnly = (items) =>
+          (Array.isArray(items) ? items : []).filter(
+            (item) => String(item.scope || "").toLowerCase() === "department",
+          );
+
+        const preItems = preRes?.success
+          ? departmentTemplatesOnly(preRes.templates)
+          : [];
+        const postItems = postRes?.success
+          ? departmentTemplatesOnly(postRes.templates)
+          : [];
+
+        const preTextarea = document.getElementById("ojtPreRequirements");
+        const postTextarea = document.getElementById("ojtPostRequirements");
+        if (preTextarea) {
+          preTextarea.value = preItems
+            .map((item) => String(item.name || "").trim())
+            .filter(Boolean)
+            .join("\n");
+        }
+        if (postTextarea) {
+          postTextarea.value = postItems
+            .map((item) => String(item.name || "").trim())
+            .filter(Boolean)
+            .join("\n");
+        }
+
+        const body = document.getElementById("ojtDeptHoursBody");
+        if (body) body.innerHTML = "";
+        ojtDeletedHoursIds = [];
+        if (hoursRes?.success && Array.isArray(hoursRes.hours)) {
+          hoursRes.hours.forEach((row) => addOjtDepartmentHoursRow(row));
+        }
+
+        if (!preRes?.success || !postRes?.success || !hoursRes?.success) {
+          showOjtStatus(
+            "Some OJT data failed to load. You can still edit available fields.",
+            true,
+          );
+          return;
+        }
+
+        showOjtStatus("");
+      }
+
+      async function saveOjtRequirementsSettings() {
+        if (!electronAPI) {
+          showOjtStatus("OJT settings API is unavailable.", true);
+          return false;
+        }
+
+        try {
+          const settingsPayload = normalizeOjtManagerSettings({
+            preRateLimitPerDay: document.getElementById("ojtRatePre")?.value,
+            postRateLimitPerDay: document.getElementById("ojtRatePost")?.value,
+            dailyRateLimitPerDay:
+              document.getElementById("ojtRateDaily")?.value,
+            weeklyRateLimitPerDay:
+              document.getElementById("ojtRateWeekly")?.value,
+            preMaxFileSizeMB: document.getElementById("ojtMaxPre")?.value,
+            postMaxFileSizeMB: document.getElementById("ojtMaxPost")?.value,
+            dailyMaxFileSizeMB: document.getElementById("ojtMaxDaily")?.value,
+            weeklyMaxFileSizeMB: document.getElementById("ojtMaxWeekly")?.value,
+          });
+
+          const settingsResult =
+            await electronAPI.updateOjtRequirementsManagerSettings(
+              settingsPayload,
+            );
+          if (!settingsResult?.success) {
+            throw new Error(
+              settingsResult?.message ||
+                "Failed to save upload policy settings.",
+            );
+          }
+
+          await syncDepartmentTemplates("pre", "ojtPreRequirements");
+          await syncDepartmentTemplates("post", "ojtPostRequirements");
+
+          for (const id of ojtDeletedHoursIds) {
+            const delRes = await electronAPI.deleteOjtDepartmentHours(id);
+            if (!delRes?.success) {
+              throw new Error(
+                delRes?.message || "Failed to delete a required-hours row.",
+              );
+            }
+          }
+
+          const rows = collectOjtDepartmentHoursRows();
+          for (const row of rows) {
+            if (!row.section_prefix) {
+              throw new Error(
+                "Section prefix is required for every hours row.",
+              );
+            }
+            if (
+              !Number.isInteger(row.required_hours) ||
+              row.required_hours < 1
+            ) {
+              throw new Error(
+                `Required hours must be a positive integer (${row.section_prefix}).`,
+              );
+            }
+
+            if (row.id) {
+              const updateRes = await electronAPI.updateOjtDepartmentHours({
+                id: row.id,
+                section_prefix: row.section_prefix,
+                required_hours: row.required_hours,
+                notes: row.notes,
+              });
+              if (!updateRes?.success) {
+                throw new Error(
+                  updateRes?.message ||
+                    `Failed to update hours for ${row.section_prefix}.`,
+                );
+              }
+            } else {
+              const createRes = await electronAPI.createOjtDepartmentHours({
+                section_prefix: row.section_prefix,
+                required_hours: row.required_hours,
+                notes: row.notes,
+              });
+              if (!createRes?.success) {
+                throw new Error(
+                  createRes?.message ||
+                    `Failed to create hours for ${row.section_prefix}.`,
+                );
+              }
+            }
+          }
+
+          await loadOjtRequirementsSettings();
+          showOjtStatus(
+            "OJT requirements manager settings updated successfully.",
+          );
+          return true;
+        } catch (error) {
+          showOjtStatus(error?.message || "Failed to save OJT settings.", true);
+          return false;
+        }
       }
 
       function showProfileStatus(message, isError = false) {
@@ -333,123 +1107,139 @@
       }
 
       function openConfirm() {
-        confirmModal.style.display = "flex";
+        if (confirmModal) confirmModal.style.display = "flex";
       }
 
       function closeConfirm() {
-        confirmModal.style.display = "none";
+        if (confirmModal) confirmModal.style.display = "none";
       }
 
       async function saveChanges() {
         const activeSection = document.querySelector(
           ".settings-section.active",
         );
-        if (!activeSection || activeSection.id !== "profile") {
-          alert("Settings saved!");
+        if (!activeSection) {
           closeConfirm();
           return;
         }
 
-        if (!electronAPI || !activeUser?.id) {
-          showProfileStatus("Profile update is unavailable.", true);
-          closeConfirm();
-          return;
-        }
-
-        const name = String(
-          document.getElementById("profileName")?.value || "",
-        ).trim();
-        const email = String(
-          document.getElementById("profileEmail")?.value || "",
-        )
-          .trim()
-          .toLowerCase();
-        const currentPassword = String(
-          document.getElementById("profileCurrentPassword")?.value || "",
-        );
-        const newPassword = String(
-          document.getElementById("profileNewPassword")?.value || "",
-        );
-        const confirmPassword = String(
-          document.getElementById("profileConfirmPassword")?.value || "",
-        );
-
-        if (!name || !email) {
-          showProfileStatus("Name and email are required.", true);
-          closeConfirm();
-          return;
-        }
-
-        const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        if (!emailIsValid) {
-          showProfileStatus("Please provide a valid email address.", true);
-          closeConfirm();
-          return;
-        }
-
-        const wantsPasswordChange = Boolean(
-          currentPassword || newPassword || confirmPassword,
-        );
-        if (wantsPasswordChange) {
-          if (!currentPassword || !newPassword || !confirmPassword) {
-            showProfileStatus(
-              "Fill out current, new, and confirm password fields.",
-              true,
-            );
+        if (activeSection.id === "profile") {
+          if (!electronAPI || !activeUser?.id) {
+            showProfileStatus("Profile update is unavailable.", true);
             closeConfirm();
             return;
           }
-          if (newPassword.length < 8) {
-            showProfileStatus(
-              "New password must be at least 8 characters.",
-              true,
-            );
-            closeConfirm();
-            return;
-          }
-          if (newPassword !== confirmPassword) {
-            showProfileStatus(
-              "New password and confirmation do not match.",
-              true,
-            );
-            closeConfirm();
-            return;
-          }
-        }
 
-        const result = await electronAPI.updateProfile({
-          userId: activeUser.id,
-          name,
-          email,
-          profileImagePath: profileImagePath || "",
-          currentPassword: wantsPasswordChange ? currentPassword : "",
-          newPassword: wantsPasswordChange ? newPassword : "",
-        });
-
-        if (!result?.success) {
-          showProfileStatus(
-            result?.message || "Failed to save profile changes.",
-            true,
+          const name = String(
+            document.getElementById("profileName")?.value || "",
+          ).trim();
+          const email = String(
+            document.getElementById("profileEmail")?.value || "",
+          )
+            .trim()
+            .toLowerCase();
+          const currentPassword = String(
+            document.getElementById("profileCurrentPassword")?.value || "",
           );
+          const newPassword = String(
+            document.getElementById("profileNewPassword")?.value || "",
+          );
+          const confirmPassword = String(
+            document.getElementById("profileConfirmPassword")?.value || "",
+          );
+
+          if (!name || !email) {
+            showProfileStatus("Name and email are required.", true);
+            closeConfirm();
+            return;
+          }
+
+          const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+          if (!emailIsValid) {
+            showProfileStatus("Please provide a valid email address.", true);
+            closeConfirm();
+            return;
+          }
+
+          const wantsPasswordChange = Boolean(
+            currentPassword || newPassword || confirmPassword,
+          );
+          if (wantsPasswordChange) {
+            if (!currentPassword || !newPassword || !confirmPassword) {
+              showProfileStatus(
+                "Fill out current, new, and confirm password fields.",
+                true,
+              );
+              closeConfirm();
+              return;
+            }
+            if (newPassword.length < 8) {
+              showProfileStatus(
+                "New password must be at least 8 characters.",
+                true,
+              );
+              closeConfirm();
+              return;
+            }
+            if (newPassword !== confirmPassword) {
+              showProfileStatus(
+                "New password and confirmation do not match.",
+                true,
+              );
+              closeConfirm();
+              return;
+            }
+          }
+
+          const result = await electronAPI.updateProfile({
+            userId: activeUser.id,
+            name,
+            email,
+            profileImagePath: profileImagePath || "",
+            currentPassword: wantsPasswordChange ? currentPassword : "",
+            newPassword: wantsPasswordChange ? newPassword : "",
+          });
+
+          if (!result?.success) {
+            showProfileStatus(
+              result?.message || "Failed to save profile changes.",
+              true,
+            );
+            closeConfirm();
+            return;
+          }
+
+          activeUser = {
+            ...activeUser,
+            ...(result.user || {}),
+            name,
+            email,
+            profile_image: (
+              result.user?.profile_image ||
+              profileImagePath ||
+              ""
+            ).trim(),
+          };
+          writeStoredUser(activeUser);
+          fillProfileForm(activeUser);
+          clearSensitiveInputs();
+          showProfileStatus("Profile updated successfully.");
           closeConfirm();
           return;
         }
 
-        activeUser = {
-          ...activeUser,
-          ...(result.user || {}),
-          name,
-          email,
-          profile_image: (
-            result.user?.profile_image ||
-            profileImagePath ||
-            ""
-          ).trim(),
-        };
-        writeStoredUser(activeUser);
-        fillProfileForm(activeUser);
-        clearSensitiveInputs();
-        showProfileStatus("Profile updated successfully.");
+        if (activeSection.id === "general") {
+          await saveGeneralSettings();
+          closeConfirm();
+          return;
+        }
+
+        if (activeSection.id === "ojt-requirements") {
+          await saveOjtRequirementsSettings();
+          closeConfirm();
+          return;
+        }
+
         closeConfirm();
       }
 
@@ -500,12 +1290,34 @@
       }
 
       function cancelChanges() {
-        loadProfileFromBackend();
-        clearSensitiveInputs();
-        showProfileStatus("Changes reverted.");
+        const activeSection = document.querySelector(
+          ".settings-section.active",
+        );
+        if (!activeSection) return;
+
+        if (activeSection.id === "profile") {
+          loadProfileFromBackend();
+          clearSensitiveInputs();
+          showProfileStatus("Changes reverted.");
+          return;
+        }
+
+        if (activeSection.id === "general") {
+          loadGeneralSettings();
+          return;
+        }
+
+        if (activeSection.id === "ojt-requirements") {
+          loadOjtRequirementsSettings();
+        }
       }
 
       loadProfileFromBackend();
+      window.addOjtDepartmentHoursRow = addOjtDepartmentHoursRow;
+      window.removeOjtDepartmentHoursRow = removeOjtDepartmentHoursRow;
+      window.addPdfReportHeaderFromPicker = addPdfReportHeaderFromPicker;
+      window.useDefaultPdfReportHeader = useDefaultPdfReportHeader;
+      window.removeSelectedPdfReportHeader = removeSelectedPdfReportHeader;
     </script>
   </body>
 </html>

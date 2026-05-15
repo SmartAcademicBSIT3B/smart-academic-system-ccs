@@ -296,8 +296,7 @@
     );
     cursorY += headerHeight + 16;
 
-    const departmentLabel = resolveDepartmentLabel(rows);
-    const reportTitle = `${departmentLabel} Archives Report`;
+    const reportTitle = "Thesis/Capstone Archives Report";
     const filterSummary = resolveActiveFilterSummary();
     const generatedText = `Generated: ${new Date().toLocaleString("en-US")}`;
     const showingText = `Rows: ${rows.length}`;
@@ -341,7 +340,7 @@
         valign: "middle",
       },
       headStyles: {
-        fillColor: [24, 28, 34],
+        fillColor: [25, 61, 109],
         textColor: [255, 255, 255],
         fontStyle: "bold",
       },

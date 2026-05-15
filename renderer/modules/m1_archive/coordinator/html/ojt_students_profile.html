@@ -18,6 +18,81 @@
         display: block;
       }
 
+      .tab-label-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-right: 8px;
+        margin-bottom: 6px;
+      }
+      .tab-label-text {
+        display: inline-block;
+      }
+      .tab-rename-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: transparent;
+        color: var(--secondary-text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .tab-rename-btn:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+        background: rgba(157, 198, 255, 0.08);
+      }
+      .tab-rename-btn svg {
+        width: 13px;
+        height: 13px;
+        stroke: currentColor;
+        fill: none;
+      }
+      .tab-label-editor {
+        display: none;
+        align-items: center;
+        gap: 6px;
+      }
+      .tab-label-editor.active {
+        display: inline-flex;
+      }
+      .tab-label-editor-input {
+        height: 30px;
+        min-width: 180px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--secondary-bg);
+        color: var(--primary-text);
+        padding: 0 10px;
+        font-size: 12px;
+        outline: none;
+      }
+      .tab-label-editor-input:focus {
+        border-color: var(--accent-blue);
+      }
+      .tab-label-save-btn,
+      .tab-label-cancel-btn {
+        height: 30px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 0 10px;
+        cursor: pointer;
+      }
+      .tab-label-save-btn {
+        background: var(--accent-blue);
+        color: #0b0d10;
+        border-color: var(--accent-blue);
+      }
+      .tab-label-cancel-btn {
+        background: transparent;
+        color: var(--secondary-text);
+      }
+
       /* â”€â”€ Status pill colour variants â”€â”€ */
       .status-pill::before {
         content: "";
@@ -1642,24 +1717,185 @@
 
           <!-- â”€â”€ TABS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <nav class="tabs">
-            <button class="tab active" data-target="prePanel">
-              PRE REQUIREMENTS
-            </button>
-            <button class="tab" data-target="attendancePanel">
-              ATTENDANCE RECORD
-            </button>
-            <button class="tab" data-target="weeklyPanel">
-              WEEKLY REPORTS
-            </button>
-            <button class="tab" data-target="postPanel">
-              POST REQUIREMENTS
-            </button>
+            <div class="tab-label-wrap" data-label-key="pre">
+              <button class="tab active" data-target="prePanel">
+                <span class="tab-label-text" id="ojt-tab-label-pre"
+                  >PRE REQUIREMENTS</span
+                >
+              </button>
+              <button
+                type="button"
+                class="tab-rename-btn"
+                title="Edit tab label"
+                aria-label="Edit pre requirements tab label"
+                data-label-key="pre"
+                onclick="openTabLabelEditor('pre')"
+              >
+                <svg viewBox="0 0 16 16" stroke-width="1.8">
+                  <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
+                </svg>
+              </button>
+              <div class="tab-label-editor" id="tab-label-editor-pre">
+                <input
+                  id="tab-label-input-pre"
+                  class="tab-label-editor-input"
+                  type="text"
+                  maxlength="120"
+                  placeholder="Pre tab label"
+                />
+                <button
+                  type="button"
+                  class="tab-label-save-btn"
+                  onclick="saveTabLabelEdit('pre')"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  class="tab-label-cancel-btn"
+                  onclick="cancelTabLabelEdit('pre')"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            <div class="tab-label-wrap" data-label-key="attendance">
+              <button class="tab" data-target="attendancePanel">
+                <span class="tab-label-text" id="ojt-tab-label-attendance"
+                  >ATTENDANCE RECORD</span
+                >
+              </button>
+              <button
+                type="button"
+                class="tab-rename-btn"
+                title="Edit tab label"
+                aria-label="Edit attendance tab label"
+                data-label-key="attendance"
+                onclick="openTabLabelEditor('attendance')"
+              >
+                <svg viewBox="0 0 16 16" stroke-width="1.8">
+                  <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
+                </svg>
+              </button>
+              <div class="tab-label-editor" id="tab-label-editor-attendance">
+                <input
+                  id="tab-label-input-attendance"
+                  class="tab-label-editor-input"
+                  type="text"
+                  maxlength="120"
+                  placeholder="Attendance tab label"
+                />
+                <button
+                  type="button"
+                  class="tab-label-save-btn"
+                  onclick="saveTabLabelEdit('attendance')"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  class="tab-label-cancel-btn"
+                  onclick="cancelTabLabelEdit('attendance')"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            <div class="tab-label-wrap" data-label-key="weekly">
+              <button class="tab" data-target="weeklyPanel">
+                <span class="tab-label-text" id="ojt-tab-label-weekly"
+                  >WEEKLY REPORTS</span
+                >
+              </button>
+              <button
+                type="button"
+                class="tab-rename-btn"
+                title="Edit tab label"
+                aria-label="Edit weekly tab label"
+                data-label-key="weekly"
+                onclick="openTabLabelEditor('weekly')"
+              >
+                <svg viewBox="0 0 16 16" stroke-width="1.8">
+                  <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
+                </svg>
+              </button>
+              <div class="tab-label-editor" id="tab-label-editor-weekly">
+                <input
+                  id="tab-label-input-weekly"
+                  class="tab-label-editor-input"
+                  type="text"
+                  maxlength="120"
+                  placeholder="Weekly tab label"
+                />
+                <button
+                  type="button"
+                  class="tab-label-save-btn"
+                  onclick="saveTabLabelEdit('weekly')"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  class="tab-label-cancel-btn"
+                  onclick="cancelTabLabelEdit('weekly')"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            <div class="tab-label-wrap" data-label-key="post">
+              <button class="tab" data-target="postPanel">
+                <span class="tab-label-text" id="ojt-tab-label-post"
+                  >POST REQUIREMENTS</span
+                >
+              </button>
+              <button
+                type="button"
+                class="tab-rename-btn"
+                title="Edit tab label"
+                aria-label="Edit post requirements tab label"
+                data-label-key="post"
+                onclick="openTabLabelEditor('post')"
+              >
+                <svg viewBox="0 0 16 16" stroke-width="1.8">
+                  <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" />
+                </svg>
+              </button>
+              <div class="tab-label-editor" id="tab-label-editor-post">
+                <input
+                  id="tab-label-input-post"
+                  class="tab-label-editor-input"
+                  type="text"
+                  maxlength="120"
+                  placeholder="Post tab label"
+                />
+                <button
+                  type="button"
+                  class="tab-label-save-btn"
+                  onclick="saveTabLabelEdit('post')"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  class="tab-label-cancel-btn"
+                  onclick="cancelTabLabelEdit('post')"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </nav>
 
           <!-- â”€â”€ PRE REQUIREMENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <section class="panel tab-panel active" id="prePanel">
             <div class="panel-header">
-              <h2 class="panel-title">PRE REQUIREMENTS</h2>
+              <h2 class="panel-title" id="ojt-panel-title-pre">
+                PRE REQUIREMENTS
+              </h2>
               <div class="panel-header-actions">
                 <button
                   class="panel-refresh-btn"
@@ -1715,7 +1951,9 @@
           <!-- â”€â”€ ATTENDANCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <section class="panel tab-panel" id="attendancePanel">
             <div class="panel-header">
-              <h2 class="panel-title">ATTENDANCE RECORD</h2>
+              <h2 class="panel-title" id="ojt-panel-title-attendance">
+                ATTENDANCE RECORD
+              </h2>
               <div class="panel-header-actions">
                 <button
                   class="panel-refresh-btn"
@@ -1777,7 +2015,9 @@
           <!-- â”€â”€ WEEKLY REPORTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <section class="panel tab-panel" id="weeklyPanel">
             <div class="panel-header">
-              <h2 class="panel-title">WEEKLY REPORTS</h2>
+              <h2 class="panel-title" id="ojt-panel-title-weekly">
+                WEEKLY REPORTS
+              </h2>
               <button class="add-week-btn" onclick="openAddWeekModal()">
                 + Add Week
               </button>
@@ -1792,7 +2032,9 @@
           <!-- â”€â”€ POST REQUIREMENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
           <section class="panel tab-panel" id="postPanel">
             <div class="panel-header">
-              <h2 class="panel-title">POST REQUIREMENTS</h2>
+              <h2 class="panel-title" id="ojt-panel-title-post">
+                POST REQUIREMENTS
+              </h2>
               <div class="panel-header-actions">
                 <button
                   class="panel-refresh-btn"
@@ -2404,6 +2646,14 @@
       let certificatesCache = [];
       let currentDeadlineEditType = "pre";
       const requirementItemsCache = { pre: [], post: [] };
+      const defaultRequirementTabLabels = {
+        pre: "PRE REQUIREMENTS",
+        attendance: "ATTENDANCE RECORD",
+        weekly: "WEEKLY REPORTS",
+        post: "POST REQUIREMENTS",
+      };
+      let requirementTabLabels = { ...defaultRequirementTabLabels };
+      let activeTabLabelEditorKey = "";
 
       function buildCoordinatorNotification(
         activityType,
@@ -2651,6 +2901,147 @@
           .toLowerCase()
           .trim();
         return statusText.includes("capstone: approved");
+      }
+
+      function normalizeRequirementTabLabel(value, fallback) {
+        const text = String(value || "").trim();
+        if (!text) return String(fallback || "").trim();
+        return text.slice(0, 120);
+      }
+
+      function applyRequirementTabLabels(labels = {}) {
+        requirementTabLabels = {
+          pre: normalizeRequirementTabLabel(
+            labels.pre,
+            defaultRequirementTabLabels.pre,
+          ),
+          attendance: normalizeRequirementTabLabel(
+            labels.attendance,
+            defaultRequirementTabLabels.attendance,
+          ),
+          weekly: normalizeRequirementTabLabel(
+            labels.weekly,
+            defaultRequirementTabLabels.weekly,
+          ),
+          post: normalizeRequirementTabLabel(
+            labels.post,
+            defaultRequirementTabLabels.post,
+          ),
+        };
+
+        const textTargets = {
+          pre: "ojt-tab-label-pre",
+          attendance: "ojt-tab-label-attendance",
+          weekly: "ojt-tab-label-weekly",
+          post: "ojt-tab-label-post",
+        };
+        const panelTargets = {
+          pre: "ojt-panel-title-pre",
+          attendance: "ojt-panel-title-attendance",
+          weekly: "ojt-panel-title-weekly",
+          post: "ojt-panel-title-post",
+        };
+
+        Object.entries(textTargets).forEach(([key, id]) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = requirementTabLabels[key];
+        });
+
+        Object.entries(panelTargets).forEach(([key, id]) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = requirementTabLabels[key];
+        });
+      }
+
+      async function loadRequirementTabLabels() {
+        try {
+          const result = await window.electronAPI.getOjtRequirementTabLabels();
+          if (!result?.success || !result.labels) return;
+
+          applyRequirementTabLabels({
+            pre: result.labels.preLabel,
+            attendance: result.labels.attendanceLabel,
+            weekly: result.labels.weeklyLabel,
+            post: result.labels.postLabel,
+          });
+        } catch (_error) {
+          // Use defaults when label settings are unavailable.
+        }
+      }
+
+      function closeAllTabLabelEditors() {
+        ["pre", "attendance", "weekly", "post"].forEach((key) => {
+          const editor = document.getElementById(`tab-label-editor-${key}`);
+          if (editor) editor.classList.remove("active");
+        });
+        activeTabLabelEditorKey = "";
+      }
+
+      function openTabLabelEditor(key) {
+        const safeKey = String(key || "").trim();
+        if (!requirementTabLabels[safeKey]) return;
+
+        closeAllTabLabelEditors();
+        const editor = document.getElementById(`tab-label-editor-${safeKey}`);
+        const input = document.getElementById(`tab-label-input-${safeKey}`);
+        if (!editor || !input) return;
+
+        input.value = requirementTabLabels[safeKey];
+        editor.classList.add("active");
+        activeTabLabelEditorKey = safeKey;
+        input.focus();
+        input.select();
+      }
+
+      function cancelTabLabelEdit(key) {
+        const safeKey = String(key || "").trim();
+        const editor = document.getElementById(`tab-label-editor-${safeKey}`);
+        if (editor) editor.classList.remove("active");
+        if (activeTabLabelEditorKey === safeKey) {
+          activeTabLabelEditorKey = "";
+        }
+      }
+
+      async function saveTabLabelEdit(key) {
+        const safeKey = String(key || "").trim();
+        const input = document.getElementById(`tab-label-input-${safeKey}`);
+        if (!input) return;
+
+        const nextValue = normalizeRequirementTabLabel(
+          input.value,
+          requirementTabLabels[safeKey] || defaultRequirementTabLabels[safeKey],
+        );
+        const payload = {
+          preLabel: requirementTabLabels.pre,
+          attendanceLabel: requirementTabLabels.attendance,
+          weeklyLabel: requirementTabLabels.weekly,
+          postLabel: requirementTabLabels.post,
+        };
+
+        if (safeKey === "pre") payload.preLabel = nextValue;
+        if (safeKey === "attendance") payload.attendanceLabel = nextValue;
+        if (safeKey === "weekly") payload.weeklyLabel = nextValue;
+        if (safeKey === "post") payload.postLabel = nextValue;
+
+        try {
+          const result =
+            await window.electronAPI.updateOjtRequirementTabLabels(payload);
+          if (!result?.success || !result.labels) {
+            throw new Error(result?.message || "Failed to save tab label.");
+          }
+
+          applyRequirementTabLabels({
+            pre: result.labels.preLabel,
+            attendance: result.labels.attendanceLabel,
+            weekly: result.labels.weeklyLabel,
+            post: result.labels.postLabel,
+          });
+
+          cancelTabLabelEdit(safeKey);
+          showToast("Requirement tab label updated.", "success");
+        } catch (error) {
+          showToast(error?.message || "Failed to save tab label.", "error");
+        }
       }
 
       // â”€â”€ Load student profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -4627,6 +5018,9 @@
       document.addEventListener("DOMContentLoaded", function () {
         const tabs = document.querySelectorAll(".tab");
         const panels = document.querySelectorAll(".tab-panel");
+
+        applyRequirementTabLabels(defaultRequirementTabLabels);
+        loadRequirementTabLabels();
 
         tabs.forEach(function (tab) {
           tab.addEventListener("click", function () {

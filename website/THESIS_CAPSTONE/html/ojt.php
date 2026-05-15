@@ -58,11 +58,80 @@ function status_css_class($status) {
     return 'pending-requirements';
 }
 
+function ensure_ojt_requirement_tab_labels_table($conn) {
+    $sql = "CREATE TABLE IF NOT EXISTS ojt_requirement_tab_labels (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      department VARCHAR(120) NOT NULL,
+      pre_label VARCHAR(120) NOT NULL DEFAULT 'PRE REQUIREMENTS',
+      attendance_label VARCHAR(120) NOT NULL DEFAULT 'ATTENDANCE RECORD',
+      weekly_label VARCHAR(120) NOT NULL DEFAULT 'WEEKLY REPORTS',
+      post_label VARCHAR(120) NOT NULL DEFAULT 'POST REQUIREMENTS',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_ortl_department (department)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    return $conn->query($sql);
+}
+
+function get_ojt_requirement_tab_labels($conn, $department) {
+    $defaults = [
+        'pre' => 'PRE REQUIREMENTS',
+        'attendance' => 'ATTENDANCE RECORD',
+        'weekly' => 'WEEKLY REPORTS',
+        'post' => 'POST REQUIREMENTS',
+    ];
+
+    if (!$conn || !ensure_ojt_requirement_tab_labels_table($conn)) {
+        return $defaults;
+    }
+
+    $dept = trim((string)$department);
+    if ($dept === '') {
+        $dept = 'CCS';
+    }
+
+    $selectStmt = $conn->prepare("SELECT pre_label, attendance_label, weekly_label, post_label FROM ojt_requirement_tab_labels WHERE department = ? LIMIT 1");
+    $selectStmt->bind_param("s", $dept);
+    $selectStmt->execute();
+    $res = $selectStmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $selectStmt->close();
+
+    if (!$row) {
+        $insertStmt = $conn->prepare("INSERT INTO ojt_requirement_tab_labels (department, pre_label, attendance_label, weekly_label, post_label) VALUES (?, ?, ?, ?, ?)");
+        $insertStmt->bind_param(
+            "sssss",
+            $dept,
+            $defaults['pre'],
+            $defaults['attendance'],
+            $defaults['weekly'],
+            $defaults['post']
+        );
+        $insertStmt->execute();
+        $insertStmt->close();
+        return $defaults;
+    }
+
+    return [
+        'pre' => trim((string)($row['pre_label'] ?? '')) ?: $defaults['pre'],
+        'attendance' => trim((string)($row['attendance_label'] ?? '')) ?: $defaults['attendance'],
+        'weekly' => trim((string)($row['weekly_label'] ?? '')) ?: $defaults['weekly'],
+        'post' => trim((string)($row['post_label'] ?? '')) ?: $defaults['post'],
+    ];
+}
+
 // Include database config to get student + OJT data
 $conn = include("../php/config.php");
 $student_data = null;
 $partner_profile = null;
 $connected_thesis_status = 'Not Approved';
+$ojt_tab_labels = [
+    'pre' => 'PRE REQUIREMENTS',
+    'attendance' => 'ATTENDANCE RECORD',
+    'weekly' => 'WEEKLY REPORTS',
+    'post' => 'POST REQUIREMENTS',
+];
 
 if ($conn) {
     $sql = "SELECT 
@@ -171,6 +240,13 @@ if ($conn) {
         }
         $fallbackStmt->close();
     }
+
+    $departmentForLabels = trim((string)($student_data['department'] ?? ''));
+    if ($departmentForLabels === '') {
+        $departmentForLabels = 'CCS';
+    }
+    $ojt_tab_labels = get_ojt_requirement_tab_labels($conn, $departmentForLabels);
+
     $stmt->close();
     $conn->close();
 }
@@ -327,10 +403,10 @@ $can_access_progress_tabs = in_array($student_status_label, ['deployed', 'ojt co
 </header>
 
 <nav class="tabs">
-<button class="tab active" data-target="prePanel">PRE REQUIREMENTS</button>
-<button class="tab" data-target="attendancePanel" <?php if (!$can_access_progress_tabs) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>>DAILY TIME RECORD</button>
-<button class="tab" data-target="weeklyPanel" <?php if (!$can_access_progress_tabs) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>>WEEKLY REPORTS</button>
-<button class="tab" data-target="postPanel" <?php if (!$can_access_progress_tabs) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>>POST REQUIREMENTS</button>
+<button class="tab active" data-target="prePanel"><?php echo htmlspecialchars($ojt_tab_labels['pre']); ?></button>
+<button class="tab" data-target="attendancePanel" <?php if (!$can_access_progress_tabs) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>><?php echo htmlspecialchars($ojt_tab_labels['attendance']); ?></button>
+<button class="tab" data-target="weeklyPanel" <?php if (!$can_access_progress_tabs) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>><?php echo htmlspecialchars($ojt_tab_labels['weekly']); ?></button>
+<button class="tab" data-target="postPanel" <?php if (!$can_access_progress_tabs) echo 'disabled style="opacity:0.5;pointer-events:none;"'; ?>><?php echo htmlspecialchars($ojt_tab_labels['post']); ?></button>
 
 </nav>
 
@@ -393,19 +469,19 @@ $can_access_progress_tabs = in_array($student_status_label, ['deployed', 'ojt co
 </div>
 
 <section class="panel tab-panel active" id="prePanel" data-tab="pre">
-    <div class="panel-loading">Loading pre requirements...</div>
+    <div class="panel-loading">Loading <?php echo htmlspecialchars(strtolower($ojt_tab_labels['pre'])); ?>...</div>
 </section>
 
 <section class="panel tab-panel" id="weeklyPanel" data-tab="weekly">
-    <div class="panel-loading">Loading weekly reports...</div>
+    <div class="panel-loading">Loading <?php echo htmlspecialchars(strtolower($ojt_tab_labels['weekly'])); ?>...</div>
 </section>
 
 <section class="panel tab-panel" id="postPanel" data-tab="post">
-    <div class="panel-loading">Loading post requirements...</div>
+    <div class="panel-loading">Loading <?php echo htmlspecialchars(strtolower($ojt_tab_labels['post'])); ?>...</div>
 </section>
 
 <section class="panel tab-panel" id="attendancePanel" data-tab="attendance">
-    <div class="panel-loading">Loading daily time record...</div>
+    <div class="panel-loading">Loading <?php echo htmlspecialchars(strtolower($ojt_tab_labels['attendance'])); ?>...</div>
 </section>
 
 </section>

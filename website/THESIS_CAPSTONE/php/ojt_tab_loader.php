@@ -285,6 +285,68 @@ function ensure_weekly_reports_columns($conn) {
     return true;
 }
 
+function ensure_ojt_requirement_tab_labels_table($conn) {
+    $sql = "CREATE TABLE IF NOT EXISTS ojt_requirement_tab_labels (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      department VARCHAR(120) NOT NULL,
+      pre_label VARCHAR(120) NOT NULL DEFAULT 'PRE REQUIREMENTS',
+      attendance_label VARCHAR(120) NOT NULL DEFAULT 'ATTENDANCE RECORD',
+      weekly_label VARCHAR(120) NOT NULL DEFAULT 'WEEKLY REPORTS',
+      post_label VARCHAR(120) NOT NULL DEFAULT 'POST REQUIREMENTS',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_ortl_department (department)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    return $conn->query($sql);
+}
+
+function get_ojt_requirement_tab_labels($conn, $department) {
+    $defaults = [
+        'pre' => 'PRE REQUIREMENTS',
+        'attendance' => 'ATTENDANCE RECORD',
+        'weekly' => 'WEEKLY REPORTS',
+        'post' => 'POST REQUIREMENTS',
+    ];
+
+    if (!$conn || !ensure_ojt_requirement_tab_labels_table($conn)) {
+        return $defaults;
+    }
+
+    $dept = trim((string)$department);
+    if ($dept === '') {
+        $dept = 'CCS';
+    }
+
+    $selectStmt = $conn->prepare('SELECT pre_label, attendance_label, weekly_label, post_label FROM ojt_requirement_tab_labels WHERE department = ? LIMIT 1');
+    $selectStmt->bind_param('s', $dept);
+    $selectStmt->execute();
+    $res = $selectStmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $selectStmt->close();
+
+    if (!$row) {
+        $insertStmt = $conn->prepare('INSERT INTO ojt_requirement_tab_labels (department, pre_label, attendance_label, weekly_label, post_label) VALUES (?, ?, ?, ?, ?)');
+        $insertStmt->bind_param(
+            'sssss',
+            $dept,
+            $defaults['pre'],
+            $defaults['attendance'],
+            $defaults['weekly'],
+            $defaults['post']
+        );
+        $insertStmt->execute();
+        $insertStmt->close();
+        return $defaults;
+    }
+
+    return [
+        'pre' => trim((string)($row['pre_label'] ?? '')) ?: $defaults['pre'],
+        'attendance' => trim((string)($row['attendance_label'] ?? '')) ?: $defaults['attendance'],
+        'weekly' => trim((string)($row['weekly_label'] ?? '')) ?: $defaults['weekly'],
+        'post' => trim((string)($row['post_label'] ?? '')) ?: $defaults['post'],
+    ];
+}
+
 $ojt_student_id = null;
 $student_department = 'CCS';
 $stmt = $conn->prepare('SELECT id, department FROM ojt_students WHERE student_id = ? LIMIT 1');
@@ -303,6 +365,7 @@ if (!$ojt_student_id) {
 ensure_schedule_start_date_column($conn);
 ensure_weekly_reports_table($conn);
 ensure_weekly_reports_columns($conn);
+$ojt_tab_labels = get_ojt_requirement_tab_labels($conn, $student_department ?: 'CCS');
 
 ob_start();
 
@@ -332,7 +395,7 @@ if ($tab === 'pre' || $tab === 'post') {
     }
     $subStmt->close();
 
-    $title = $section === 'pre' ? 'PRE REQUIREMENTS' : 'POST REQUIREMENTS';
+    $title = $section === 'pre' ? $ojt_tab_labels['pre'] : $ojt_tab_labels['post'];
     echo '<div class="panel-head">';
     echo '<h2 class="panel-title">' . htmlspecialchars($title) . '</h2>';
     echo '<button class="panel-refresh-btn" type="button" data-section="' . htmlspecialchars($section) . '" title="Refresh requirements" aria-label="Refresh requirements">';
@@ -446,7 +509,7 @@ if ($tab === 'weekly') {
     $next_week = max(1, $max_week + 1);
 
     echo '<div class="panel-head">';
-    echo '<h2 class="panel-title">WEEKLY REPORTS</h2>';
+    echo '<h2 class="panel-title">' . htmlspecialchars($ojt_tab_labels['weekly']) . '</h2>';
     echo '<div class="panel-head-actions">';
     echo '<button class="panel-refresh-btn" type="button" data-section="weekly" title="Refresh weekly reports" aria-label="Refresh weekly reports">';
     echo '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0 0 20.49 15"></path></svg>';
@@ -537,7 +600,7 @@ if ($tab === 'attendance') {
     }
 
     echo '<div class="panel-head attendance-head">';
-    echo '<h2 class="panel-title">DAILY TIME RECORD</h2>';
+    echo '<h2 class="panel-title">' . htmlspecialchars($ojt_tab_labels['attendance']) . '</h2>';
     echo '<div class="panel-head-actions">';
     echo '<button class="panel-refresh-btn" type="button" data-section="attendance" title="Refresh attendance" aria-label="Refresh attendance">';
     echo '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0 0 20.49 15"></path></svg>';

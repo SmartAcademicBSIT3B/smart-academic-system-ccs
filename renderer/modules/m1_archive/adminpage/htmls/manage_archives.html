@@ -25,6 +25,7 @@
     <script src="../api/fetch_archive_dropdowns.js"></script>
     <script src="../api/fetch_archives.js"></script>
     <script src="../api/delete_archive.js"></script>
+    <script src="../api/export_heading_utils.js"></script>
     <script src="../api/export_excel.js"></script>
     <script src="../api/export_pdf.js"></script>
     <script src="../api/update_archive.js"></script>
@@ -1214,7 +1215,7 @@
         if (e.target === exportModal) closeModal(exportModal);
       });
 
-      exportExcelBtn.addEventListener("click", () => {
+      exportExcelBtn.addEventListener("click", async () => {
         if (typeof window.exportVisibleArchivesToExcel !== "function") {
           showToast("Excel export module is unavailable.", "error", 3500);
           showArchiveAlert(
@@ -1230,7 +1231,7 @@
           0,
         );
         try {
-          window.exportVisibleArchivesToExcel({
+          await window.exportVisibleArchivesToExcel({
             fileName: `${getReportName()}.xls`,
           });
           dismissToast(loadingToast);

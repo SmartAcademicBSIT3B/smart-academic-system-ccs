@@ -40,15 +40,6 @@
       .trim();
   }
 
-  function escapeHtml(value) {
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
   function resolveDepartmentLabel(rows) {
     const labels = Array.from(
       new Set(
@@ -93,7 +84,7 @@
     URL.revokeObjectURL(url);
   }
 
-  function exportVisibleArchivesToExcel(options = {}) {
+  async function exportVisibleArchivesToExcel(options = {}) {
     const rows = resolveVisibleArchiveRows();
     if (rows.length === 0) {
       throw new Error("There are no visible archive rows to export.");
@@ -108,9 +99,14 @@
     const reportTitle = `${departmentLabel} Archives Report`;
     const filterSummary = resolveFilterSummary();
     const generatedText = new Date().toLocaleString("en-US");
+    const headingUtils = window.ReportExportUtils;
+
+    if (!headingUtils?.buildExcelWorkbookHtml || !headingUtils?.escapeHtml) {
+      throw new Error("The export heading utility is unavailable.");
+    }
 
     const headerCells = ["No.", ...columns.map(({ label }) => label)]
-      .map((label) => `<th>${escapeHtml(label)}</th>`)
+      .map((label) => `<th>${headingUtils.escapeHtml(label)}</th>`)
       .join("");
 
     const bodyRows = rows
@@ -118,43 +114,21 @@
         const cells = [
           `<td style=\"text-align:center\">${index + 1}</td>`,
           ...columns.map(({ index: cellIndex }) => {
-            return `<td>${escapeHtml(resolveCellText(row.cells[cellIndex]))}</td>`;
+            return `<td>${headingUtils.escapeHtml(resolveCellText(row.cells[cellIndex]))}</td>`;
           }),
         ].join("");
         return `<tr>${cells}</tr>`;
       })
       .join("");
 
-    const workbookHtml = `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <style>
-      body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1d2430; }
-      .meta { margin-bottom: 6px; }
-      .title { font-weight: 700; font-size: 14pt; margin-bottom: 10px; }
-      table { border-collapse: collapse; width: 100%; }
-      th, td { border: 1px solid #c6cedb; padding: 6px 8px; vertical-align: middle; }
-      th { background: #1f2937; color: #ffffff; font-weight: 700; }
-      tr:nth-child(even) td { background: #f8fafc; }
-    </style>
-  </head>
-  <body>
-    <div class="title">${escapeHtml(reportTitle)}</div>
-    <div class="meta"><strong>Generated:</strong> ${escapeHtml(generatedText)}</div>
-    <div class="meta"><strong>Rows:</strong> ${rows.length}</div>
-    <div class="meta"><strong>Filters:</strong> ${escapeHtml(filterSummary)}</div>
-    <br />
-    <table>
-      <thead>
-        <tr>${headerCells}</tr>
-      </thead>
-      <tbody>
-        ${bodyRows}
-      </tbody>
-    </table>
-  </body>
-</html>`;
+    const workbookHtml = await headingUtils.buildExcelWorkbookHtml({
+      reportTitle,
+      generatedText,
+      rowsCount: rows.length,
+      filterSummary,
+      headerCellsHtml: headerCells,
+      bodyRowsHtml: bodyRows,
+    });
 
     const fileName = String(options.fileName || "archives_report.xls").trim();
     downloadHtmlAsExcel(workbookHtml, fileName || "archives_report.xls");
