@@ -1609,7 +1609,9 @@ app.whenReady().then(async () => {
     const initialDeptCode = String(
       initialSettings?.department?.department_code || "",
     ).trim();
-    if (initialDeptCode) {
+    // Keep the authenticated session's department when present.
+    // Falling back to app settings is only safe when no session department exists.
+    if (initialDeptCode && !authSession.departmentCode) {
       api.setDepartmentCode(initialDeptCode);
     }
   } catch (error) {
