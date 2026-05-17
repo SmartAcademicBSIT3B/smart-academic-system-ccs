@@ -16,15 +16,58 @@ const { fileURLToPath } = require("node:url");
 const dotenv = require("dotenv");
 
 let autoUpdater = null;
+let autoUpdaterLoadError = "";
 try {
   ({ autoUpdater } = require("electron-updater"));
-} catch (_error) {
+} catch (error) {
   autoUpdater = null;
+  autoUpdaterLoadError = String(error?.message || "Failed to load electron-updater module.");
+  console.error("[auto-updater] electron-updater load failed:", error);
 }
 
 const AUTO_UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let autoUpdateCheckInterval = null;
 let autoUpdaterInitialized = false;
+
+function isAutoUpdaterEnabledByEnv() {
+  return String(process.env.SAS_DISABLE_AUTO_UPDATE || "") !== "1";
+}
+
+function isDevAutoUpdaterEnabled() {
+  return String(process.env.SAS_ENABLE_DEV_AUTO_UPDATE || "") === "1";
+}
+
+function resolveAutoUpdaterAvailability() {
+  if (!isAutoUpdaterEnabledByEnv()) {
+    return {
+      available: false,
+      reason: "Auto-updater is disabled by SAS_DISABLE_AUTO_UPDATE=1.",
+      code: "DISABLED_BY_ENV",
+    };
+  }
+
+  if (!autoUpdater) {
+    return {
+      available: false,
+      reason:
+        autoUpdaterLoadError ||
+        "electron-updater module is unavailable in this runtime.",
+      code: "UPDATER_MODULE_UNAVAILABLE",
+    };
+  }
+
+  const allowDevUpdates = isDevAutoUpdaterEnabled();
+  if (!app.isPackaged && !allowDevUpdates) {
+    return {
+      available: false,
+      reason:
+        "Auto-updates are available only in installed builds. Build and run the installer, or set SAS_ENABLE_DEV_AUTO_UPDATE=1 for dev testing.",
+      code: "NOT_PACKAGED",
+    };
+  }
+
+  return { available: true, reason: "", code: "" };
+}
 
 function getWritableUserDataPath() {
   try {
@@ -1382,8 +1425,13 @@ function getActiveWindowForDialogs() {
 }
 
 async function runAutoUpdateCheck() {
-  if (!autoUpdater || !app.isPackaged) {
-    return { success: false, message: "Auto-updater is unavailable." };
+  const availability = resolveAutoUpdaterAvailability();
+  if (!availability.available) {
+    return {
+      success: false,
+      message: availability.reason,
+      code: availability.code,
+    };
   }
 
   try {
@@ -1405,17 +1453,20 @@ async function runAutoUpdateCheck() {
 }
 
 function setupAutoUpdater() {
-  if (autoUpdaterInitialized || !app.isPackaged || !autoUpdater) {
+  if (autoUpdaterInitialized) {
     return;
   }
 
-  const updaterEnabled =
-    String(process.env.SAS_DISABLE_AUTO_UPDATE || "") !== "1";
-  if (!updaterEnabled) {
+  const availability = resolveAutoUpdaterAvailability();
+  if (!availability.available) {
+    console.log(`[auto-updater] Skipped initialization: ${availability.reason}`);
     return;
   }
 
   autoUpdaterInitialized = true;
+  if (!app.isPackaged && isDevAutoUpdaterEnabled()) {
+    autoUpdater.forceDevUpdateConfig = true;
+  }
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 

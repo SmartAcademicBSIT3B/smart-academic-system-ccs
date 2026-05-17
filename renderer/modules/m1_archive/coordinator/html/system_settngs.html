@@ -198,6 +198,24 @@
                   </div>
                 </div>
 
+                <div class="general-card" style="margin-top: 12px">
+                  <h4>Application Updates</h4>
+                  <p>
+                    Check for the latest desktop app version and download
+                    updates when available.
+                  </p>
+                  <div class="inline-actions">
+                    <button
+                      type="button"
+                      id="checkForUpdatesBtn"
+                      class="save-btn"
+                      onclick="checkForAppUpdatesFromSettings()"
+                    >
+                      Check for Updates
+                    </button>
+                  </div>
+                </div>
+
                 <div id="generalStatusMessage" class="general-status"></div>
               </div>
             </div>
@@ -668,6 +686,57 @@
         generalSettingsState.selectedPdfReportHeaderPath = "";
         renderGeneralHeaderSelection();
         showGeneralStatus("Selected header removed from saved choices.");
+      }
+
+      async function checkForAppUpdatesFromSettings() {
+        if (
+          !electronAPI ||
+          typeof electronAPI.checkForAppUpdates !== "function"
+        ) {
+          showGeneralStatus("In-app update checks are unavailable.", true);
+          return;
+        }
+
+        const checkBtn = document.getElementById("checkForUpdatesBtn");
+        if (checkBtn) {
+          checkBtn.disabled = true;
+          checkBtn.textContent = "Checking...";
+        }
+
+        try {
+          showGeneralStatus("Checking for updates...");
+          const result = await electronAPI.checkForAppUpdates();
+
+          if (!result?.success) {
+            showGeneralStatus(
+              result?.message || "Failed to check for updates.",
+              true,
+            );
+            return;
+          }
+
+          if (result?.hasUpdate) {
+            const nextVersion = String(result?.version || "").trim();
+            showGeneralStatus(
+              nextVersion
+                ? `Update found: v${nextVersion}. It will download automatically and prompt you when ready.`
+                : "Update found. It will download automatically and prompt you when ready.",
+            );
+            return;
+          }
+
+          showGeneralStatus("You are already using the latest version.");
+        } catch (error) {
+          showGeneralStatus(
+            error?.message || "Failed to check for updates.",
+            true,
+          );
+        } finally {
+          if (checkBtn) {
+            checkBtn.disabled = false;
+            checkBtn.textContent = "Check for Updates";
+          }
+        }
       }
 
       async function saveGeneralSettings() {
