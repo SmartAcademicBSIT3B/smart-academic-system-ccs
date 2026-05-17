@@ -166,12 +166,27 @@ async function readBackendHealth(baseUrl) {
   }
 }
 
+async function readBackendApiReadiness(baseUrl) {
+  const target = String(baseUrl || "").replace(/\/$/, "");
+  if (!target) return false;
+
+  try {
+    const response = await fetch(`${target}/api/meta/departments`);
+    if (!response.ok) return false;
+    const payload = await response.json();
+    return payload?.success === true;
+  } catch (_error) {
+    return false;
+  }
+}
+
 async function waitForBackendHealth(baseUrl, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
     const health = await readBackendHealth(baseUrl);
-    if (health?.ok) {
+    const apiReady = await readBackendApiReadiness(baseUrl);
+    if (health?.ok && apiReady) {
       return { success: true, health };
     }
     await sleep(500);
@@ -179,7 +194,7 @@ async function waitForBackendHealth(baseUrl, timeoutMs = 15000) {
 
   return {
     success: false,
-    message: `Backend did not become healthy at ${baseUrl} within ${timeoutMs}ms.`,
+    message: `Backend did not become ready at ${baseUrl} within ${timeoutMs}ms (health + API readiness).`,
   };
 }
 
@@ -323,8 +338,8 @@ async function initializeBackendRuntime(apiClient) {
   const localUrl = `http://127.0.0.1:${runtimeLocalBackendPort}`;
 
   if (packagedBackendMode !== "remote") {
-    const existingHealth = await readBackendHealth(localUrl);
-    if (existingHealth?.ok) {
+    const existingReady = await waitForBackendHealth(localUrl, 5000);
+    if (existingReady.success) {
       process.env.BACKEND_URL = localUrl;
       apiClient.setBaseUrl(localUrl);
       backendRuntimeDiagnostics = {
@@ -332,7 +347,7 @@ async function initializeBackendRuntime(apiClient) {
         mode: "packaged-local",
         source: "existing-local-service",
         localBackendPort: runtimeLocalBackendPort,
-        backendHealthVersion: String(existingHealth?.version || ""),
+        backendHealthVersion: String(existingReady?.health?.version || ""),
         startupError: "",
       };
       return;

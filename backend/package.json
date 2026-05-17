@@ -1,6 +1,6 @@
 {
   "name": "smart-academic-system-backend",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "REST API backend for Smart Academic System CCS",
   "main": "server.js",
   "scripts": {
