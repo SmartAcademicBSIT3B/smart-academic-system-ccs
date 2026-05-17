@@ -107,7 +107,7 @@
 	<img src="./images/PLPLOGO.png" alt="PLP Logo">
 	<img src="./images/CCSLOGO.png" alt="CCS Logo">
 	<p>PAMANTASAN NG LUNGSOD NG PASIG</p>
-    <p>Acalde Jose St. Kapasigan, Pasig City &nbsp; +123 4567 90</p>
+    <p>Alcalde Jose St. Kapasigan, Pasig City &nbsp; +286 4310 14</p>
     <a href="javascript:void(0)" class="about-trigger">About the Website</a>
 </footer>
 
