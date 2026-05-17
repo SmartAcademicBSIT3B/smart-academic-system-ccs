@@ -10,6 +10,7 @@ const {
 const path = require("node:path");
 const fsSync = require("node:fs");
 const fs = require("node:fs/promises");
+const nodeNet = require("node:net");
 const { spawn } = require("node:child_process");
 const { pipeline } = require("node:stream/promises");
 const { fileURLToPath } = require("node:url");
@@ -120,16 +121,17 @@ const configuredBackendUrl = String(process.env.BACKEND_URL || "").trim();
 const packagedBackendMode = String(process.env.SAS_BACKEND_MODE || "auto")
   .trim()
   .toLowerCase();
-const localBackendPort = Number.parseInt(
+const preferredLocalBackendPort = Number.parseInt(
   process.env.SAS_LOCAL_BACKEND_PORT || "3000",
   10,
 );
+let runtimeLocalBackendPort = preferredLocalBackendPort;
 
 let bundledBackendProcess = null;
 let backendRuntimeDiagnostics = {
   mode: app.isPackaged ? "packaged-unresolved" : "dev-local",
   source: app.isPackaged ? "pending" : "dev",
-  localBackendPort,
+  localBackendPort: runtimeLocalBackendPort,
   backendHealthVersion: "",
   startupError: "",
 };
@@ -184,18 +186,71 @@ async function waitForBackendHealth(baseUrl, timeoutMs = 15000) {
 function stopBundledBackendProcess() {
   if (!bundledBackendProcess) return;
 
+  const childProcessRef = bundledBackendProcess;
+  bundledBackendProcess = null;
+
   try {
-    if (typeof bundledBackendProcess.kill === "function") {
-      bundledBackendProcess.kill();
+    if (typeof childProcessRef.kill === "function") {
+      childProcessRef.kill();
     }
   } catch (error) {
     console.error("Failed to stop bundled backend process:", error);
-  } finally {
-    bundledBackendProcess = null;
+  }
+
+  // On Windows, force-kill the process tree to avoid orphaned Node children
+  // holding the backend port across app restarts.
+  const childPid = Number.parseInt(String(childProcessRef?.pid || ""), 10);
+  if (
+    process.platform === "win32" &&
+    Number.isInteger(childPid) &&
+    childPid > 0
+  ) {
+    const killer = spawn("taskkill", ["/PID", String(childPid), "/T", "/F"], {
+      windowsHide: true,
+      stdio: "ignore",
+    });
+    killer.on("error", () => {});
+    killer.unref();
   }
 }
 
-async function startBundledBackendProcess(localBaseUrl) {
+function isLocalPortBusy(port) {
+  return new Promise((resolve) => {
+    const tester = nodeNet.createServer();
+
+    tester.once("error", (error) => {
+      if (error && error.code === "EADDRINUSE") {
+        resolve(true);
+        return;
+      }
+      resolve(false);
+    });
+
+    tester.once("listening", () => {
+      tester.close(() => resolve(false));
+    });
+
+    tester.listen(port, "127.0.0.1");
+  });
+}
+
+async function findAvailableLocalPort(startPort, maxAttempts = 20) {
+  const initialPort =
+    Number.isInteger(startPort) && startPort > 0 ? startPort : 3000;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const candidate = initialPort + attempt;
+    // eslint-disable-next-line no-await-in-loop
+    const busy = await isLocalPortBusy(candidate);
+    if (!busy) {
+      return candidate;
+    }
+  }
+
+  return initialPort;
+}
+
+async function startBundledBackendProcess(localBaseUrl, backendPort) {
   const backendRoot = getBundledBackendRootPath();
   const backendEntry = getBundledBackendEntryPath();
 
@@ -208,7 +263,7 @@ async function startBundledBackendProcess(localBaseUrl) {
 
   const childEnv = {
     ...process.env,
-    PORT: String(localBackendPort),
+    PORT: String(backendPort),
   };
 
   try {
@@ -264,7 +319,8 @@ async function initializeBackendRuntime(apiClient) {
     return;
   }
 
-  const localUrl = `http://127.0.0.1:${localBackendPort}`;
+  runtimeLocalBackendPort = preferredLocalBackendPort;
+  const localUrl = `http://127.0.0.1:${runtimeLocalBackendPort}`;
 
   if (packagedBackendMode !== "remote") {
     const existingHealth = await readBackendHealth(localUrl);
@@ -275,20 +331,37 @@ async function initializeBackendRuntime(apiClient) {
         ...backendRuntimeDiagnostics,
         mode: "packaged-local",
         source: "existing-local-service",
+        localBackendPort: runtimeLocalBackendPort,
         backendHealthVersion: String(existingHealth?.version || ""),
         startupError: "",
       };
       return;
     }
 
-    const localStart = await startBundledBackendProcess(localUrl);
+    let localStart = null;
+    let localStartUrl = localUrl;
+
+    const preferredPortBusy = await isLocalPortBusy(runtimeLocalBackendPort);
+    if (preferredPortBusy) {
+      const fallbackPort = await findAvailableLocalPort(
+        runtimeLocalBackendPort + 1,
+      );
+      runtimeLocalBackendPort = fallbackPort;
+      localStartUrl = `http://127.0.0.1:${runtimeLocalBackendPort}`;
+    }
+
+    localStart = await startBundledBackendProcess(
+      localStartUrl,
+      runtimeLocalBackendPort,
+    );
     if (localStart.success) {
-      process.env.BACKEND_URL = localUrl;
-      apiClient.setBaseUrl(localUrl);
+      process.env.BACKEND_URL = localStartUrl;
+      apiClient.setBaseUrl(localStartUrl);
       backendRuntimeDiagnostics = {
         ...backendRuntimeDiagnostics,
         mode: "packaged-local",
         source: "bundled-backend",
+        localBackendPort: runtimeLocalBackendPort,
         backendHealthVersion: String(localStart.health?.version || ""),
         startupError: "",
       };
@@ -305,6 +378,7 @@ async function initializeBackendRuntime(apiClient) {
     ...backendRuntimeDiagnostics,
     mode: "packaged-remote",
     source: "configured-or-default-remote",
+    localBackendPort: runtimeLocalBackendPort,
     backendHealthVersion: String(remoteHealth?.version || ""),
     startupError:
       backendRuntimeDiagnostics.startupError ||
