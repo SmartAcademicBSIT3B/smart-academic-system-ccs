@@ -23,11 +23,15 @@ function displayProfileData(user) {
 
   const nameInput = document.getElementById("profileName");
   const usernameInput = document.getElementById("profileUserId");
+  const roleInput = document.getElementById("profileRole");
   const emailInput = document.getElementById("profileEmail");
-  const profileImg = document.querySelector(".profile-avatar");
+  const profileImg =
+    document.getElementById("profileModalImage") ||
+    document.querySelector(".profile-avatar");
 
   if (nameInput) nameInput.value = user.name || "";
   if (usernameInput) usernameInput.value = user.user_id || "";
+  if (roleInput) roleInput.value = user.role || "";
   if (emailInput) emailInput.value = user.email || "";
 
   if (profileImg) {

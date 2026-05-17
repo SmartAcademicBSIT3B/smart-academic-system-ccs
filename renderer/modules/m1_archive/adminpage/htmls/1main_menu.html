@@ -148,31 +148,23 @@
 
         <h2>My Profile</h2>
 
-        <div class="profile-container">
-          <div class="profile-left">
-            <div
-              class="avatar-wrapper"
-              style="position: relative; display: inline-block"
-            >
+        <div class="profile-panel">
+          <div class="profile-photo-wrap">
+            <div class="avatar-wrapper" style="position: relative">
               <img
+                id="profileModalImage"
                 src="../../images/default_avatar.jpg"
-                class="profile-avatar"
-                alt="Profile Avatar"
-                onclick="chooseProfileImage()"
-                style="cursor: pointer"
+                class="profile-photo profile-avatar"
+                alt="Profile photo"
               />
-              <!-- Upload loading overlay -->
               <div
                 id="avatarUploadOverlay"
                 style="
                   display: none;
                   position: absolute;
-                  top: 0;
-                  left: 0;
-                  width: 100%;
-                  height: 100%;
+                  inset: 0;
                   background: rgba(0, 0, 0, 0.55);
-                  border-radius: 50%;
+                  border-radius: 12px;
                   align-items: center;
                   justify-content: center;
                   flex-direction: column;
@@ -180,72 +172,102 @@
                 "
               >
                 <div class="avatar-spinner"></div>
-                <span
-                  style="
-                    color: #fff;
-                    font-size: 11px;
-                    font-family: Inter, sans-serif;
-                  "
-                  >Uploading…</span
-                >
+                <span class="avatar-uploading-text">Uploading...</span>
               </div>
             </div>
-            <p
-              id="avatarUploadError"
-              style="
-                display: none;
-                color: #ff6b6b;
-                font-size: 11px;
-                margin-top: 6px;
-                text-align: center;
-                max-width: 120px;
-                font-family: Inter, sans-serif;
-              "
-            ></p>
             <button
               type="button"
-              class="edit-link"
-              onclick="startProfileEdit()"
+              class="profile-secondary-btn"
+              onclick="chooseProfileImage()"
             >
-              Edit
+              Change Profile Picture
             </button>
+            <p id="avatarUploadError" class="avatar-upload-error"></p>
           </div>
 
-          <div class="profile-right">
-            <div class="form-row">
-              <div>
-                <label>Name</label>
-                <input type="text" id="profileName" value="" disabled />
-              </div>
-              <div>
-                <label>User ID</label>
-                <input type="text" id="profileUserId" value="" disabled />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Email Address</label>
-              <input type="text" id="profileEmail" value="" disabled />
-            </div>
-
-            <div class="profile-actions" id="profileActions">
-              <button
-                type="button"
-                class="profile-cancel-btn"
-                onclick="cancelProfileEdit()"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                class="profile-save-btn"
-                onclick="saveProfileEdit()"
-              >
-                Save
-              </button>
-            </div>
+          <div class="setting-grid two-column profile-fields">
+            <label>
+              User ID
+              <input id="profileUserId" type="text" readonly />
+            </label>
+            <label>
+              Role
+              <input id="profileRole" type="text" readonly />
+            </label>
+            <label>
+              Display Name
+              <input id="profileName" type="text" />
+            </label>
+            <label>
+              Email Address
+              <input id="profileEmail" type="email" />
+            </label>
           </div>
         </div>
+
+        <div class="setting-grid two-column password-grid">
+          <label>
+            Current Password
+            <input
+              id="profileCurrentPassword"
+              type="password"
+              autocomplete="new-password"
+            />
+          </label>
+          <label>
+            New Password
+            <input
+              id="profileNewPassword"
+              type="password"
+              autocomplete="new-password"
+            />
+          </label>
+          <label class="full-width">
+            Confirm New Password
+            <input
+              id="profileConfirmPassword"
+              type="password"
+              autocomplete="new-password"
+            />
+          </label>
+        </div>
+
+        <div class="profile-modal-actions">
+          <button
+            type="button"
+            class="profile-primary-btn"
+            onclick="saveProfileEdit()"
+          >
+            Save Changes
+          </button>
+        </div>
+
+        <div class="delete-profile-box">
+          <h4>Delete My Profile</h4>
+          <p>
+            This permanently deletes your account. Enter your current password
+            to confirm.
+          </p>
+          <div class="setting-grid">
+            <label>
+              Current Password
+              <input
+                id="profileDeletePassword"
+                type="password"
+                autocomplete="new-password"
+              />
+            </label>
+          </div>
+          <button
+            type="button"
+            class="danger-btn"
+            onclick="deleteMyProfileFromModal()"
+          >
+            Delete My Profile
+          </button>
+        </div>
+
+        <div id="profileStatusMessage" class="profile-status"></div>
       </div>
     </div>
 
@@ -677,6 +699,8 @@
       function openProfileModal() {
         // Load profile data from database when opening modal
         loadProfileOnModalOpen();
+        clearSensitiveProfileInputs();
+        showProfileStatus("");
         document.getElementById("profileModal").style.display = "flex";
       }
 
@@ -684,40 +708,38 @@
         document.getElementById("profileModal").style.display = "none";
       }
 
-      let isEditing = false;
-      let originalProfileValues = [];
-
-      function startProfileEdit() {
-        const nameInput = document.getElementById("profileName");
-        const editBtn = document.querySelector(".edit-link");
-        const actions = document.getElementById("profileActions");
-
-        originalProfileValues = Array.from(
-          document.querySelectorAll("#profileModal input"),
-        ).map((input) => input.value);
-        isEditing = true;
-
-        if (nameInput) {
-          nameInput.disabled = false;
-          nameInput.focus();
+      function readStoredUser() {
+        try {
+          const userStr = localStorage.getItem("user");
+          return userStr ? JSON.parse(userStr) : null;
+        } catch (error) {
+          console.error("Unable to parse local user data:", error);
+          return null;
         }
-        editBtn.style.display = "none";
-        actions.classList.add("show");
       }
 
-      function cancelProfileEdit() {
-        const inputs = document.querySelectorAll("#profileModal input");
-        const editBtn = document.querySelector(".edit-link");
-        const actions = document.getElementById("profileActions");
+      function writeStoredUser(nextUser) {
+        localStorage.setItem("user", JSON.stringify(nextUser));
+      }
 
-        inputs.forEach((input, index) => {
-          input.value = originalProfileValues[index];
-          input.disabled = true;
+      function showProfileStatus(message, isError = false) {
+        const el = document.getElementById("profileStatusMessage");
+        if (!el) return;
+        el.textContent = message || "";
+        el.classList.toggle("error", Boolean(isError));
+      }
+
+      function clearSensitiveProfileInputs() {
+        const ids = [
+          "profileCurrentPassword",
+          "profileNewPassword",
+          "profileConfirmPassword",
+          "profileDeletePassword",
+        ];
+        ids.forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
         });
-
-        isEditing = false;
-        actions.classList.remove("show");
-        editBtn.style.display = "inline-flex";
       }
 
       // ════════════════════════════════════════════════════════════════
@@ -1034,48 +1056,139 @@
       refreshDepartmentLogoFromPersistedSettings();
 
       async function saveProfileEdit() {
-        const nameInput = document.getElementById("profileName");
-        const editBtn = document.querySelector(".edit-link");
-        const actions = document.getElementById("profileActions");
-
-        const name = nameInput.value.trim();
-        const userStr = localStorage.getItem("user");
-
-        if (!userStr) {
-          alert("Unable to save profile: no user is logged in.");
+        const user = readStoredUser();
+        if (!user?.id) {
+          showProfileStatus("Unable to identify current user.", true);
           return;
         }
 
-        const user = JSON.parse(userStr);
+        const name = String(
+          document.getElementById("profileName")?.value || "",
+        ).trim();
+        const email = String(
+          document.getElementById("profileEmail")?.value || "",
+        )
+          .trim()
+          .toLowerCase();
+        const currentPassword = String(
+          document.getElementById("profileCurrentPassword")?.value || "",
+        );
+        const newPassword = String(
+          document.getElementById("profileNewPassword")?.value || "",
+        );
+        const confirmPassword = String(
+          document.getElementById("profileConfirmPassword")?.value || "",
+        );
+
+        if (!name || !email) {
+          showProfileStatus("Name and email are required.", true);
+          return;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          showProfileStatus("Please provide a valid email address.", true);
+          return;
+        }
+
+        const wantsPasswordChange = Boolean(
+          currentPassword || newPassword || confirmPassword,
+        );
+        if (wantsPasswordChange) {
+          if (!currentPassword || !newPassword || !confirmPassword) {
+            showProfileStatus(
+              "Fill out current, new, and confirm password fields.",
+              true,
+            );
+            return;
+          }
+          if (newPassword.length < 8) {
+            showProfileStatus(
+              "New password must be at least 8 characters.",
+              true,
+            );
+            return;
+          }
+          if (newPassword !== confirmPassword) {
+            showProfileStatus(
+              "New password and confirmation do not match.",
+              true,
+            );
+            return;
+          }
+        }
 
         const result = await window.electronAPI.updateProfile({
           userId: user.id,
           name,
-          profileImagePath: selectedProfileImagePath,
+          email,
+          profileImagePath: selectedProfileImagePath || "",
+          currentPassword: wantsPasswordChange ? currentPassword : "",
+          newPassword: wantsPasswordChange ? newPassword : "",
         });
 
-        if (!result.success) {
-          alert(result.message || "Failed to save profile. Please try again.");
+        if (!result?.success) {
+          showProfileStatus(
+            result?.message || "Failed to save profile changes.",
+            true,
+          );
           return;
         }
 
-        user.name = name;
-        localStorage.setItem("user", JSON.stringify(user));
-
-        // Update visible UI state
-        originalProfileValues = [
+        const nextUser = {
+          ...user,
+          ...(result.user || {}),
           name,
-          document.getElementById("profileUserId").value,
-          document.getElementById("profileEmail").value,
-        ];
+          email,
+          profile_image: (
+            result?.user?.profile_image ||
+            selectedProfileImagePath ||
+            ""
+          ).trim(),
+        };
+        writeStoredUser(nextUser);
+        loadProfileOnModalOpen();
+        clearSensitiveProfileInputs();
+        showProfileStatus("Profile updated successfully.");
+      }
 
-        document.querySelectorAll("#profileModal input").forEach((input) => {
-          input.disabled = true;
+      async function deleteMyProfileFromModal() {
+        const user = readStoredUser();
+        if (!user?.id) {
+          showProfileStatus("Unable to identify current user.", true);
+          return;
+        }
+
+        const currentPassword = String(
+          document.getElementById("profileDeletePassword")?.value || "",
+        );
+
+        if (!currentPassword) {
+          showProfileStatus("Current password is required.", true);
+          return;
+        }
+
+        const confirmDelete = window.confirm(
+          "Delete your profile permanently? This cannot be undone.",
+        );
+        if (!confirmDelete) return;
+
+        const result = await window.electronAPI.deleteMyProfile({
+          userId: user.id,
+          currentPassword,
         });
 
-        isEditing = false;
-        actions.classList.remove("show");
-        editBtn.style.display = "inline-flex";
+        if (!result?.success) {
+          showProfileStatus(
+            result?.message || "Failed to delete profile.",
+            true,
+          );
+          return;
+        }
+
+        await window.electronAPI.logout();
+        localStorage.removeItem("user");
+        localStorage.removeItem("sas.last.page");
+        window.location.href = "../../login.html";
       }
       // Override logoutUser to stop notification polling
       const originalLogoutUser = window.logoutUser || logoutUser;
