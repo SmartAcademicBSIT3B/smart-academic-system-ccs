@@ -5,7 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OJT Students</title>
     <link rel="stylesheet" href="../css/ojt_students.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="../js/ojt_report_export.js"></script>
     <style>
+      .page-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      .page-title-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .page-subtitle {
+        color: var(--secondary-text);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      .section-report-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(157, 198, 255, 0.3);
+        background: rgba(157, 198, 255, 0.08);
+        color: var(--primary-text);
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .section-report-btn:hover {
+        border-color: var(--accent-blue);
+        color: #fff;
+      }
+      .section-report-btn svg {
+        width: 15px;
+        height: 15px;
+        stroke: currentColor;
+        fill: none;
+      }
       .loading-state,
       .empty-state {
         color: var(--secondary-text);
@@ -16,7 +61,31 @@
   </head>
 
   <body>
-    <h2 class="page-title">OJT STUDENTS</h2>
+    <div class="page-head">
+      <div class="page-title-wrap">
+        <h2 class="page-title">OJT STUDENTS</h2>
+        <div class="page-subtitle">
+          Generate a live PDF report for your assigned sections.
+        </div>
+      </div>
+      <button type="button" class="section-report-btn" id="sectionPdfReportBtn">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M6 9V2h12v7"></path>
+          <path
+            d="M6 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"
+          ></path>
+          <rect x="6" y="14" width="12" height="8" rx="1"></rect>
+        </svg>
+        Generate PDF Report
+      </button>
+    </div>
 
     <div id="sectionCards" class="ojt-container">
       <div class="loading-state">Loading your sections…</div>
@@ -92,6 +161,10 @@
             return window.top.electronAPI;
         } catch (_) {}
         return {};
+      }
+
+      if (window.OjtCoordinatorReport) {
+        window.OjtCoordinatorReport.initSectionReport({ getApi });
       }
 
       loadSections();

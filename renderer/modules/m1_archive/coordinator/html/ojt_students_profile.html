@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trainee Profile</title>
     <link rel="stylesheet" href="../css/ojt_students_profile.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="../js/ojt_report_export.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans:wght@400;600&display=swap"
       rel="stylesheet"
@@ -362,8 +365,18 @@
           0 12px 32px rgba(0, 0, 0, 0.6),
           0 0 0 1px rgba(255, 255, 255, 0.04);
         padding: 6px 0;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(157, 198, 255, 0.2) transparent;
+      }
+      .partner-suggestions::-webkit-scrollbar {
+        width: 10px;
+      }
+      .partner-suggestions::-webkit-scrollbar-thumb {
+        background: rgba(157, 198, 255, 0.2);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+      .partner-suggestions::-webkit-scrollbar-track {
+        background: transparent;
       }
       .partner-suggestions.open {
         display: block;
@@ -1691,11 +1704,34 @@
                 <button
                   type="button"
                   class="status-settings-btn"
+                  id="studentPdfReportBtn"
+                  title="Generate PDF report"
+                  aria-label="Generate PDF report"
+                  style="margin-left: 8px"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M6 9V2h12v7"></path>
+                    <path
+                      d="M6 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"
+                    ></path>
+                    <rect x="6" y="14" width="12" height="8" rx="1"></rect>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="status-settings-btn"
                   id="requirementSettingsBtn"
                   title="Requirement settings"
                   aria-label="Open requirement settings"
                   onclick="openRequirementSettingsModal()"
-                  style="margin-left: auto"
+                  style="margin-left: 8px"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -2799,6 +2835,25 @@
         }
 
         if (lastError) throw lastError;
+      }
+
+      function getApi() {
+        if (window.electronAPI) return window.electronAPI;
+        try {
+          if (
+            window.parent &&
+            window.parent !== window &&
+            window.parent.electronAPI
+          ) {
+            return window.parent.electronAPI;
+          }
+        } catch (_) {}
+        try {
+          if (window.top && window.top !== window && window.top.electronAPI) {
+            return window.top.electronAPI;
+          }
+        } catch (_) {}
+        return {};
       }
 
       let _toastTimer;
@@ -5078,6 +5133,12 @@
         });
 
         // Kick off profile load
+        if (window.OjtCoordinatorReport) {
+          window.OjtCoordinatorReport.initStudentReport({
+            getApi,
+            studentId: STUDENT_ID,
+          });
+        }
         loadProfile();
       });
 
