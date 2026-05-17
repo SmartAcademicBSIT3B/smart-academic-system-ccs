@@ -35,6 +35,8 @@
   const REQUIREMENT_OUTCOME_OPTIONS = [
     { value: "approved", label: "Approved" },
     { value: "rejected", label: "Rejected" },
+    { value: "submitted", label: "Submitted" },
+    { value: "pending", label: "Pending" },
   ];
 
   let stylesInjected = false;
@@ -1688,7 +1690,7 @@
       ["Email", text(student?.email) || "—"],
       ["Contact No.", text(student?.contact_no) || "—"],
       ["External Partner", text(student?.external_partner_assigned) || "—"],
-      ["Nature of Business", text(student?.nature_of_business) || "—"],
+      ["Specialization", text(student?.nature_of_business) || "—"],
       ["Archive Link", text(student?.connected_archive_status) || "—"],
     ];
   }
@@ -2399,7 +2401,7 @@
       state.attendanceSummary = state.studentData.attendanceSummary;
       state.weeklyReports = state.studentData.weeklyReports;
       state.loaded = true;
-      state.modal.detailSection.innerHTML = buildStudentFilterMarkup(state);
+      state.modal.detailSection.innerHTML = "";
       bindCheckboxListeners(state.modal, state, "student");
     }
 
