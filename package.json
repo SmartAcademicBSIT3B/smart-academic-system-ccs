@@ -37,7 +37,7 @@
   },
   "build": {
     "appId": "com.smartacademic.ccs",
-    "productName": "Smart Academic System CCS",
+    "productName": "Smart Academic System CTA HTE",
     "icon": "renderer/core/CTA-appicon.png",
     "directories": {
       "output": "release"
@@ -80,7 +80,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Smart Academic CCS"
+      "shortcutName": "Smart Academic System CTA HTE"
     },
     "publish": [
       {
