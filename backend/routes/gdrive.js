@@ -4,7 +4,27 @@ const gdriveService = require("../services/gdrive");
 
 const router = express.Router();
 
+function resolveConfiguredCallbackUrl() {
+  const configured = String(process.env.GOOGLE_OAUTH_REDIRECT_URI || "").trim();
+  if (!configured) return "";
+
+  try {
+    const parsed = new URL(configured);
+    if (!/^https?:$/i.test(parsed.protocol)) {
+      return "";
+    }
+    return configured;
+  } catch (_error) {
+    return "";
+  }
+}
+
 function resolveCallbackUrl(req) {
+  const configuredCallback = resolveConfiguredCallbackUrl();
+  if (configuredCallback) {
+    return configuredCallback;
+  }
+
   const forwardedProto = String(req.headers["x-forwarded-proto"] || "").trim();
   const protocol = forwardedProto || req.protocol || "http";
   const host = String(
