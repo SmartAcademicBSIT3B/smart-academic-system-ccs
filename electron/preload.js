@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       preferredRole,
     ),
   getProfile: (userId) => ipcRenderer.invoke("getProfile", userId),
+  getStoredAuthSessionContext: () =>
+    ipcRenderer.invoke("getStoredAuthSessionContext"),
   getSections: (departmentCode) =>
     ipcRenderer.invoke("getSections", departmentCode),
   getDepartments: () => ipcRenderer.invoke("getDepartments"),

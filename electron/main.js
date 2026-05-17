@@ -465,6 +465,49 @@ function normalizeAuthDepartmentCode(value) {
     .replace(/^SECRET:/, "");
 }
 
+function decodeJwtPayload(token) {
+  try {
+    const rawToken = String(token || "").trim();
+    if (!rawToken) return null;
+
+    const parts = rawToken.split(".");
+    if (parts.length < 2) return null;
+
+    const payload = parts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+    return JSON.parse(Buffer.from(payload, "base64").toString("utf8"));
+  } catch (_error) {
+    return null;
+  }
+}
+
+function buildStoredSessionUser(session = {}) {
+  const payload = decodeJwtPayload(session.token);
+  const userId = String(payload?.user_id || payload?.id || "").trim();
+  const email = String(payload?.email || "").trim();
+  const role = String(payload?.role || "")
+    .trim()
+    .toLowerCase();
+  const departmentCode = normalizeAuthDepartmentCode(
+    session.departmentCode || payload?.department_code || payload?.department,
+  );
+
+  if (!userId && !email && !role) {
+    return null;
+  }
+
+  return {
+    id: payload?.id || null,
+    user_id: userId,
+    email,
+    role,
+    department_code: departmentCode,
+    is_super_admin: Boolean(payload?.is_super_admin),
+  };
+}
+
 async function loadAuthSession() {
   try {
     const raw = await fs.readFile(getAuthSessionPath(), "utf8");
@@ -472,16 +515,18 @@ async function loadAuthSession() {
     return {
       token: String(parsed?.token || "").trim(),
       departmentCode: normalizeAuthDepartmentCode(parsed?.departmentCode),
+      user: parsed?.user || buildStoredSessionUser(parsed),
     };
   } catch (_error) {
-    return { token: "", departmentCode: "" };
+    return { token: "", departmentCode: "", user: null };
   }
 }
 
-async function saveAuthSession({ token, departmentCode }) {
+async function saveAuthSession({ token, departmentCode, user }) {
   const payload = {
     token: String(token || "").trim(),
     departmentCode: normalizeAuthDepartmentCode(departmentCode),
+    user: user && typeof user === "object" ? user : null,
   };
 
   await fs.mkdir(path.dirname(getAuthSessionPath()), { recursive: true });
@@ -496,6 +541,16 @@ async function clearAuthSession() {
   try {
     await fs.unlink(getAuthSessionPath());
   } catch (_error) {}
+}
+
+async function getStoredAuthSessionContext() {
+  const session = await loadAuthSession();
+  return {
+    success: true,
+    hasSession: Boolean(session.token),
+    departmentCode: session.departmentCode || "",
+    user: session.user || null,
+  };
 }
 
 function normalizeDepartmentSetting(department) {

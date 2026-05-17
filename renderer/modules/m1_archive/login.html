@@ -193,9 +193,27 @@
       async function maybeResumeSession() {
         try {
           const rawUser = localStorage.getItem("user");
-          if (!rawUser) return false;
+          let parsedUser = null;
 
-          const parsedUser = JSON.parse(rawUser);
+          if (!rawUser) {
+            if (
+              window.electronAPI &&
+              typeof window.electronAPI.getStoredAuthSessionContext ===
+                "function"
+            ) {
+              const sessionResult =
+                await window.electronAPI.getStoredAuthSessionContext();
+              const sessionUser = sessionResult?.user;
+              if (sessionResult?.success && sessionUser) {
+                localStorage.setItem("user", JSON.stringify(sessionUser));
+                parsedUser = sessionUser;
+              }
+            }
+
+            if (!parsedUser) return false;
+          } else {
+            parsedUser = JSON.parse(rawUser);
+          }
           const userId = String(
             parsedUser?.user_id || parsedUser?.id || "",
           ).trim();
