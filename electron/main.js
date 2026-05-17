@@ -21,7 +21,9 @@ try {
   ({ autoUpdater } = require("electron-updater"));
 } catch (error) {
   autoUpdater = null;
-  autoUpdaterLoadError = String(error?.message || "Failed to load electron-updater module.");
+  autoUpdaterLoadError = String(
+    error?.message || "Failed to load electron-updater module.",
+  );
   console.error("[auto-updater] electron-updater load failed:", error);
 }
 
@@ -1459,7 +1461,9 @@ function setupAutoUpdater() {
 
   const availability = resolveAutoUpdaterAvailability();
   if (!availability.available) {
-    console.log(`[auto-updater] Skipped initialization: ${availability.reason}`);
+    console.log(
+      `[auto-updater] Skipped initialization: ${availability.reason}`,
+    );
     return;
   }
 
