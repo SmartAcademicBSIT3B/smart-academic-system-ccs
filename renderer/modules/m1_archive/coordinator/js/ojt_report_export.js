@@ -25,6 +25,13 @@
     { value: "OJT Complete", label: "OJT Complete" },
   ];
 
+  const SECTION_ORIENTATION_OPTIONS = [
+    { value: "portrait", label: "Portrait" },
+    { value: "landscape", label: "Horizontal" },
+  ];
+
+  const SECTION_REPORT_TITLE_KEY = "sas.ojt.section.report.title";
+
   const REQUIREMENT_OUTCOME_OPTIONS = [
     { value: "approved", label: "Approved" },
     { value: "rejected", label: "Rejected" },
@@ -146,6 +153,77 @@
         color: var(--secondary-text);
         line-height: 1.45;
       }
+      .ojt-report-title-editor {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        background: rgba(157, 198, 255, 0.04);
+      }
+      .ojt-report-title-editor-head {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .ojt-report-title-editor-label {
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #fff;
+      }
+      .ojt-report-title-editor-note {
+        font-size: 11px;
+        color: var(--secondary-text);
+        line-height: 1.45;
+      }
+      .ojt-report-title-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .ojt-report-title-input {
+        flex: 1;
+        min-width: 0;
+        height: 38px;
+        border-radius: 10px;
+        border: 1px solid rgba(157, 198, 255, 0.18);
+        background: rgba(10, 14, 20, 0.55);
+        color: #fff;
+        padding: 0 12px;
+        font-size: 12px;
+        outline: none;
+      }
+      .ojt-report-title-input:focus {
+        border-color: rgba(157, 198, 255, 0.48);
+        box-shadow: 0 0 0 3px rgba(157, 198, 255, 0.08);
+      }
+      .ojt-report-title-save {
+        border: 1px solid rgba(157, 198, 255, 0.2);
+        background: rgba(157, 198, 255, 0.12);
+        color: #fff;
+        border-radius: 10px;
+        height: 38px;
+        padding: 0 14px;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .ojt-report-title-save:hover {
+        border-color: rgba(157, 198, 255, 0.42);
+        background: rgba(157, 198, 255, 0.18);
+      }
+      .ojt-report-title-feedback {
+        min-height: 16px;
+        font-size: 11px;
+        color: #9fd3a9;
+      }
+      .ojt-report-title-feedback.error {
+        color: #ff9f9f;
+      }
       .ojt-report-checklist {
         display: flex;
         flex-direction: column;
@@ -165,6 +243,50 @@
       .ojt-report-check input {
         margin-top: 2px;
         accent-color: #9dc6ff;
+      }
+      .ojt-report-orientation-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .ojt-report-orientation-options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .ojt-report-radio-btn {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(157, 198, 255, 0.16);
+        background: rgba(157, 198, 255, 0.06);
+        cursor: pointer;
+      }
+      .ojt-report-radio-btn:hover {
+        border-color: rgba(157, 198, 255, 0.34);
+        background: rgba(157, 198, 255, 0.1);
+      }
+      .ojt-report-radio-btn input {
+        margin-top: 2px;
+        accent-color: #9dc6ff;
+      }
+      .ojt-report-radio-btn strong {
+        display: block;
+        font-size: 12px;
+        color: #fff;
+      }
+      .ojt-report-radio-btn small {
+        display: block;
+        margin-top: 2px;
+        font-size: 11px;
+        color: var(--secondary-text);
+        line-height: 1.35;
       }
       .ojt-report-check small {
         display: block;
@@ -338,6 +460,9 @@
         .ojt-report-mainbar {
           flex-direction: column;
           align-items: stretch;
+        }
+        .ojt-report-orientation-options {
+          grid-template-columns: 1fr;
         }
       }
     `;
@@ -542,6 +667,23 @@
             <div class="ojt-report-title" data-role="report-title">${escapeHtml(config.title)}</div>
             <div class="ojt-report-subtitle" data-role="report-subtitle">${escapeHtml(config.subtitle)}</div>
           </div>
+          ${
+            config.mode === "section"
+              ? `
+          <div class="ojt-report-title-editor">
+            <div class="ojt-report-title-editor-head">
+              <div class="ojt-report-title-editor-label">Report Title</div>
+              <div class="ojt-report-title-editor-note">Change the section report title used in the preview and PDF export.</div>
+            </div>
+            <div class="ojt-report-title-row">
+              <input type="text" class="ojt-report-title-input" data-role="section-title-input" maxlength="80" placeholder="Enter report title" />
+              <button type="button" class="ojt-report-title-save" data-action="save-section-title">Save</button>
+            </div>
+            <div class="ojt-report-title-feedback" data-role="section-title-feedback"></div>
+          </div>
+          `
+              : ""
+          }
           <div class="ojt-report-section">
             <div class="ojt-report-section-head">
               <div>
@@ -589,6 +731,10 @@
       subtitle: overlay.querySelector("[data-role='report-subtitle']"),
       summary: overlay.querySelector("[data-role='report-summary']"),
       content: overlay.querySelector("[data-role='report-content']"),
+      titleInput: overlay.querySelector("[data-role='section-title-input']"),
+      titleFeedback: overlay.querySelector(
+        "[data-role='section-title-feedback']",
+      ),
       iframe: overlay.querySelector("[data-role='report-iframe']"),
       loading: overlay.querySelector("[data-role='report-loading']"),
       empty: overlay.querySelector("[data-role='report-empty']"),
@@ -596,6 +742,7 @@
       closeBtn: overlay.querySelector("[data-action='close-report']"),
       downloadBtn: overlay.querySelector("[data-action='download-report']"),
       printBtn: overlay.querySelector("[data-action='print-report']"),
+      saveTitleBtn: overlay.querySelector("[data-action='save-section-title']"),
     };
   }
 
@@ -627,6 +774,47 @@
         </span>
       </label>
     `;
+  }
+
+  function createRadio({
+    id,
+    name,
+    label,
+    checked,
+    note,
+    value,
+    className = "",
+  }) {
+    return `
+      <label class="ojt-report-check ${className}">
+        <input type="radio" id="${escapeHtml(id)}" name="${escapeHtml(name)}" value="${escapeHtml(value ?? id)}" ${checked ? "checked" : ""} />
+        <span>
+          <strong>${escapeHtml(label)}</strong>
+          ${note ? `<small>${escapeHtml(note)}</small>` : ""}
+        </span>
+      </label>
+    `;
+  }
+
+  function normalizeSectionReportTitle(value) {
+    const title = text(value).replace(/\s+/g, " ");
+    return title || REPORT_CONFIG.section.title;
+  }
+
+  function getSavedSectionReportTitle() {
+    try {
+      return normalizeSectionReportTitle(
+        localStorage.getItem(SECTION_REPORT_TITLE_KEY),
+      );
+    } catch (_error) {
+      return REPORT_CONFIG.section.title;
+    }
+  }
+
+  function saveSectionReportTitle(title) {
+    const normalized = normalizeSectionReportTitle(title);
+    localStorage.setItem(SECTION_REPORT_TITLE_KEY, normalized);
+    return normalized;
   }
 
   function buildSectionFilterMarkup(state) {
@@ -676,6 +864,30 @@
           <div class="ojt-report-section-subtitle">Include dashboard-style chart summaries in the PDF.</div>
         </div>
       </div>
+      <div class="ojt-report-orientation-group">
+        <div class="ojt-report-section-head">
+          <div>
+            <div class="ojt-report-section-title">Page Orientation</div>
+            <div class="ojt-report-section-subtitle">Choose how the PDF preview and printed file should be laid out.</div>
+          </div>
+        </div>
+        <div class="ojt-report-orientation-options">
+          ${SECTION_ORIENTATION_OPTIONS.map((option, index) =>
+            createRadio({
+              id: `section-orientation-${state.id}-${option.value}`,
+              name: `section-orientation-${state.id}`,
+              label: option.label,
+              checked: index === 0,
+              note:
+                option.value === "portrait"
+                  ? "Best for fewer columns and compact summaries."
+                  : "Best for wider tables and charts.",
+              value: option.value,
+              className: "ojt-report-radio-btn",
+            }),
+          ).join("")}
+        </div>
+      </div>
       <div class="ojt-report-checklist">
         ${createCheckbox({
           id: `section-charts-${state.id}`,
@@ -683,6 +895,34 @@
           checked: false,
           note: "Adds deployment status, section population, and specialization charts.",
           value: "charts",
+        })}
+        ${createCheckbox({
+          id: `section-partner-${state.id}`,
+          label: "Show partner column",
+          checked: true,
+          note: "Includes the external partner column in the student table.",
+          value: "partner",
+        })}
+        ${createCheckbox({
+          id: `section-specialization-${state.id}`,
+          label: "Show specialization column",
+          checked: true,
+          note: "Includes the specialization / nature of business column.",
+          value: "specialization",
+        })}
+        ${createCheckbox({
+          id: `section-email-${state.id}`,
+          label: "Show student email",
+          checked: false,
+          note: "Adds an email column in the student table.",
+          value: "email",
+        })}
+        ${createCheckbox({
+          id: `section-phone-${state.id}`,
+          label: "Show student phone",
+          checked: false,
+          note: "Adds a contact number column in the student table.",
+          value: "phone",
         })}
       </div>
     `;
@@ -790,7 +1030,33 @@
     const includeCharts = Boolean(
       modal.overlay.querySelector(`#section-charts-${state.id}`)?.checked,
     );
-    return { selectedSections, selectedStatuses, includeCharts };
+    const orientation =
+      modal.overlay.querySelector(
+        `input[name='section-orientation-${state.id}']:checked`,
+      )?.value || "portrait";
+    const includeEmail = Boolean(
+      modal.overlay.querySelector(`#section-email-${state.id}`)?.checked,
+    );
+    const includePhone = Boolean(
+      modal.overlay.querySelector(`#section-phone-${state.id}`)?.checked,
+    );
+    const includePartner = Boolean(
+      modal.overlay.querySelector(`#section-partner-${state.id}`)?.checked,
+    );
+    const includeSpecialization = Boolean(
+      modal.overlay.querySelector(`#section-specialization-${state.id}`)
+        ?.checked,
+    );
+    return {
+      selectedSections,
+      selectedStatuses,
+      includeCharts,
+      orientation,
+      includeEmail,
+      includePhone,
+      includePartner,
+      includeSpecialization,
+    };
   }
 
   function collectStudentFilters(modal, state) {
@@ -838,21 +1104,74 @@
   }
 
   function renderSectionPdfRows(students, filters) {
-    return students
+    const head = ["Student ID", "Name", "Section", "Status"];
+    if (filters.includeEmail) head.splice(2, 0, "Email");
+    if (filters.includePhone)
+      head.splice(2 + (filters.includeEmail ? 1 : 0), 0, "Phone");
+    if (filters.includePartner) head.push("Partner");
+    if (filters.includeSpecialization) head.push("Specialization");
+
+    const body = students
       .filter((student) =>
         filters.selectedSections.includes(text(student.section)),
       )
       .filter((student) =>
         filters.selectedStatuses.includes(normalizeStatus(student.status)),
       )
-      .map((student) => [
-        text(student.student_id) || "—",
-        text(student.display_name || student.name) || "—",
-        text(student.section) || "—",
-        normalizeStatus(student.status),
-        text(student.external_partner_assigned) || "—",
-        text(student.nature_of_business) || "—",
-      ]);
+      .map((student) => {
+        const row = [
+          text(student.student_id) || "—",
+          text(student.display_name || student.name) || "—",
+        ];
+        if (filters.includeEmail) {
+          row.push(text(student.email) || "—");
+        }
+        if (filters.includePhone) {
+          row.push(
+            text(
+              student.contact_no || student.phone || student.contact_number,
+            ) || "—",
+          );
+        }
+        row.push(text(student.section) || "—", normalizeStatus(student.status));
+        if (filters.includePartner) {
+          row.push(text(student.external_partner_assigned) || "—");
+        }
+        if (filters.includeSpecialization) {
+          row.push(text(student.nature_of_business) || "—");
+        }
+        return row;
+      });
+
+    return { head, body };
+  }
+
+  function buildSectionColumnStyles(headers, pageWidth, marginX) {
+    const weights = {
+      "Student ID": 0.9,
+      Name: 1.4,
+      Email: 1.8,
+      Phone: 1.2,
+      Section: 1.1,
+      Status: 1.1,
+      Partner: 1.5,
+      Specialization: 1.7,
+    };
+    const availableWidth = Math.max(220, pageWidth - marginX * 2);
+    const totalWeight = headers.reduce(
+      (sum, header) => sum + (weights[header] || 1),
+      0,
+    );
+
+    return headers.reduce((styles, header, index) => {
+      const weight = weights[header] || 1;
+      const width = Math.max(
+        42,
+        Math.floor((availableWidth * weight) / totalWeight),
+      );
+      styles[index] = { cellWidth: width };
+      return styles;
+    }, {});
   }
 
   function toSortedEntries(entriesMap) {
@@ -1172,12 +1491,20 @@
       .filter((student) =>
         filters.selectedStatuses.includes(normalizeStatus(student.status)),
       );
-    const rows = renderSectionPdfRows(filteredStudents, {
+    const tableData = renderSectionPdfRows(filteredStudents, {
       selectedSections: filters.selectedSections,
       selectedStatuses: filters.selectedStatuses,
+      includeEmail: filters.includeEmail,
+      includePhone: filters.includePhone,
+      includePartner: filters.includePartner,
+      includeSpecialization: filters.includeSpecialization,
     });
+    const rows = tableData.body;
+    const orientation =
+      filters.orientation === "landscape" ? "landscape" : "portrait";
+    const reportTitle = normalizeSectionReportTitle(state.reportTitle);
     const doc = new jsPDF({
-      orientation: "portrait",
+      orientation,
       unit: "pt",
       format: "a4",
       compress: true,
@@ -1207,7 +1534,7 @@
     doc.setFont("helvetica", "bold");
     doc.setFontSize(17);
     doc.setTextColor(24, 28, 34);
-    doc.text("OJT Section Report", pageWidth / 2, cursorY, { align: "center" });
+    doc.text(reportTitle, pageWidth / 2, cursorY, { align: "center" });
     cursorY += 18;
 
     doc.setFont("helvetica", "normal");
@@ -1228,6 +1555,17 @@
     const summaryLines = [
       `Sections: ${summarySections}`,
       `Statuses: ${summaryStatuses}`,
+      `Orientation: ${orientation === "landscape" ? "Horizontal" : "Portrait"}`,
+      `Contact fields: ${
+        [
+          filters.includeEmail ? "Email" : null,
+          filters.includePhone ? "Phone" : null,
+          filters.includePartner ? "Partner" : null,
+          filters.includeSpecialization ? "Specialization" : null,
+        ]
+          .filter(Boolean)
+          .join(", ") || "None"
+      }`,
       `Matching students: ${rows.length}`,
     ];
     const wrappedSummary = doc.splitTextToSize(
@@ -1297,22 +1635,18 @@
 
     doc.autoTable({
       startY: cursorY,
-      head: [
-        [
-          "Student ID",
-          "Name",
-          "Section",
-          "Status",
-          "Partner",
-          "Specialization",
-        ],
-      ],
+      head: [tableData.head],
       body: rows,
       margin: { left: marginX, right: marginX, bottom: 28 },
       theme: "grid",
       styles: {
         font: "helvetica",
-        fontSize: 7.8,
+        fontSize:
+          orientation === "landscape"
+            ? 7.4
+            : tableData.head.length > 5
+              ? 6.9
+              : 7.8,
         cellPadding: 4.5,
         overflow: "linebreak",
         lineColor: [210, 216, 224],
@@ -1326,14 +1660,11 @@
         fontStyle: "bold",
       },
       alternateRowStyles: { fillColor: [246, 248, 251] },
-      columnStyles: {
-        0: { cellWidth: 66 },
-        1: { cellWidth: 98 },
-        2: { cellWidth: 64 },
-        3: { cellWidth: 72 },
-        4: { cellWidth: 100 },
-        5: { cellWidth: 105 },
-      },
+      columnStyles: buildSectionColumnStyles(
+        tableData.head,
+        pageWidth,
+        marginX,
+      ),
       didDrawPage() {
         const pageNumber = doc.getNumberOfPages();
         doc.setFontSize(9);
@@ -1868,45 +2199,109 @@
 
   function bindCheckboxListeners(modal, state, mode) {
     const scope = modal.overlay;
-    scope.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
-      checkbox.addEventListener("change", () => {
-        if (mode === "section") {
-          const selectedSections = getSelectedValues(
-            scope,
-            `[id^='section-opt-${state.id}-']`,
-          );
-          const selectedStatuses = getSelectedValues(
-            scope,
-            `[id^='status-opt-${state.id}-']`,
-          ).map(normalizeStatus);
-          const includeCharts = Boolean(
-            scope.querySelector(`#section-charts-${state.id}`)?.checked,
-          );
-          setSummary(
-            modal,
-            `${selectedSections.length} section(s) selected and ${selectedStatuses.length} status bucket(s) active.`,
-            [
-              `${selectedSections.length} sections`,
-              `${selectedStatuses.length} statuses`,
-              includeCharts ? "Charts on" : "Charts off",
-            ],
-          );
-        } else {
-          const filters = collectStudentFilters(modal, state);
-          const blocks = [
-            filters.includeProfile ? "Profile" : null,
-            filters.includeAttendance ? "Attendance" : null,
-            filters.includeWeekly ? "Weekly" : null,
-            filters.includePre ? "Pre" : null,
-            filters.includePost ? "Post" : null,
-          ].filter(Boolean);
-          setSummary(modal, `${blocks.length} report block(s) selected.`, [
-            ...blocks,
-            `${filters.outcomes.length} outcome(s)`,
-          ]);
-        }
-        scheduleRefresh(mode, state);
+    scope
+      .querySelectorAll("input[type='checkbox'], input[type='radio']")
+      .forEach((input) => {
+        input.addEventListener("change", () => {
+          if (mode === "section") {
+            const selectedSections = getSelectedValues(
+              scope,
+              `[id^='section-opt-${state.id}-']`,
+            );
+            const selectedStatuses = getSelectedValues(
+              scope,
+              `[id^='status-opt-${state.id}-']`,
+            ).map(normalizeStatus);
+            const includeCharts = Boolean(
+              scope.querySelector(`#section-charts-${state.id}`)?.checked,
+            );
+            const includeEmail = Boolean(
+              scope.querySelector(`#section-email-${state.id}`)?.checked,
+            );
+            const includePhone = Boolean(
+              scope.querySelector(`#section-phone-${state.id}`)?.checked,
+            );
+            const includePartner = Boolean(
+              scope.querySelector(`#section-partner-${state.id}`)?.checked,
+            );
+            const includeSpecialization = Boolean(
+              scope.querySelector(`#section-specialization-${state.id}`)
+                ?.checked,
+            );
+            const orientation =
+              scope.querySelector(
+                `input[name='section-orientation-${state.id}']:checked`,
+              )?.value || "portrait";
+            const contactBadges = [
+              includeEmail ? "Email on" : null,
+              includePhone ? "Phone on" : null,
+              includePartner ? "Partner on" : null,
+              includeSpecialization ? "Specialization on" : null,
+              orientation === "landscape" ? "Horizontal" : "Portrait",
+            ].filter(Boolean);
+            setSummary(
+              modal,
+              `${selectedSections.length} section(s) selected and ${selectedStatuses.length} status bucket(s) active.`,
+              [
+                `${selectedSections.length} sections`,
+                `${selectedStatuses.length} statuses`,
+                includeCharts ? "Charts on" : "Charts off",
+                ...contactBadges,
+              ],
+            );
+          } else {
+            const filters = collectStudentFilters(modal, state);
+            const blocks = [
+              filters.includeProfile ? "Profile" : null,
+              filters.includeAttendance ? "Attendance" : null,
+              filters.includeWeekly ? "Weekly" : null,
+              filters.includePre ? "Pre" : null,
+              filters.includePost ? "Post" : null,
+            ].filter(Boolean);
+            setSummary(modal, `${blocks.length} report block(s) selected.`, [
+              ...blocks,
+              `${filters.outcomes.length} outcome(s)`,
+            ]);
+          }
+          scheduleRefresh(mode, state);
+        });
       });
+  }
+
+  function bindSectionTitleControls(modal, state) {
+    if (!modal.titleInput || !modal.saveTitleBtn) return;
+
+    const commitTitle = (value) => {
+      const normalized = saveSectionReportTitle(value);
+      state.reportTitle = normalized;
+      if (modal.title) modal.title.textContent = normalized;
+      modal.titleInput.value = normalized;
+      if (modal.titleFeedback) {
+        modal.titleFeedback.textContent = "Report title saved.";
+        modal.titleFeedback.classList.remove("error");
+      }
+      scheduleRefresh("section", state);
+    };
+
+    modal.titleInput.value = normalizeSectionReportTitle(state.reportTitle);
+    modal.saveTitleBtn.addEventListener("click", () => {
+      const value = modal.titleInput.value;
+      if (!text(value)) {
+        if (modal.titleFeedback) {
+          modal.titleFeedback.textContent = "Please enter a report title.";
+          modal.titleFeedback.classList.add("error");
+        }
+        modal.titleInput.focus();
+        return;
+      }
+      commitTitle(value);
+    });
+
+    modal.titleInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        modal.saveTitleBtn.click();
+      }
     });
   }
 
@@ -2036,6 +2431,7 @@
       currentFileName: "",
       renderToken: 0,
       refreshTimer: null,
+      reportTitle: getSavedSectionReportTitle(),
       modal: null,
     };
 
@@ -2048,6 +2444,12 @@
     state.modal.detailSection = state.modal.overlay.querySelector(
       "[data-role='detail-section']",
     );
+    if (state.modal.title) {
+      state.modal.title.textContent = normalizeSectionReportTitle(
+        state.reportTitle,
+      );
+    }
+    bindSectionTitleControls(state.modal, state);
     state.modal.filterSection.innerHTML = buildSectionFilterMarkup(state);
     state.modal.detailSection.innerHTML =
       "<div class='ojt-report-empty-state'>Filter the assigned sections and OJT statuses to generate the PDF preview.</div>";

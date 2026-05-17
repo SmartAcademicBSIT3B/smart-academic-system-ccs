@@ -23,32 +23,62 @@
       <div class="cards">
         <!-- SPLIT CARD (Combined into one box) -->
         <div class="card split-card">
-          <div class="split-item">
+          <div
+            class="split-item card-click-target"
+            role="button"
+            tabindex="0"
+            data-nav-target="ojt_students_list.html?scope=all"
+            aria-label="Open total students list"
+          >
             <h3 id="card-total-students">--</h3>
             <p>Total Students</p>
             <span>HANDLED</span>
           </div>
           <div class="split-divider"></div>
-          <div class="split-item">
+          <div
+            class="split-item card-click-target"
+            role="button"
+            tabindex="0"
+            data-nav-target="ojt_students_list.html?scope=all&metric=undeployed"
+            aria-label="Open undeployed students list"
+          >
             <h3 id="card-undeployed-students">--</h3>
             <p>Undeployed</p>
             <span>STUDENTS</span>
           </div>
         </div>
 
-        <div class="card highlight">
+        <div
+          class="card highlight card-click-target"
+          role="button"
+          tabindex="0"
+          data-nav-target="ojt_students_list.html?scope=all&metric=deployed"
+          aria-label="Open currently deployed students list"
+        >
           <h3 id="card-currently-deployed">--</h3>
           <p>Currently</p>
           <span>DEPLOYED</span>
         </div>
 
-        <div class="card">
+        <div
+          class="card card-click-target"
+          role="button"
+          tabindex="0"
+          data-nav-target="../../adminpage/htmls/external_partners.html"
+          aria-label="Open active partners page"
+        >
           <h3 id="card-active-partners">--</h3>
           <p>Active</p>
           <span>PARTNERS</span>
         </div>
 
-        <div class="card">
+        <div
+          class="card card-click-target"
+          role="button"
+          tabindex="0"
+          data-nav-target="ojt_students_list.html?scope=all&metric=pending_requirements"
+          aria-label="Open students with pending requirements"
+        >
           <h3 id="card-pending-requirements">--</h3>
           <p>Pending</p>
           <span>REQUIREMENTS</span>

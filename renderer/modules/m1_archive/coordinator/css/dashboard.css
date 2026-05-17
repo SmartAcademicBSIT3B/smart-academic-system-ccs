@@ -68,6 +68,25 @@ body {
   background: transparent;
 }
 
+.card-click-target {
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    background 0.18s ease;
+}
+
+.card-click-target:hover {
+  border-color: rgba(157, 198, 255, 0.6);
+  background: rgba(157, 198, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.card-click-target:focus-visible {
+  outline: 2px solid rgba(157, 198, 255, 0.85);
+  outline-offset: 2px;
+}
+
 /* SPLIT CARD STYLES */
 .card.split-card {
   display: flex;
@@ -114,6 +133,11 @@ body {
 .card.highlight {
   background: var(--accent-blue);
   color: var(--panel-bg);
+}
+
+.card.highlight.card-click-target:hover {
+  background: #b4d5ff;
+  border-color: #b4d5ff;
 }
 
 .card.highlight h3 {

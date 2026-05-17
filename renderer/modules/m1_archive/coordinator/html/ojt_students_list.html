@@ -82,9 +82,30 @@
     <script>
       const params = new URLSearchParams(window.location.search);
       const section = params.get("section") || "";
+      const scope = String(params.get("scope") || "")
+        .trim()
+        .toLowerCase();
+      const metric = String(params.get("metric") || "")
+        .trim()
+        .toLowerCase();
+      const unresolvedRequirementStatuses = new Set([
+        "",
+        "pending",
+        "submitted",
+        "rejected",
+      ]);
       let allStudents = [];
 
-      if (section) {
+      if (scope === "all") {
+        const metricLabel = getMetricLabel(metric);
+        document.getElementById("pageTitle").textContent = metricLabel
+          ? "OJT STUDENTS — " + metricLabel
+          : "OJT STUDENTS — ALL ASSIGNED SECTIONS";
+        const backBtn = document.querySelector(".back-btn");
+        if (backBtn) {
+          backBtn.href = "dashboard.html";
+        }
+      } else if (section) {
         document.getElementById("pageTitle").textContent =
           "OJT STUDENTS — " + section;
       }
@@ -103,12 +124,44 @@
         return String(status || "Pending Requirements");
       }
 
+      function normalizeStatus(status) {
+        const normalized = String(status || "")
+          .trim()
+          .toLowerCase();
+        if (!normalized) return "unknown";
+        if (normalized === "ojt complete") return "ojt complete";
+        return normalized;
+      }
+
+      function getMetricLabel(metricValue) {
+        const labels = {
+          deployed: "CURRENTLY DEPLOYED",
+          undeployed: "UNDEPLOYED STUDENTS",
+          pending_requirements: "PENDING REQUIREMENTS",
+        };
+        return (
+          labels[
+            String(metricValue || "")
+              .trim()
+              .toLowerCase()
+          ] || ""
+        );
+      }
+
       function escapeHtml(str) {
         return String(str || "")
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;");
+      }
+
+      function escapeAttr(str) {
+        return String(str || "")
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
       }
 
       function renderCards(students) {
@@ -133,6 +186,7 @@
             <div
               class="student-card"
               data-student-id="${escapeHtml(s.student_id)}"
+              data-section="${escapeAttr(s.section || section || "")}" 
               tabindex="0"
               role="button"
             >
@@ -147,29 +201,150 @@
         container.querySelectorAll(".student-card").forEach(function (card) {
           card.addEventListener("click", function () {
             const studentId = this.dataset.studentId;
+            const studentSection = this.dataset.section || section || "";
             window.location.href =
               "ojt_students_profile.html?student_id=" +
               encodeURIComponent(studentId) +
               "&section=" +
-              encodeURIComponent(section);
+              encodeURIComponent(studentSection);
           });
         });
       }
 
+      async function loadAllAssignedStudents(api) {
+        const sectionResult = await api.getCoordinatorSections();
+        if (!sectionResult?.success) {
+          throw new Error(
+            sectionResult?.message || "Failed to load assigned sections.",
+          );
+        }
+
+        const sections = Array.isArray(sectionResult.sections)
+          ? sectionResult.sections
+          : [];
+        if (!sections.length) {
+          return [];
+        }
+
+        const perSection = await Promise.all(
+          sections.map(async (item) => {
+            const sectionName = String(item.section_name || "").trim();
+            if (!sectionName) return [];
+
+            const result = await api.getCoordinatorSectionStudents(sectionName);
+            if (!result?.success) {
+              throw new Error(
+                result?.message ||
+                  `Failed to load students for ${sectionName}.`,
+              );
+            }
+
+            const students = Array.isArray(result.students)
+              ? result.students
+              : [];
+            return students.map((student) => ({
+              ...student,
+              section: String(student.section || "").trim() || sectionName,
+            }));
+          }),
+        );
+
+        return perSection.flat();
+      }
+
+      async function hasPendingPreRequirements(api, studentId) {
+        const id = String(studentId || "").trim();
+        if (!id) return false;
+
+        try {
+          const result = await api.getStudentRequirements({
+            studentId: id,
+            type: "pre",
+          });
+          if (!result?.success) return false;
+
+          const requirements = Array.isArray(result.requirements)
+            ? result.requirements
+            : [];
+          return requirements.some((requirement) => {
+            const template = requirement?.template || {};
+            const submission = requirement?.submission || null;
+            const isRequired =
+              Number(template.is_required) === 1 ||
+              template.is_required === true;
+            if (!isRequired) return false;
+
+            const status = String(submission?.status || "")
+              .trim()
+              .toLowerCase();
+            return unresolvedRequirementStatuses.has(status);
+          });
+        } catch (_error) {
+          return false;
+        }
+      }
+
+      async function applyMetricFilter(api, students, metricValue) {
+        const metricKey = String(metricValue || "")
+          .trim()
+          .toLowerCase();
+        if (!metricKey) return students;
+
+        if (metricKey === "deployed") {
+          return students.filter(
+            (student) => normalizeStatus(student.status) === "deployed",
+          );
+        }
+
+        if (metricKey === "undeployed") {
+          return students.filter((student) => {
+            const normalized = normalizeStatus(student.status);
+            return normalized !== "deployed" && normalized !== "ojt complete";
+          });
+        }
+
+        if (metricKey === "pending_requirements") {
+          const flags = await Promise.all(
+            students.map(async (student) => {
+              const studentId = String(
+                student.student_id || student.studentId || "",
+              ).trim();
+              const hasPending = await hasPendingPreRequirements(
+                api,
+                studentId,
+              );
+              return hasPending;
+            }),
+          );
+
+          return students.filter((_, index) => flags[index]);
+        }
+
+        return students;
+      }
+
       async function loadStudents() {
         const container = document.getElementById("cardsContainer");
-        if (!section) {
+        const api = getApi();
+
+        if (!section && scope !== "all") {
           container.innerHTML =
             '<div class="empty-state">No section specified.</div>';
           return;
         }
 
         try {
-          const result = await getApi().getCoordinatorSectionStudents(section);
-          if (!result?.success)
-            throw new Error(result?.message || "Failed to load students.");
+          if (scope === "all") {
+            const loadedStudents = await loadAllAssignedStudents(api);
+            allStudents = await applyMetricFilter(api, loadedStudents, metric);
+          } else {
+            const result = await api.getCoordinatorSectionStudents(section);
+            if (!result?.success)
+              throw new Error(result?.message || "Failed to load students.");
 
-          allStudents = result.students || [];
+            allStudents = Array.isArray(result.students) ? result.students : [];
+          }
+
           renderCards(allStudents);
         } catch (err) {
           container.innerHTML =

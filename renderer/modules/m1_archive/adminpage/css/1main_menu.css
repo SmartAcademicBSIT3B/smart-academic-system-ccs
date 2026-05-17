@@ -655,7 +655,31 @@ body {
   cursor: pointer;
 }
 
+.profile-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.profile-modal-content::-webkit-scrollbar-track {
+  background: var(--panel-bg);
+  border-radius: 10px;
+}
+
+.profile-modal-content::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #59616c;
+}
+
 @media (max-width: 720px) {
+  .profile-modal-content {
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+
   .setting-grid.two-column {
     grid-template-columns: 1fr;
   }
@@ -680,6 +704,19 @@ body {
 
   .profile-modal-content h2 {
     margin-bottom: 14px;
+  }
+}
+
+@media (max-height: 820px) {
+  .profile-modal {
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .profile-modal-content {
+    width: min(680px, 100%);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
   }
 }
 

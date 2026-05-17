@@ -13,11 +13,13 @@
     "submitted",
     "rejected",
   ]);
+  let cardNavigationBound = false;
 
   document.addEventListener("DOMContentLoaded", loadDashboard);
 
   async function loadDashboard() {
     const api = getApi();
+    attachCardNavigation();
 
     setDashboardMessage("Loading dashboard data...");
     setCardValue("card-total-students", "--");
@@ -308,6 +310,28 @@
       entries: metrics.charts.deploymentStatusEntries,
       colors: ["#6BD39A", "#9DC6FF", "#E98F8F", "#F2B366", "#7C8BA1"],
     });
+  }
+
+  function attachCardNavigation() {
+    if (cardNavigationBound) return;
+
+    document.querySelectorAll(".card-click-target").forEach((target) => {
+      const destination = String(target.dataset.navTarget || "").trim();
+      if (!destination) return;
+
+      const go = () => {
+        window.location.href = destination;
+      };
+
+      target.addEventListener("click", go);
+      target.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        go();
+      });
+    });
+
+    cardNavigationBound = true;
   }
 
   function renderEmptyDashboard(message) {

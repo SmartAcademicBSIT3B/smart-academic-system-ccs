@@ -100,8 +100,18 @@
 }
 
 .tooltip-add-partner .tooltip-text {
-  bottom: calc(100% + 10px);
+  top: auto;
+  bottom: calc(100% + 14px);
+  left: auto;
+  right: 0;
+  transform: none;
   z-index: 10;
+}
+
+.tooltip-add-partner .tooltip-text::after {
+  left: auto;
+  right: 14px;
+  transform: none;
 }
 
 .external-company-profile-meta {
