@@ -291,7 +291,7 @@ async function startBundledBackendProcess(localBaseUrl, backendPort) {
     };
   }
 
-  const ready = await waitForBackendHealth(localBaseUrl, 20000);
+  const ready = await waitForBackendHealth(localBaseUrl, 60000);
   if (!ready.success) {
     stopBundledBackendProcess();
     return ready;
@@ -350,6 +350,8 @@ async function initializeBackendRuntime(apiClient) {
       localStartUrl = `http://127.0.0.1:${runtimeLocalBackendPort}`;
     }
 
+    // Use 60s timeout for bundled backend startup (first launch may take time for
+    // Node.js cold start, DB connections, dependency loading on packaged apps)
     localStart = await startBundledBackendProcess(
       localStartUrl,
       runtimeLocalBackendPort,
