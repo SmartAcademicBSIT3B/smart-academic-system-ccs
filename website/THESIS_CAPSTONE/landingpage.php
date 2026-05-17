@@ -115,10 +115,10 @@
 <div class="modal-backdrop" id="aboutModalBackdrop" hidden aria-hidden="true">
     <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
         <button type="button" class="modal-close" id="aboutModalClose" aria-label="Close about modal">&times;</button>
-        <h2 id="aboutModalTitle">About TCA&HTE</h2>
-        <p class="modal-copy">The Thesis/Capstone Archiving & Host Training Establishment (TCA&HTE) Management is a web-based system to provide efficient solution to manage and monitor the two main requirements of students: Thesis/Capstone Documentation & On-the-Job (OJT) Training.</p>
+        <h2 id="aboutModalTitle">About TCA HTE</h2>
+        <p class="modal-copy">The Thesis/Capstone Archiving & Host Training Establishment (TCA HTE) Management is a web-based system to provide efficient solution to manage and monitor the two main requirements of students: Thesis/Capstone Documentation & On-the-Job (OJT) Training.</p>
         <h3>Developers</h3>
-        <p class="modal-subtitle">College of Computer Studies (CCS) BSIT 3B</p>
+        <p class="modal-subtitle">College of Computer Studies (CCS) BSIT 3B | 2025</p>
         <ul class="modal-list">
             <li>Valiente, Aaron Mark D. — Fullstack Developer</li>
             <li>Salayo, Heaven Grace D. — Frontend Developer & UI Designer</li>
