@@ -15,6 +15,17 @@ const { pipeline } = require("node:stream/promises");
 const { fileURLToPath } = require("node:url");
 const dotenv = require("dotenv");
 
+let autoUpdater = null;
+try {
+  ({ autoUpdater } = require("electron-updater"));
+} catch (_error) {
+  autoUpdater = null;
+}
+
+const AUTO_UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+let autoUpdateCheckInterval = null;
+let autoUpdaterInitialized = false;
+
 function getWritableUserDataPath() {
   try {
     return app.getPath("userData");
@@ -1360,6 +1371,99 @@ function createMainWindow() {
   );
 }
 
+function getActiveWindowForDialogs() {
+  const focused = BrowserWindow.getFocusedWindow();
+  if (focused && !focused.isDestroyed()) {
+    return focused;
+  }
+
+  const allWindows = BrowserWindow.getAllWindows();
+  return allWindows.length > 0 ? allWindows[0] : null;
+}
+
+async function runAutoUpdateCheck() {
+  if (!autoUpdater || !app.isPackaged) {
+    return { success: false, message: "Auto-updater is unavailable." };
+  }
+
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    const version = String(result?.updateInfo?.version || "").trim();
+
+    return {
+      success: true,
+      hasUpdate: Boolean(version && version !== app.getVersion()),
+      version,
+    };
+  } catch (error) {
+    console.error("Auto-update check failed:", error);
+    return {
+      success: false,
+      message: error?.message || "Failed to check for updates.",
+    };
+  }
+}
+
+function setupAutoUpdater() {
+  if (autoUpdaterInitialized || !app.isPackaged || !autoUpdater) {
+    return;
+  }
+
+  const updaterEnabled =
+    String(process.env.SAS_DISABLE_AUTO_UPDATE || "") !== "1";
+  if (!updaterEnabled) {
+    return;
+  }
+
+  autoUpdaterInitialized = true;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("checking-for-update", () => {
+    console.log("[auto-updater] Checking for updates...");
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    console.log("[auto-updater] Update available:", info?.version || "unknown");
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    console.log("[auto-updater] No updates available.");
+  });
+
+  autoUpdater.on("error", (error) => {
+    console.error("[auto-updater] Error:", error);
+  });
+
+  autoUpdater.on("update-downloaded", async (info) => {
+    const parentWindow = getActiveWindowForDialogs();
+    const nextVersion = String(info?.version || "").trim() || "a newer version";
+
+    const dialogResult = await dialog.showMessageBox(parentWindow, {
+      type: "info",
+      title: "Update Ready",
+      message: `Version ${nextVersion} has been downloaded.`,
+      detail: "Restart now to install the update?",
+      buttons: ["Restart and Install", "Later"],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true,
+    });
+
+    if (dialogResult.response === 0) {
+      setImmediate(() => {
+        autoUpdater.quitAndInstall(false, true);
+      });
+    }
+  });
+
+  runAutoUpdateCheck();
+
+  autoUpdateCheckInterval = setInterval(() => {
+    runAutoUpdateCheck();
+  }, AUTO_UPDATE_CHECK_INTERVAL_MS);
+}
+
 app.whenReady().then(async () => {
   await initializeBackendRuntime(api);
 
@@ -1384,12 +1488,17 @@ app.whenReady().then(async () => {
   }
 
   createMainWindow();
+  setupAutoUpdater();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createMainWindow();
     }
   });
+});
+
+ipcMain.handle("checkForAppUpdates", async () => {
+  return await runAutoUpdateCheck();
 });
 ipcMain.handle(
   "login",
@@ -3582,5 +3691,9 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  if (autoUpdateCheckInterval) {
+    clearInterval(autoUpdateCheckInterval);
+    autoUpdateCheckInterval = null;
+  }
   stopBundledBackendProcess();
 });
