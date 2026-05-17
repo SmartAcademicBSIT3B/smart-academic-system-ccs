@@ -219,6 +219,11 @@ body.page-transition.page-exit {
   width: 100%;
 }
 
+.nav a.about-trigger,
+.footer a.about-trigger {
+  cursor: pointer;
+}
+
 /* HERO TEXT */
 .hero-content {
   position: absolute;
@@ -425,6 +430,130 @@ button:active::before {
 
 .footer a:hover {
   opacity: 0.8;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  overflow-y: auto;
+  background: rgba(2, 13, 3, 0.88);
+  backdrop-filter: blur(10px);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.modal-backdrop[hidden] {
+  display: none !important;
+}
+
+.modal-backdrop.visible {
+  display: flex;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.modal-panel {
+  width: min(100%, 680px);
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  background: linear-gradient(180deg, #0b1f08 0%, #14310b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.45);
+  padding: 36px 38px;
+  position: relative;
+}
+
+.modal-backdrop.visible .modal-panel {
+  transform: translateY(20px);
+  opacity: 0;
+  animation: modalIn 0.28s ease forwards;
+}
+
+@keyframes modalIn {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-yellow);
+  color: var(--primary-green);
+  font-size: 22px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+.modal-panel h2 {
+  margin-bottom: 18px;
+  color: #eef9e1;
+  font-size: 28px;
+}
+
+.modal-panel h3 {
+  margin-top: 24px;
+  margin-bottom: 12px;
+  color: #d8e5ae;
+  font-size: 18px;
+}
+
+.modal-subtitle {
+  margin: 0 0 14px 0;
+  font-size: 14px;
+  color: #b5c896;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.modal-copy {
+  line-height: 1.9;
+  font-size: 15px;
+  color: #d5e8b5;
+}
+
+.modal-list {
+  list-style: disc;
+  margin: 0;
+  padding-left: 22px;
+  color: #d5e8b5;
+  line-height: 1.8;
+}
+
+.modal-list li {
+  margin-bottom: 6px;
+}
+
+@media (max-width: 600px) {
+  .modal-panel {
+    padding: 26px;
+    border-radius: 18px;
+  }
+
+  .modal-panel h2 {
+    font-size: 24px;
+  }
+
+  .modal-close {
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+  }
 }
 
 /* ============================================

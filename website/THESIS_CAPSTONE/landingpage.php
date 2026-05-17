@@ -9,7 +9,7 @@
 
 <!-- ICONS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="css/landingpage.css">
+<link rel="stylesheet" href="css/landingpage.css?v=2">
 </head>
 
 <body class="page-transition">
@@ -27,7 +27,7 @@
 
         <div class="nav">
             <a href="login.php" class="page-nav-login">Login</a>
-            <a href="#">About</a>
+            <a href="javascript:void(0)" class="about-trigger">About</a>
         </div>
     </div>
 </header>
@@ -49,7 +49,7 @@
 
         <div class="nav">
             <a href="login.php" class="page-nav-login">Login</a>
-            <a href="#">About</a>
+            <a href="javascript:void(0)" class="about-trigger">About</a>
         </div>
     </div>
 
@@ -108,8 +108,26 @@
 	<img src="./images/CCSLOGO.png" alt="CCS Logo">
 	<p>PAMANTASAN NG LUNGSOD NG PASIG</p>
     <p>Acalde Jose St. Kapasigan, Pasig City &nbsp; +123 4567 90</p>
-    <a href="#">About the Website</a>
+    <a href="javascript:void(0)" class="about-trigger">About the Website</a>
 </footer>
+
+<!-- ABOUT MODAL (hidden until About is clicked) -->
+<div class="modal-backdrop" id="aboutModalBackdrop" hidden aria-hidden="true">
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
+        <button type="button" class="modal-close" id="aboutModalClose" aria-label="Close about modal">&times;</button>
+        <h2 id="aboutModalTitle">About TCA&HTE</h2>
+        <p class="modal-copy">The Thesis/Capstone Archiving & Host Training Establishment (TCA&HTE) Management is a web-based system to provide efficient solution to manage and monitor the two main requirements of students: Thesis/Capstone Documentation & On-the-Job (OJT) Training.</p>
+        <h3>Developers</h3>
+        <p class="modal-subtitle">College of Computer Studies (CCS) BSIT 3B</p>
+        <ul class="modal-list">
+            <li>Valiente, Aaron Mark D. — Fullstack Developer</li>
+            <li>Salayo, Heaven Grace D. — Frontend Developer & UI Designer</li>
+            <li>Guevarra, John Michael E. — Backend Developer</li>
+            <li>Mendoza, Rashid N. — Frontend Developer & UX Designer</li>
+            <li>Salva, Alvin A. — Quality Assurance & Documentation</li>
+        </ul>
+    </div>
+</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -180,12 +198,59 @@
     // Smooth scroll for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
+            if (this.classList.contains('about-trigger')) {
+                e.preventDefault();
+                return;
+            }
             e.preventDefault();
             const target = document.querySelector(this.getAttribute('href'));
             if (target) {
                 target.scrollIntoView({ behavior: 'smooth' });
             }
         });
+    });
+
+    const aboutModalBackdrop = document.getElementById('aboutModalBackdrop');
+    const aboutModalClose = document.getElementById('aboutModalClose');
+
+    const openAboutModal = () => {
+        aboutModalBackdrop.hidden = false;
+        aboutModalBackdrop.classList.add('visible');
+        aboutModalBackdrop.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        aboutModalClose.focus();
+    };
+
+    const closeAboutModal = () => {
+        aboutModalBackdrop.classList.remove('visible');
+        aboutModalBackdrop.hidden = true;
+        aboutModalBackdrop.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    };
+
+    document.querySelectorAll('.about-trigger').forEach(trigger => {
+        trigger.addEventListener('click', (event) => {
+            event.preventDefault();
+            openAboutModal();
+        });
+    });
+
+    aboutModalClose.addEventListener('click', closeAboutModal);
+
+    aboutModalBackdrop.querySelector('.modal-panel').addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
+
+    aboutModalBackdrop.addEventListener('click', (event) => {
+        if (event.target === aboutModalBackdrop) {
+            closeAboutModal();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && aboutModalBackdrop.classList.contains('visible')) {
+            closeAboutModal();
+        }
     });
 </script>
 
