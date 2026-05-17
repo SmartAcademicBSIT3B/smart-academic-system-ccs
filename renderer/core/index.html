@@ -806,6 +806,7 @@
         const loginPath = "../modules/m1_archive/login.html";
         const adminPath =
           "../modules/m1_archive/adminpage/htmls/1main_menu.html";
+        const lastPageKey = "sas.last.page";
 
         let revealTimer = null;
         let setupUserIdDebounceTimer = null;
@@ -839,6 +840,42 @@
             profile_image: "",
           },
         };
+
+        async function maybeResumeSession() {
+          try {
+            const rawUser = localStorage.getItem("user");
+            if (!rawUser) return false;
+
+            const parsedUser = JSON.parse(rawUser);
+            const userId = String(
+              parsedUser?.user_id || parsedUser?.id || "",
+            ).trim();
+            const role = String(parsedUser?.role || "")
+              .trim()
+              .toLowerCase();
+
+            if (!userId || (role !== "admin" && role !== "coordinator")) {
+              return false;
+            }
+
+            if (!electronAPI || typeof electronAPI.getProfile !== "function") {
+              window.location.href = adminPath;
+              return true;
+            }
+
+            const profileResult = await electronAPI.getProfile(userId);
+            if (profileResult?.success) {
+              window.location.href = adminPath;
+              return true;
+            }
+
+            localStorage.removeItem("user");
+            localStorage.removeItem(lastPageKey);
+            return false;
+          } catch (_error) {
+            return false;
+          }
+        }
 
         function getInitials(value) {
           const words = String(value || "")
@@ -2131,11 +2168,15 @@
           }, 320);
         }
 
-        enforceConnectivity();
-
         Promise.resolve()
-          .then(bootstrapSettingsModal)
-          .then(maybeLaunchFirstRunSetup);
+          .then(maybeResumeSession)
+          .then((resumed) => {
+            if (resumed) return;
+            enforceConnectivity();
+            return Promise.resolve()
+              .then(bootstrapSettingsModal)
+              .then(maybeLaunchFirstRunSetup);
+          });
 
         window.addEventListener("offline", showOfflineBlocker);
         window.addEventListener("online", enforceConnectivity);

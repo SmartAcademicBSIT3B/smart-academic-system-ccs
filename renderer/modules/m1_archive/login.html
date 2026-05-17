@@ -177,6 +177,8 @@
       const REMEMBER_EMAIL_KEY = "rememberedEmail";
       const REMEMBER_ME_KEY = "rememberMeEnabled";
       const APP_SETTINGS_KEY = "sas.app.settings";
+      const LAST_PAGE_KEY = "sas.last.page";
+      const MAIN_MENU_PATH = "adminpage/htmls/1main_menu.html";
       const DEFAULT_DEPARTMENT_CODE = "CCS";
       const DEFAULT_DEPARTMENT_NAME = "College of Computer Studies";
       const DEFAULT_DEPARTMENT_LOGO = "images/CCSLOGO.png";
@@ -187,6 +189,45 @@
       let secretConfirmTimer = null;
       let secretHoldTriggered = false;
       let pendingRoleLogin = null;
+
+      async function maybeResumeSession() {
+        try {
+          const rawUser = localStorage.getItem("user");
+          if (!rawUser) return false;
+
+          const parsedUser = JSON.parse(rawUser);
+          const userId = String(
+            parsedUser?.user_id || parsedUser?.id || "",
+          ).trim();
+          const role = String(parsedUser?.role || "")
+            .trim()
+            .toLowerCase();
+
+          if (!userId || (role !== "admin" && role !== "coordinator")) {
+            return false;
+          }
+
+          if (
+            !window.electronAPI ||
+            typeof window.electronAPI.getProfile !== "function"
+          ) {
+            window.location.href = MAIN_MENU_PATH;
+            return true;
+          }
+
+          const profileResult = await window.electronAPI.getProfile(userId);
+          if (profileResult?.success) {
+            window.location.href = MAIN_MENU_PATH;
+            return true;
+          }
+
+          localStorage.removeItem("user");
+          localStorage.removeItem(LAST_PAGE_KEY);
+          return false;
+        } catch (_error) {
+          return false;
+        }
+      }
 
       function loadRememberedLogin() {
         const rememberMeEl = document.getElementById("rememberMe");
@@ -352,7 +393,7 @@
           result.user.role === "admin" ||
           result.user.role === "coordinator"
         ) {
-          window.location.href = "adminpage/htmls/1main_menu.html";
+          window.location.href = MAIN_MENU_PATH;
           return true;
         }
 
@@ -593,10 +634,15 @@
         }
       });
 
-      loadRememberedLogin();
-      applyBrandingFromLocalSettings();
-      refreshBrandingFromPersistedSettings();
-      bindSecretHoldTrigger();
+      (async function initializeLoginPage() {
+        const resumed = await maybeResumeSession();
+        if (resumed) return;
+
+        loadRememberedLogin();
+        applyBrandingFromLocalSettings();
+        refreshBrandingFromPersistedSettings();
+        bindSecretHoldTrigger();
+      })();
 
       // Back Button
       function goBack() {

@@ -303,6 +303,7 @@
 
     <script>
       const APP_SETTINGS_KEY = "sas.app.settings";
+      const LAST_PAGE_KEY = "sas.last.page";
       const DEFAULT_DEPARTMENT_LOGO = "../../images/CCSLOGO.png";
 
       lucide.createIcons();
@@ -374,15 +375,30 @@
         arrow.classList.toggle("rotate");
       }
 
+      function saveLastPageState(page) {
+        try {
+          localStorage.setItem(
+            LAST_PAGE_KEY,
+            JSON.stringify({
+              role: getCurrentRole(),
+              page: String(page || "").trim(),
+              timestamp: new Date().toISOString(),
+            }),
+          );
+        } catch (_error) {}
+      }
+
       function loadPage(page, element) {
         const contentFrame = document.getElementById("content-frame");
         contentFrame.src = page;
-        document.querySelectorAll(".menu-item").forEach((item) => {
-          item.classList.remove("active");
-        });
-        if (element.classList.contains("menu-item")) {
+        if (element && element.classList.contains("menu-item")) {
+          document.querySelectorAll(".menu-item").forEach((item) => {
+            item.classList.remove("active");
+          });
           element.classList.add("active");
         }
+
+        saveLastPageState(page);
 
         // Re-emit current sidebar hover state after iframe navigation.
         emitSidebarHoverState();
@@ -439,6 +455,29 @@
         },
       };
 
+      function getRestorablePageForRole(role) {
+        try {
+          const stored = JSON.parse(
+            localStorage.getItem(LAST_PAGE_KEY) || "null",
+          );
+          const storedRole = String(stored?.role || "")
+            .trim()
+            .toLowerCase();
+          const storedPage = String(stored?.page || "").trim();
+          if (!storedPage || storedRole !== String(role || "").toLowerCase()) {
+            return "";
+          }
+
+          const roleRoutes = ROLE_ROUTES[role] || {};
+          const allowedPages = new Set(Object.values(roleRoutes));
+          if (!allowedPages.has(storedPage)) return "";
+
+          return storedPage;
+        } catch (_error) {
+          return "";
+        }
+      }
+
       function loadPageByKey(pageKey, element) {
         const role = getCurrentRole();
         const roleRoutes = ROLE_ROUTES[role];
@@ -471,9 +510,14 @@
           }
         });
 
-        const dashboardMenu = document.querySelector(".menu-item.active");
-        if (dashboardMenu) {
-          loadPageByKey("dashboard", dashboardMenu);
+        const resumePage = getRestorablePageForRole(role);
+        if (resumePage) {
+          loadPage(resumePage, null);
+        } else {
+          const dashboardMenu = document.querySelector(".menu-item.active");
+          if (dashboardMenu) {
+            loadPageByKey("dashboard", dashboardMenu);
+          }
         }
 
         // Start notification polling for both admin and coordinator.

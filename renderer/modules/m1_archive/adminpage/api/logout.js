@@ -6,6 +6,7 @@ async function logoutUser() {
     if (result.success || !result.success) {
       // Clear localStorage
       localStorage.removeItem("user");
+      localStorage.removeItem("sas.last.page");
 
       // Navigate back to login page
       window.location.href = "../../login.html";
@@ -17,6 +18,7 @@ async function logoutUser() {
     console.error("Logout error:", error);
     // Even if there's an error, clear local session and go to login
     localStorage.removeItem("user");
+    localStorage.removeItem("sas.last.page");
     window.location.href = "../../login.html";
   }
 }

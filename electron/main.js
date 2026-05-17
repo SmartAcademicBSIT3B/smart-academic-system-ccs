@@ -324,6 +324,50 @@ function getAppSettingsPath() {
   return path.join(app.getPath("userData"), "app-settings.json");
 }
 
+function getAuthSessionPath() {
+  return path.join(app.getPath("userData"), "auth-session.json");
+}
+
+function normalizeAuthDepartmentCode(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/^SECRET:/, "");
+}
+
+async function loadAuthSession() {
+  try {
+    const raw = await fs.readFile(getAuthSessionPath(), "utf8");
+    const parsed = JSON.parse(raw);
+    return {
+      token: String(parsed?.token || "").trim(),
+      departmentCode: normalizeAuthDepartmentCode(parsed?.departmentCode),
+    };
+  } catch (_error) {
+    return { token: "", departmentCode: "" };
+  }
+}
+
+async function saveAuthSession({ token, departmentCode }) {
+  const payload = {
+    token: String(token || "").trim(),
+    departmentCode: normalizeAuthDepartmentCode(departmentCode),
+  };
+
+  await fs.mkdir(path.dirname(getAuthSessionPath()), { recursive: true });
+  await fs.writeFile(
+    getAuthSessionPath(),
+    JSON.stringify(payload, null, 2),
+    "utf8",
+  );
+}
+
+async function clearAuthSession() {
+  try {
+    await fs.unlink(getAuthSessionPath());
+  } catch (_error) {}
+}
+
 function normalizeDepartmentSetting(department) {
   const normalized =
     department && typeof department === "object" ? department : {};
@@ -1319,6 +1363,14 @@ function createMainWindow() {
 app.whenReady().then(async () => {
   await initializeBackendRuntime(api);
 
+  const authSession = await loadAuthSession();
+  if (authSession.token) {
+    api.setToken(authSession.token);
+  }
+  if (authSession.departmentCode) {
+    api.setDepartmentCode(authSession.departmentCode);
+  }
+
   try {
     const initialSettings = await loadAppSettings();
     const initialDeptCode = String(
@@ -1370,9 +1422,16 @@ ipcMain.handle(
       });
       if (result.success && result.token) {
         api.setToken(result.token);
-        if (result.user?.department_code) {
-          api.setDepartmentCode(result.user.department_code);
+        const sessionDeptCode = normalizeAuthDepartmentCode(
+          result.user?.department_code || requestedDepartmentCode || "CCS",
+        );
+        if (sessionDeptCode) {
+          api.setDepartmentCode(sessionDeptCode);
         }
+        await saveAuthSession({
+          token: result.token,
+          departmentCode: sessionDeptCode || "CCS",
+        });
       }
       return result;
     } catch (error) {
@@ -2177,6 +2236,7 @@ ipcMain.handle(
       });
       if (result?.success) {
         api.clearToken();
+        await clearAuthSession();
       }
       return result;
     } catch (error) {
@@ -2816,6 +2876,7 @@ ipcMain.handle("authorizeGoogleDriveInteractive", async () => {
 ipcMain.handle("logout", async () => {
   try {
     api.clearToken();
+    await clearAuthSession();
     return { success: true };
   } catch (error) {
     console.error("Logout error:", error);

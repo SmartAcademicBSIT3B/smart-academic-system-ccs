@@ -1280,6 +1280,7 @@
 
         await electronAPI.logout();
         localStorage.removeItem("user");
+        localStorage.removeItem("sas.last.page");
 
         if (window.parent && typeof window.parent.logoutUser === "function") {
           window.parent.logoutUser();
