@@ -262,6 +262,66 @@ function parseKeywordsFromInlineLabel(lines) {
     }
   }
 
+  // Fallback: fuzzy match for keyword labels with typos/spacing issues
+  const keywordLabelTargets = [
+    { targets: ["keywords", "key words"], value: "keyword_label" },
+    { targets: ["index terms", "index term"], value: "index_label" },
+  ];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const words = line.split(/\s+/);
+
+    // Look for lines with "keywords:" or "index terms:" patterns
+    for (let j = 0; j < words.length - 1; j++) {
+      const word = words[j].toLowerCase().replace(/[:;]$/, ""); // Remove trailing punctuation
+      const nextWord = words[j + 1];
+
+      for (const { targets } of keywordLabelTargets) {
+        for (const target of targets) {
+          // Fuzzy match with tolerance of 1 edit (handles "keywrods", "keyowrds", etc.)
+          if (isFuzzyMatch(word, target, 1)) {
+            // Check if the line has a colon or if the next part looks like content
+            if (
+              line.includes(":") ||
+              line.includes("-") ||
+              line.includes("–") ||
+              line.includes("—")
+            ) {
+              // Extract content after the colon/dash
+              const contentMatch = line.match(/[:;\-\u2013\u2014]\s*(.+)$/i);
+              if (contentMatch) {
+                const collected = [contentMatch[1]];
+
+                // Continue collecting from next lines
+                let nextIndex = i + 1;
+                while (
+                  nextIndex < lines.length &&
+                  collected.join(" ").length < 220
+                ) {
+                  const nextLine = lines[nextIndex].trim();
+                  if (!nextLine || stopPattern.test(nextLine)) break;
+                  if (/^[A-Z][A-Z\s]{6,}$/.test(nextLine)) break;
+                  collected.push(nextLine);
+                  if (/[.]$/.test(nextLine)) break;
+                  nextIndex += 1;
+                }
+
+                return uniqueNonEmpty(
+                  collected
+                    .join(" ")
+                    .split(/[,;]|\s\u2022\s|\s•\s/)
+                    .filter(Boolean),
+                  12,
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return [];
 }
 
@@ -284,14 +344,54 @@ function parsePdfKeywords(allText) {
     "list of terms",
     "terminology",
   ];
+
+  // Fuzzy match function for identifier detection
+  function matchesIdentifier(lineText, identifierList) {
+    const normalized = lineText
+      .replace(/[\u00A0\u2000-\u200D\u202F\u205F\u3000]/g, " ")
+      .replace(/\s+/g, " ")
+      .toLowerCase()
+      .trim();
+
+    for (const identifier of identifierList) {
+      // First try exact substring match (fast path for clean PDFs)
+      if (normalized.includes(identifier)) {
+        return true;
+      }
+
+      // Try fuzzy matching on normalized identifier words
+      const idWords = identifier.split(/\s+/);
+      const lineWords = normalized.split(/\s+/);
+
+      // Check if most identifier words are present (with fuzzy matching)
+      let matchCount = 0;
+      for (const idWord of idWords) {
+        for (const lineWord of lineWords) {
+          if (isFuzzyMatch(lineWord, idWord, 1)) {
+            matchCount++;
+            break;
+          }
+        }
+      }
+
+      // If 80% of identifier words matched, consider it a match
+      const matchThreshold = Math.ceil(idWords.length * 0.8);
+      if (matchCount >= matchThreshold) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   let startIdx = -1;
   for (let i = 0; i < lines.length; i++) {
-    const lower = lines[i].toLowerCase();
-    if (identifiers.some((id) => lower.includes(id))) {
+    if (matchesIdentifier(lines[i], identifiers)) {
       startIdx = i + 1;
       break;
     }
   }
+
   if (startIdx === -1) return [];
   const termPat =
     /^([A-Z][A-Za-z0-9\s\(\)\/\-&]{2,80})\s*(?:[\u2013\u2014\-:]|\s{2,})\s+/;
