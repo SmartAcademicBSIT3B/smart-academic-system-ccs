@@ -1834,6 +1834,34 @@ ipcMain.handle("getAppSettings", async () => {
   }
 });
 
+ipcMain.handle("readFileAsBase64", async (event, filePath = "") => {
+  try {
+    const path = String(filePath || "").trim();
+    if (!path) {
+      return {
+        success: false,
+        message: "File path is required.",
+        base64: null,
+      };
+    }
+
+    const fs = require("fs");
+    const fileBuffer = fs.readFileSync(path);
+    const base64String = fileBuffer.toString("base64");
+
+    return {
+      success: true,
+      base64: base64String,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to read file.",
+      base64: null,
+    };
+  }
+});
+
 ipcMain.handle("getApiBaseUrl", async () => {
   try {
     return {

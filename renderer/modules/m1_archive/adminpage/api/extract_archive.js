@@ -120,17 +120,83 @@ function parsePdfAdvisor(lines) {
   return "";
 }
 
+// Levenshtein distance for fuzzy matching (measures edit distance between strings)
+function levenshteinDistance(s1, s2) {
+  const a = String(s1 || "").toLowerCase();
+  const b = String(s2 || "").toLowerCase();
+  const matrix = Array(b.length + 1)
+    .fill(null)
+    .map(() => Array(a.length + 1).fill(0));
+
+  for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
+  for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
+
+  for (let j = 1; j <= b.length; j++) {
+    for (let i = 1; i <= a.length; i++) {
+      const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[j][i] = Math.min(
+        matrix[j][i - 1] + 1,
+        matrix[j - 1][i] + 1,
+        matrix[j - 1][i - 1] + indicator,
+      );
+    }
+  }
+
+  return matrix[b.length][a.length];
+}
+
+// Check if a word is a fuzzy match for a target (handles typos and spacing)
+function isFuzzyMatch(word, target, maxDistance) {
+  // Normalize: remove internal spaces and weird unicode spaces
+  const normalized = String(word || "")
+    .replace(/[\u00A0\u2000-\u200D\u202F\u205F\u3000\s]+/g, "")
+    .toLowerCase();
+  const targetNorm = String(target || "")
+    .replace(/[\u00A0\u2000-\u200D\u202F\u205F\u3000\s]+/g, "")
+    .toLowerCase();
+
+  if (normalized === targetNorm) return true;
+
+  const distance = levenshteinDistance(normalized, targetNorm);
+  return distance <= maxDistance;
+}
+
 function parsePdfType(lines) {
   const typeMap = [
+    { targets: ["capstone"], value: "Capstone" },
+    { targets: ["thesis"], value: "Thesis" },
+    { targets: ["research"], value: "Research" },
+    { targets: ["project"], value: "Project" },
+  ];
+
+  // Search in first 20 lines with fuzzy matching
+  const searchText = lines.slice(0, 20).join(" ");
+  const words = searchText.split(/\s+/);
+
+  // Check each word against each type's targets
+  for (const { targets, value } of typeMap) {
+    for (const word of words) {
+      for (const target of targets) {
+        // Allow up to 2 character edits (for typos like "Cappstone" or spacing like "Ca pstone")
+        if (isFuzzyMatch(word, target, 2)) {
+          return value;
+        }
+      }
+    }
+  }
+
+  // Fallback to simple regex as last resort
+  const typeMapFallback = [
     { pattern: /capstone/i, value: "Capstone" },
     { pattern: /thesis/i, value: "Thesis" },
     { pattern: /research/i, value: "Research" },
     { pattern: /project/i, value: "Project" },
   ];
   const joined = lines.slice(0, 20).join(" ");
-  for (const { pattern, value } of typeMap) {
+  for (const { pattern, value } of typeMapFallback) {
     if (pattern.test(joined)) return value;
   }
+
   return "Other";
 }
 

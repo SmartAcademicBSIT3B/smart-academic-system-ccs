@@ -98,12 +98,35 @@
   function toHeaderImageUrl(pathValue) {
     const raw = String(pathValue || "").trim();
     if (!raw) return "";
-    if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw)) return raw;
+    if (/^https?:\/\//i.test(raw) || /^data:image\//i.test(raw)) return raw;
     if (/^[a-zA-Z]:\\/.test(raw)) {
-      return `file:///${raw.replace(/\\/g, "/")}`;
+      return raw; // Return raw path for local file processing
     }
-    if (raw.startsWith("/")) return `file://${raw}`;
+    if (raw.startsWith("/")) return raw;
     return raw;
+  }
+
+  async function filePathToDataUri(filePath) {
+    try {
+      const api = window.electronAPI || window.parent?.electronAPI;
+      if (!api?.readFileAsBase64) return null;
+
+      const result = await api.readFileAsBase64(filePath);
+      if (result?.success && result.base64) {
+        // Determine MIME type from extension
+        const ext = String(filePath || "").toLowerCase();
+        let mimeType = "image/png";
+        if (ext.endsWith(".jpg") || ext.endsWith(".jpeg"))
+          mimeType = "image/jpeg";
+        else if (ext.endsWith(".gif")) mimeType = "image/gif";
+        else if (ext.endsWith(".webp")) mimeType = "image/webp";
+
+        return `data:${mimeType};base64,${result.base64}`;
+      }
+    } catch (_error) {
+      // Silently fail and return null to use default
+    }
+    return null;
   }
 
   async function resolveHeaderImageDataUrl() {
@@ -122,7 +145,14 @@
             settingsResult.settings.selectedPdfReportHeaderPath || "",
           ).trim();
           if (selectedPath) {
-            candidateUrl = toHeaderImageUrl(selectedPath) || defaultHeaderUrl;
+            // Try to convert to Data URI for portability
+            const dataUri = await filePathToDataUri(selectedPath);
+            if (dataUri) {
+              candidateUrl = dataUri;
+            } else {
+              // Fallback: use the default header
+              candidateUrl = defaultHeaderUrl;
+            }
           }
         }
       }
