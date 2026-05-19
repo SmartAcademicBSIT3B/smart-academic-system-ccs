@@ -3329,43 +3329,6 @@ ipcMain.handle("getStoredAuthSessionContext", async (event) => {
   }
 });
 
-ipcMain.handle(
-  "login",
-  async (
-    event,
-    email,
-    password,
-    departmentCode,
-    secretLogin,
-    preferredRole,
-  ) => {
-    try {
-      const response = await api.post("/auth/login", {
-        email,
-        password,
-        departmentCode,
-        secretLogin,
-        preferredRole,
-      });
-
-      if (response.success && response.token) {
-        await saveAuthSession({
-          token: response.token,
-          departmentCode: response.departmentCode || departmentCode,
-          user: response.user,
-        });
-      }
-
-      return response;
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || "Login failed.",
-      };
-    }
-  },
-);
-
 ipcMain.handle("sendOTP", async (event, email) => {
   try {
     return await api.post("/auth/send-otp", {
