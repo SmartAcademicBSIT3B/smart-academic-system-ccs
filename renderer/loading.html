@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loading - Smart Academic System</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+
+      .loading-container {
+        text-align: center;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        padding: 60px 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 90%;
+      }
+
+      .loading-logo {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        color: white;
+        font-weight: bold;
+      }
+
+      .loading-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 12px;
+      }
+
+      .loading-subtitle {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 30px;
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        margin: 0 auto 30px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-message {
+        font-size: 13px;
+        color: #888;
+        line-height: 1.5;
+      }
+
+      .loading-dot {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        background-color: #667eea;
+        border-radius: 50%;
+        margin: 0 2px;
+        animation: blink 1.4s infinite;
+      }
+
+      .loading-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .loading-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes blink {
+        0%,
+        60%,
+        100% {
+          opacity: 0.3;
+        }
+        30% {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loading-container">
+      <div class="loading-logo">SAS</div>
+      <h1 class="loading-title">Smart Academic System</h1>
+      <p class="loading-subtitle">Initializing Application</p>
+      <div class="loading-spinner"></div>
+      <p class="loading-message">
+        Starting backend services
+        <span class="loading-dot"></span>
+        <span class="loading-dot"></span>
+        <span class="loading-dot"></span>
+      </p>
+    </div>
+
+    <script>
+      async function proceedToApp() {
+        try {
+          if (
+            !window.electronAPI ||
+            typeof window.electronAPI.proceedToMainApp !== "function"
+          ) {
+            console.error("electronAPI.proceedToMainApp not available");
+            return;
+          }
+
+          const result = await window.electronAPI.proceedToMainApp();
+          if (!result?.success) {
+            console.error("Failed to proceed to main app:", result?.message);
+            // Retry after a short delay
+            setTimeout(proceedToApp, 1000);
+          }
+        } catch (error) {
+          console.error("Error proceeding to main app:", error);
+          // Retry after a short delay
+          setTimeout(proceedToApp, 1000);
+        }
+      }
+
+      // Start checking backend health and proceed once ready
+      async function waitForBackendAndProceed() {
+        try {
+          if (
+            !window.electronAPI ||
+            typeof window.electronAPI.getBackendDiagnostics !== "function"
+          ) {
+            // If API not available, proceed anyway (might be dev mode)
+            setTimeout(proceedToApp, 500);
+            return;
+          }
+
+          const maxAttempts = 120; // 2 minutes with 1s checks
+          let attempts = 0;
+
+          const checkReady = async () => {
+            try {
+              const result = await window.electronAPI.getBackendDiagnostics();
+              if (
+                result?.success &&
+                result?.diagnostics?.runtime?.liveHealthOk
+              ) {
+                // Backend is ready, proceed to main app
+                proceedToApp();
+                return;
+              }
+            } catch (error) {
+              console.debug("Backend health check:", error.message);
+            }
+
+            attempts++;
+            if (attempts < maxAttempts) {
+              setTimeout(checkReady, 1000);
+            } else {
+              // Timeout - proceed anyway and let user see any errors
+              proceedToApp();
+            }
+          };
+
+          checkReady();
+        } catch (error) {
+          console.error("Error in waitForBackendAndProceed:", error);
+          setTimeout(proceedToApp, 1000);
+        }
+      }
+
+      // Start the check as soon as page loads
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", waitForBackendAndProceed);
+      } else {
+        waitForBackendAndProceed();
+      }
+    </script>
+  </body>
+</html>

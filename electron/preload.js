@@ -170,6 +170,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getConfigurationSetupStatus: () =>
     ipcRenderer.invoke("getConfigurationSetupStatus"),
   getBackendDiagnostics: () => ipcRenderer.invoke("getBackendDiagnostics"),
+  proceedToMainApp: () => ipcRenderer.invoke("proceedToMainApp"),
   saveAppSettings: (settingsPatch) =>
     ipcRenderer.invoke("saveAppSettings", settingsPatch),
   checkSetupDepartmentAdminExists: (departmentCode) =>

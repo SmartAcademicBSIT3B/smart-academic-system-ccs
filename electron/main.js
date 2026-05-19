@@ -32,6 +32,8 @@ const AUTO_UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let autoUpdateCheckInterval = null;
 let autoUpdaterInitialized = false;
 
+let mainWindow = null;
+
 function isAutoUpdaterEnabledByEnv() {
   return String(process.env.SAS_DISABLE_AUTO_UPDATE || "") !== "1";
 }
@@ -1542,7 +1544,7 @@ async function authorizeGoogleDriveInteractive() {
 }
 
 function createMainWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
@@ -1557,9 +1559,13 @@ function createMainWindow() {
     icon: path.join(__dirname, "..", "renderer", "core", "CTA-appicon.png"),
   });
 
-  mainWindow.loadFile(
-    path.join(__dirname, "..", "renderer", "core", "index.html"),
-  );
+  // Load the loading screen initially while backend initializes
+  mainWindow.loadFile(path.join(__dirname, "..", "renderer", "loading.html"));
+
+  // Clean up reference when window is closed
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 }
 
 function getActiveWindowForDialogs() {
@@ -1846,7 +1852,38 @@ ipcMain.handle("getApiBaseUrl", async () => {
 ipcMain.handle("getConfigurationSetupStatus", async () => {
   try {
     const settings = await loadAppSettings();
-    const completed = settings?.setup?.completed === true;
+    let completed = settings?.setup?.completed === true;
+
+    // On fresh install, even if setup was marked completed, verify an admin actually exists
+    // If no admin exists for the completed department, force setup to run again
+    if (completed) {
+      const departmentCode = String(
+        settings?.setup?.completedDepartmentCode ||
+          settings?.department?.department_code ||
+          "CCS",
+      )
+        .trim()
+        .toUpperCase();
+
+      try {
+        // Check if admin exists for this department
+        const adminCheckResult = await api.get(
+          `/users/setup/admin-exists?departmentCode=${encodeURIComponent(departmentCode)}`,
+        );
+
+        // If admin doesn't exist, force setup to show again
+        if (!adminCheckResult?.success || !adminCheckResult?.adminExists) {
+          completed = false;
+        }
+      } catch (_error) {
+        // If check fails, allow setup to show again to be safe
+        console.warn(
+          "[setup-status] Admin existence check failed, will show setup",
+        );
+        completed = false;
+      }
+    }
+
     return {
       success: true,
       settings,
@@ -1933,13 +1970,34 @@ ipcMain.handle(
       const departmentCode = String(payload.departmentCode || "")
         .trim()
         .toUpperCase();
-      const settings = await saveAppSettingsPatch({
+
+      // Get department details from the payload to save full department info
+      const departmentData =
+        payload.department && typeof payload.department === "object"
+          ? {
+              id: payload.department.id || null,
+              department_name: String(
+                payload.department.department_name || "",
+              ).trim(),
+              department_code: departmentCode,
+              logo_url: String(payload.department.logo_url || "").trim(),
+            }
+          : null;
+
+      const settingsPatch = {
         setup: {
           completed: true,
           completedAt: new Date().toISOString(),
           completedDepartmentCode: departmentCode,
         },
-      });
+      };
+
+      // Include department info if provided
+      if (departmentData && departmentData.department_code) {
+        settingsPatch.department = departmentData;
+      }
+
+      const settings = await saveAppSettingsPatch(settingsPatch);
 
       if (departmentCode) {
         api.setDepartmentCode(departmentCode);
@@ -1985,6 +2043,24 @@ ipcMain.handle("getBackendDiagnostics", async () => {
     return {
       success: false,
       message: error.message || "Failed to load backend diagnostics.",
+    };
+  }
+});
+
+ipcMain.handle("proceedToMainApp", async () => {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return { success: false, message: "Main window not available." };
+    }
+
+    mainWindow.loadFile(
+      path.join(__dirname, "..", "renderer", "core", "index.html"),
+    );
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to load main app.",
     };
   }
 });
