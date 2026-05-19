@@ -124,6 +124,14 @@
             </div>
 
             <div class="profile-menu">
+              <button
+                id="admin-view-switch-btn"
+                type="button"
+                onclick="switchAdminView()"
+                style="display: none"
+              >
+                Switch to Coordinator Page
+              </button>
               <button onclick="openProfileModal()">My Profile</button>
               <button onclick="toggleNotifModal(event)">Notifications</button>
               <button onclick="logoutUser()">Logout</button>
@@ -451,6 +459,7 @@
     <script>
       const APP_SETTINGS_KEY = "sas.app.settings";
       const LAST_PAGE_KEY = "sas.last.page";
+      const ADMIN_VIEW_MODE_KEY = "sas.admin.view.mode";
       const DEFAULT_DEPARTMENT_LOGO = "../../images/CCSLOGO.png";
 
       lucide.createIcons();
@@ -593,7 +602,7 @@
         );
       }
 
-      function getCurrentRole() {
+      function getSessionUserRole() {
         try {
           const userStr = localStorage.getItem("user");
           if (!userStr) return "";
@@ -603,6 +612,50 @@
           console.error("Unable to parse local user data:", error);
           return "";
         }
+      }
+
+      function getCurrentRole() {
+        const sessionRole = getSessionUserRole();
+        if (sessionRole !== "admin") {
+          localStorage.removeItem(ADMIN_VIEW_MODE_KEY);
+          return sessionRole;
+        }
+
+        const viewMode = String(
+          localStorage.getItem(ADMIN_VIEW_MODE_KEY) || "admin",
+        )
+          .trim()
+          .toLowerCase();
+
+        return viewMode === "coordinator" ? "coordinator" : "admin";
+      }
+
+      function updateAdminViewSwitchUI() {
+        const switchBtn = document.getElementById("admin-view-switch-btn");
+        if (!switchBtn) return;
+
+        if (getSessionUserRole() !== "admin") {
+          switchBtn.style.display = "none";
+          return;
+        }
+
+        const activeRole = getCurrentRole();
+        switchBtn.style.display = "block";
+        switchBtn.textContent =
+          activeRole === "admin"
+            ? "Switch to Coordinator Page"
+            : "Switch to Admin Page";
+      }
+
+      function switchAdminView() {
+        if (getSessionUserRole() !== "admin") return;
+
+        const activeRole = getCurrentRole();
+        const nextRole = activeRole === "admin" ? "coordinator" : "admin";
+        localStorage.setItem(ADMIN_VIEW_MODE_KEY, nextRole);
+
+        document.querySelector(".profile-menu")?.classList.remove("show");
+        applyRoleAccess();
       }
 
       const ROLE_ROUTES = {
@@ -677,8 +730,12 @@
         document.querySelectorAll("[data-role-only='admin']").forEach((el) => {
           if (role !== "admin") {
             el.style.display = "none";
+          } else {
+            el.style.display = "";
           }
         });
+
+        updateAdminViewSwitchUI();
 
         const resumePage = getRestorablePageForRole(role);
         if (resumePage) {
