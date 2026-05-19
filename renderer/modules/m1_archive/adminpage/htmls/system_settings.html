@@ -106,27 +106,103 @@
               <div class="setting-grid two-column password-grid">
                 <label>
                   Current Password
-                  <input
-                    id="profileCurrentPassword"
-                    type="password"
-                    autocomplete="new-password"
-                  />
+                  <div class="password-input-container">
+                    <input
+                      id="profileCurrentPassword"
+                      type="password"
+                      autocomplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      class="password-toggle-btn"
+                      onclick="
+                        togglePasswordVisibility('profileCurrentPassword')
+                      "
+                      title="Show/Hide Password"
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                        ></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </button>
+                  </div>
                 </label>
                 <label>
                   New Password
-                  <input
-                    id="profileNewPassword"
-                    type="password"
-                    autocomplete="new-password"
-                  />
+                  <div class="password-input-container">
+                    <input
+                      id="profileNewPassword"
+                      type="password"
+                      autocomplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      class="password-toggle-btn"
+                      onclick="togglePasswordVisibility('profileNewPassword')"
+                      title="Show/Hide Password"
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                        ></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </button>
+                  </div>
                 </label>
                 <label class="full-width">
                   Confirm New Password
-                  <input
-                    id="profileConfirmPassword"
-                    type="password"
-                    autocomplete="new-password"
-                  />
+                  <div class="password-input-container">
+                    <input
+                      id="profileConfirmPassword"
+                      type="password"
+                      autocomplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      class="password-toggle-btn"
+                      onclick="
+                        togglePasswordVisibility('profileConfirmPassword')
+                      "
+                      title="Show/Hide Password"
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                        ></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </button>
+                  </div>
                 </label>
               </div>
 
@@ -139,11 +215,37 @@
                 <div class="setting-grid two-column">
                   <label class="full-width">
                     Enter Current Password to Confirm
-                    <input
-                      id="profileDeletePassword"
-                      type="password"
-                      autocomplete="new-password"
-                    />
+                    <div class="password-input-container">
+                      <input
+                        id="profileDeletePassword"
+                        type="password"
+                        autocomplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        class="password-toggle-btn"
+                        onclick="
+                          togglePasswordVisibility('profileDeletePassword')
+                        "
+                        title="Show/Hide Password"
+                      >
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path
+                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                          ></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </button>
+                    </div>
                   </label>
                 </div>
                 <button
@@ -847,10 +949,52 @@
       </div>
     </div>
 
+    <style>
+      .password-input-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .password-input-container input {
+        flex: 1;
+        padding-right: 36px;
+      }
+
+      .password-toggle-btn {
+        position: absolute;
+        right: 8px;
+        background: none;
+        border: none;
+        color: #666;
+        cursor: pointer;
+        padding: 4px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+      }
+
+      .password-toggle-btn:hover {
+        color: #333;
+      }
+
+      .password-toggle-btn:active {
+        color: #667eea;
+      }
+    </style>
+
     <script>
       const electronAPI = window.electronAPI || window.parent?.electronAPI;
       const DEFAULT_PROFILE_IMAGE = "../../images/default_avatar.jpg";
       const DEFAULT_REPORT_HEADER_IMAGE = "../../images/header-template.png";
+
+      function togglePasswordVisibility(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+        const type = field.type === "password" ? "text" : "password";
+        field.type = type;
+      }
       const DEFAULT_THESIS_ARCHIVE_SETTINGS = {
         maxFileSizeMB: 50,
         defaultArchiveStatus: "Approved",
