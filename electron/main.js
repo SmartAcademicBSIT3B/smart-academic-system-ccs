@@ -1672,31 +1672,39 @@ function setupAutoUpdater() {
 }
 
 app.whenReady().then(async () => {
-  await initializeBackendRuntime(api);
-
-  const authSession = await loadAuthSession();
-  if (authSession.token) {
-    api.setToken(authSession.token);
-  }
-  if (authSession.departmentCode) {
-    api.setDepartmentCode(authSession.departmentCode);
-  }
-
-  try {
-    const initialSettings = await loadAppSettings();
-    const initialDeptCode = String(
-      initialSettings?.department?.department_code || "",
-    ).trim();
-    // Keep the authenticated session's department when present.
-    // Falling back to app settings is only safe when no session department exists.
-    if (initialDeptCode && !authSession.departmentCode) {
-      api.setDepartmentCode(initialDeptCode);
-    }
-  } catch (error) {
-    console.error("Failed to initialize app settings:", error);
-  }
-
   createMainWindow();
+
+  // Keep loading.html visible immediately while backend/services initialize.
+  (async () => {
+    try {
+      await initializeBackendRuntime(api);
+
+      const authSession = await loadAuthSession();
+      if (authSession.token) {
+        api.setToken(authSession.token);
+      }
+      if (authSession.departmentCode) {
+        api.setDepartmentCode(authSession.departmentCode);
+      }
+
+      try {
+        const initialSettings = await loadAppSettings();
+        const initialDeptCode = String(
+          initialSettings?.department?.department_code || "",
+        ).trim();
+        // Keep the authenticated session's department when present.
+        // Falling back to app settings is only safe when no session department exists.
+        if (initialDeptCode && !authSession.departmentCode) {
+          api.setDepartmentCode(initialDeptCode);
+        }
+      } catch (error) {
+        console.error("Failed to initialize app settings:", error);
+      }
+    } catch (error) {
+      console.error("Startup initialization failed:", error);
+    }
+  })();
+
   setupAutoUpdater();
 
   app.on("activate", () => {

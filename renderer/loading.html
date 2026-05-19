@@ -18,7 +18,12 @@
         font-family:
           -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
           Cantarell, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(
+          135deg,
+          #0f5132 0%,
+          #198754 55%,
+          #20a56b 100%
+        );
         display: flex;
         align-items: center;
         justify-content: center;
@@ -36,17 +41,22 @@
       }
 
       .loading-logo {
-        width: 80px;
-        height: 80px;
+        width: 96px;
+        height: 96px;
         margin: 0 auto 30px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 40px;
-        color: white;
-        font-weight: bold;
+        padding: 12px;
+        box-shadow: 0 10px 24px rgba(21, 115, 71, 0.35);
+      }
+
+      .loading-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
       }
 
       .loading-title {
@@ -67,7 +77,7 @@
         height: 40px;
         margin: 0 auto 30px;
         border: 3px solid #f3f3f3;
-        border-top: 3px solid #667eea;
+        border-top: 3px solid #198754;
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -91,7 +101,7 @@
         display: inline-block;
         width: 4px;
         height: 4px;
-        background-color: #667eea;
+        background-color: #198754;
         border-radius: 50%;
         margin: 0 2px;
         animation: blink 1.4s infinite;
@@ -119,7 +129,9 @@
   </head>
   <body>
     <div class="loading-container">
-      <div class="loading-logo">SAS</div>
+      <div class="loading-logo">
+        <img src="./core/CTA-appicon.png" alt="CTA app icon" />
+      </div>
       <h1 class="loading-title">Smart Academic System</h1>
       <p class="loading-subtitle">Initializing Application</p>
       <div class="loading-spinner"></div>
@@ -167,7 +179,7 @@
             return;
           }
 
-          const maxAttempts = 120; // 2 minutes with 1s checks
+          const maxAttempts = 60; // 60 seconds with 1s checks
           let attempts = 0;
 
           const checkReady = async () => {
