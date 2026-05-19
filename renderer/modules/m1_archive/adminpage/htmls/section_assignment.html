@@ -137,6 +137,13 @@
         >
           <div class="active-filter-tags" id="section-active-filter-tags"></div>
         </div>
+
+        <div class="tooltip" style="margin-left: auto">
+          <button class="generate-btn" id="section-refresh-btn" type="button">
+            <i data-lucide="rotate-cw"></i>
+          </button>
+          <span class="tooltip-text">Refresh Table</span>
+        </div>
       </div>
 
       <div id="section-export-modal" class="modal">
@@ -613,14 +620,25 @@
               document.getElementById("sa-professor")?.value,
             );
 
+            // Get the section being edited (if in edit mode) to allow it to remain available
+            const editingSectionName = editingRow
+              ? asText(editingRow.dataset.sectionName)
+              : null;
+
+            // Disable sections that are already assigned to ANY coordinator/admin
+            // UNLESS we're in edit mode and it's the section we're currently editing
             const disabledSections = new Set();
-            if (selectedProfessor) {
-              existingAssignments.forEach((assign) => {
-                if (assign.professor_name === selectedProfessor) {
-                  disabledSections.add(assign.section_name);
-                }
-              });
-            }
+            existingAssignments.forEach((assign) => {
+              // Don't disable if we're editing this exact assignment
+              if (
+                editingSectionName &&
+                assign.section_name === editingSectionName
+              ) {
+                return;
+              }
+              // Disable all other assigned sections
+              disabledSections.add(assign.section_name);
+            });
 
             selectedSectionsForAssignment = new Set(
               Array.from(selectedSectionsForAssignment).filter(
@@ -1876,6 +1894,41 @@
           return errors;
         }
 
+        async function checkForDuplicateSectionAssignments(
+          sectionNames,
+          isEditMode = false,
+          editingSectionName = null,
+        ) {
+          try {
+            const assignments = await invokeSectionAPI("getSectionAssignments");
+            const existingAssignments = Array.isArray(
+              assignments?.sectionAssignments,
+            )
+              ? assignments.sectionAssignments
+              : [];
+
+            const assignedSectionNames = new Set(
+              existingAssignments.map((a) => a.section_name),
+            );
+
+            // Find sections that are already assigned
+            const duplicates = [];
+            for (const sectionName of sectionNames) {
+              if (assignedSectionNames.has(sectionName)) {
+                // In edit mode, allow the current section being edited
+                if (isEditMode && sectionName === editingSectionName) {
+                  continue;
+                }
+                duplicates.push(sectionName);
+              }
+            }
+
+            return duplicates;
+          } catch (_error) {
+            return [];
+          }
+        }
+
         function openViewModal(row) {
           viewingRow = row;
           const assignment = rowToAssignment(row);
@@ -2014,6 +2067,24 @@
             const first = Object.keys(errors)[0];
             const firstEl = document.getElementById(first);
             if (firstEl) firstEl.focus();
+            return;
+          }
+
+          // Check for duplicate section assignments
+          const editingSectionName = editingRow
+            ? asText(editingRow.dataset.sectionName)
+            : null;
+          const duplicates = await checkForDuplicateSectionAssignments(
+            selectedSections,
+            Boolean(editingRow),
+            editingSectionName,
+          );
+
+          if (duplicates.length > 0) {
+            setFieldError(
+              "sa-section",
+              `Section(s) "${duplicates.join(", ")}" already assigned to another coordinator/admin. Each section can only be assigned once.`,
+            );
             return;
           }
 
@@ -2781,6 +2852,21 @@
               selectedSectionsForAssignment.clear();
               resetForm();
               openModal(document.getElementById("section-modal"));
+            });
+
+          document
+            .getElementById("section-refresh-btn")
+            ?.addEventListener("click", async () => {
+              try {
+                await loadSectionAssignments();
+                if (typeof showToast === "function") {
+                  showToast("Table refreshed.", "success");
+                }
+              } catch (error) {
+                if (typeof showToast === "function") {
+                  showToast("Failed to refresh table.", "error");
+                }
+              }
             });
 
           document

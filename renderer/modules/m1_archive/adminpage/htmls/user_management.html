@@ -134,6 +134,13 @@
         >
           <div class="active-filter-tags" id="user-active-filter-tags"></div>
         </div>
+
+        <div class="tooltip" style="margin-left: auto">
+          <button class="generate-btn" id="user-refresh-btn" type="button">
+            <i data-lucide="rotate-cw"></i>
+          </button>
+          <span class="tooltip-text">Refresh Table</span>
+        </div>
       </div>
 
       <div id="user-export-modal" class="modal">
@@ -2976,6 +2983,21 @@
         } else {
           init();
         }
+
+        document
+          .getElementById("user-refresh-btn")
+          ?.addEventListener("click", async () => {
+            try {
+              await loadUsers();
+              if (typeof showToast === "function") {
+                showToast("Table refreshed.", "success");
+              }
+            } catch (error) {
+              if (typeof showToast === "function") {
+                showToast("Failed to refresh table.", "error");
+              }
+            }
+          });
       })();
     </script>
   </body>

@@ -152,6 +152,13 @@
         >
           <div class="active-filter-tags" id="ojt-active-filter-tags"></div>
         </div>
+
+        <div class="tooltip" style="margin-left: auto">
+          <button class="generate-btn" id="ojt-refresh-btn" type="button">
+            <i data-lucide="rotate-cw"></i>
+          </button>
+          <span class="tooltip-text">Refresh Table</span>
+        </div>
       </div>
 
       <div id="ojt-export-modal" class="modal" style="display: none">
@@ -620,5 +627,24 @@
     <script src="../api/ojt_students_search_filter.js"></script>
     <script src="../api/ojt_students_export.js"></script>
     <script src="../api/ojt_students_crud.js"></script>
+
+    <script>
+      document
+        .getElementById("ojt-refresh-btn")
+        ?.addEventListener("click", async () => {
+          try {
+            if (typeof window.loadOjtStudents === "function") {
+              await window.loadOjtStudents();
+              if (typeof showToast === "function") {
+                showToast("Table refreshed.", "success");
+              }
+            }
+          } catch (error) {
+            if (typeof showToast === "function") {
+              showToast("Failed to refresh table.", "error");
+            }
+          }
+        });
+    </script>
   </body>
 </html>

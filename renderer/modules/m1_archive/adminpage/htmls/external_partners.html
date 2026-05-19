@@ -149,6 +149,16 @@
             id="external-active-filter-tags"
           ></div>
         </div>
+        <div class="tooltip" style="margin-left: auto">
+          <button
+            class="generate-btn"
+            id="external-partner-refresh-btn"
+            type="button"
+          >
+            <i data-lucide="rotate-cw"></i>
+          </button>
+          <span class="tooltip-text">Refresh Table</span>
+        </div>
       </div>
 
       <div id="external-export-modal" class="modal" style="display: none">
@@ -708,5 +718,24 @@
     <script src="../api/external_partners_search_filter.js"></script>
     <script src="../api/external_partners_export.js"></script>
     <script src="../api/external_partners_crud.js"></script>
+
+    <script>
+      document
+        .getElementById("external-partner-refresh-btn")
+        ?.addEventListener("click", async () => {
+          try {
+            if (typeof window.loadExternalPartners === "function") {
+              await window.loadExternalPartners();
+              if (typeof showToast === "function") {
+                showToast("Table refreshed.", "success");
+              }
+            }
+          } catch (error) {
+            if (typeof showToast === "function") {
+              showToast("Failed to refresh table.", "error");
+            }
+          }
+        });
+    </script>
   </body>
 </html>

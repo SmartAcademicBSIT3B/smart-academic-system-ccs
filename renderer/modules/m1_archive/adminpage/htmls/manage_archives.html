@@ -134,6 +134,12 @@
         >
           <div class="active-filter-tags" id="active-filter-tags"></div>
         </div>
+        <div class="tooltip" style="margin-left: auto">
+          <button class="generate-btn" id="archive-refresh-btn" type="button">
+            <i data-lucide="rotate-cw"></i>
+          </button>
+          <span class="tooltip-text">Refresh Table</span>
+        </div>
       </div>
 
       <!-- DOWNLOAD OPTIONS MODAL -->
@@ -1209,6 +1215,23 @@
         openModal(exportModal);
         lucide.createIcons();
       });
+
+      document
+        .getElementById("archive-refresh-btn")
+        ?.addEventListener("click", async () => {
+          try {
+            if (typeof window.loadArchives === "function") {
+              await window.loadArchives();
+              if (typeof showToast === "function") {
+                showToast("Table refreshed.", "success");
+              }
+            }
+          } catch (error) {
+            if (typeof showToast === "function") {
+              showToast("Failed to refresh table.", "error");
+            }
+          }
+        });
 
       exportCancelBtn.addEventListener("click", () => closeModal(exportModal));
       exportModal.addEventListener("click", (e) => {
