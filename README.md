@@ -13,6 +13,22 @@ Built using **Electron.js, Node.js, and MySQL (XAMPP)**.
 
 ---
 
+## 🧯 Troubleshooting
+
+For common issues, error messages, and step-by-step fixes, see:
+
+`docs/TROUBLESHOOTING.md`
+
+For a condensed role-based version (Admin, Coordinator, Installer/Support), see:
+
+`docs/TROUBLESHOOTING_ROLE_BASED.md`
+
+For maintenance routines and support practices, see:
+
+`docs/MAINTENANCE_AND_SUPPORT.md`
+
+---
+
 # 🚀 Getting Started
 
 ## 🧰 Prerequisites
