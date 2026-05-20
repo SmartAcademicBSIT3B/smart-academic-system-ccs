@@ -3,7 +3,7 @@ const nodemailer = require("nodemailer");
 
 const MAIL_USER = String(process.env.MAIL_USER || "").trim();
 const MAIL_PASS = String(process.env.MAIL_PASS || "").trim();
-const PORTAL_URL_PLACEHOLDER = "https://your-portal-url-here.example";
+const PORTAL_URL_PLACEHOLDER = "https://plp-gsrs-portal.onrender.com";
 
 const mailTransporter =
   MAIL_USER && MAIL_PASS
@@ -72,7 +72,7 @@ async function sendStudentWelcomeEmail({ email, name, studentId, password }) {
             </div>
 
             <p style="margin:16px 0 10px;">
-              Portal link (soon to be official URL):
+              Portal link:
             </p>
             <p style="margin:0 0 16px;word-break:break-all;">
               <a href="${safePortalUrl}" style="color:#0f8f4a;text-decoration:none;font-weight:600;">${safePortalUrl}</a>

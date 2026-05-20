@@ -2,6 +2,7 @@ const nodemailer = require("nodemailer");
 
 const MAIL_USER = String(process.env.MAIL_USER || "").trim();
 const MAIL_PASS = String(process.env.MAIL_PASS || "").trim();
+const GSRS_PORTAL_URL = "https://plp-gsrs-portal.onrender.com";
 
 const mailTransporter =
   MAIL_USER && MAIL_PASS
@@ -65,6 +66,7 @@ async function sendOjtDeploymentStatusEmail({
     minute: "2-digit",
   });
   const safeIssuedAt = escapeHtml(issuedAt);
+  const safePortalUrl = escapeHtml(GSRS_PORTAL_URL);
 
   await mailTransporter.sendMail({
     from: MAIL_USER,
@@ -96,6 +98,9 @@ async function sendOjtDeploymentStatusEmail({
             </p>
             <p style="margin:0 0 10px;">
               If your status is <strong>OJT Complete</strong>, your requirement completion has been acknowledged by the office.
+            </p>
+            <p style="margin:0 0 10px;">
+              Student Portal: <a href="${safePortalUrl}" style="color:#0a6fb5;text-decoration:none;font-weight:600;">${safePortalUrl}</a>
             </p>
             <p style="margin:0;">
               For clarifications, please contact your assigned OJT coordinator.
