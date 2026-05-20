@@ -8,7 +8,7 @@
     "backend:dev": "npm --prefix backend run dev",
     "electron:start": "electron .",
     "predev": "kill-port 3000 || echo Port 3000 already free",
-    "dev": "concurrently --kill-others-on-fail -n BACKEND,ELECTRON -c yellow,cyan \"npm run backend:dev\" \"wait-on tcp:3000 && npm run electron:start\"",
+    "dev": "set SAS_FORCE_LOCAL_BACKEND=1&& set SAS_LOCAL_BACKEND_PORT=3000&& concurrently --kill-others-on-fail -n BACKEND,ELECTRON -c yellow,cyan \"npm run backend:dev\" \"wait-on tcp:3000 && npm run electron:start\"",
     "pack": "electron-builder --dir",
     "dist:current": "electron-builder --win nsis",
     "dist:alpha1": "electron-builder --win nsis -c.extraMetadata.version=1.0.0-alpha.1",

@@ -23,12 +23,26 @@ let BASE_URL = (
 let authToken = null;
 let departmentCode = "CCS";
 
+function resolveEffectiveBaseUrl() {
+  if (String(process.env.SAS_FORCE_LOCAL_BACKEND || "") !== "1") {
+    return BASE_URL;
+  }
+
+  const forcedPort = Number.parseInt(
+    process.env.SAS_LOCAL_BACKEND_PORT || "3000",
+    10,
+  );
+  const safePort =
+    Number.isInteger(forcedPort) && forcedPort > 0 ? forcedPort : 3000;
+  return `http://127.0.0.1:${safePort}`;
+}
+
 function setBaseUrl(url) {
   BASE_URL = String(url || "").replace(/\/$/, "");
 }
 
 function getBaseUrl() {
-  return BASE_URL;
+  return resolveEffectiveBaseUrl();
 }
 
 function setToken(token) {
@@ -58,7 +72,7 @@ function buildRequestHeaders(extraHeaders = {}) {
 
 // ── Core request ──────────────────────────────────────────────────────────────
 async function request(method, path, body = null, extraHeaders = {}) {
-  const url = `${BASE_URL}/api${path}`;
+  const url = `${resolveEffectiveBaseUrl()}/api${path}`;
 
   const headers = buildRequestHeaders(extraHeaders);
 
@@ -91,7 +105,7 @@ async function request(method, path, body = null, extraHeaders = {}) {
 }
 
 async function requestRaw(method, path, body = null, extraHeaders = {}) {
-  const url = `${BASE_URL}/api${path}`;
+  const url = `${resolveEffectiveBaseUrl()}/api${path}`;
   const headers = buildRequestHeaders(extraHeaders);
 
   let payload = body;
@@ -160,7 +174,7 @@ async function postFile(path, buffer, fileName, mimeType, fields = {}) {
  * Used for Google Drive proxy downloads.
  */
 async function downloadFile(fileUrl) {
-  const url = `${BASE_URL}/api/gdrive/download?fileUrl=${encodeURIComponent(fileUrl)}`;
+  const url = `${resolveEffectiveBaseUrl()}/api/gdrive/download?fileUrl=${encodeURIComponent(fileUrl)}`;
   const headers = { "x-department": departmentCode };
   if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
 
