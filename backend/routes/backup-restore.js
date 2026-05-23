@@ -889,8 +889,57 @@ router.post("/reset/ojt-tables", requireAuth, async (req, res) => {
       "section_assignments",
     ];
 
+    const failed = [];
+
+    // Determine department column for ojt_students (used in subqueries)
+    const ojtStudentCols = await getTableColumns("ojt_students");
+    const ojtDeptCol = hasDepartmentColumn(ojtStudentCols);
+
     for (const table of tablesToTruncate) {
-      await query(`DELETE FROM ${table} WHERE department = ?`, [dept]);
+      try {
+        const cols = await getTableColumns(table);
+        const tableDeptCol = hasDepartmentColumn(cols);
+
+        if (tableDeptCol) {
+          // Table has a department-like column (department or department_code)
+          await query(
+            `DELETE FROM \`${table}\` WHERE \`${tableDeptCol}\` = ?`,
+            [dept],
+          );
+          continue;
+        }
+
+        // Table does not have department column. Try to scope by ojt_student_id if present
+        if (cols.includes("ojt_student_id") && ojtDeptCol) {
+          await query(
+            `DELETE FROM \`${table}\` WHERE ojt_student_id IN (SELECT id FROM \`ojt_students\` WHERE \`${ojtDeptCol}\` = ?)`,
+            [dept],
+          );
+          continue;
+        }
+
+        // Some tables reference student_id (string) instead of ojt_student_id
+        if (cols.includes("student_id") && ojtDeptCol) {
+          await query(
+            `DELETE FROM \`${table}\` WHERE student_id IN (SELECT student_id FROM \`ojt_students\` WHERE \`${ojtDeptCol}\` = ?)`,
+            [dept],
+          );
+          continue;
+        }
+
+        // As a last resort, if we cannot scope deletion safely, skip the table and record it
+        failed.push(table);
+      } catch (error) {
+        console.error(`Failed to reset table ${table}:`, error);
+        failed.push(table);
+      }
+    }
+
+    if (failed.length) {
+      return res.status(500).json({
+        success: false,
+        message: `Failed to reset tables: ${failed.join(", ")}`,
+      });
     }
 
     return res.json({

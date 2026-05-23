@@ -556,6 +556,25 @@ router.post("/templates", requireAuth, async (req, res) => {
         .status(400)
         .json({ success: false, message: "Requirement name is required." });
 
+    // Prevent duplicate templates for the same department/scope/type/name (case-insensitive)
+    const existing = await query(
+      `SELECT * FROM ojt_requirement_templates
+       WHERE department = ? AND type = ? AND scope = ? AND scope_value <=> ? AND LOWER(name) = LOWER(?)
+       LIMIT 1`,
+      [dept, type, scope, scopeValue, name],
+    );
+
+    if (existing && existing.length) {
+      return res.status(200).json({
+        success: true,
+        template: {
+          ...existing[0],
+          deadline_badge: deadlineBadge(existing[0].deadline),
+        },
+        note: "existing",
+      });
+    }
+
     const result = await query(
       `INSERT INTO ojt_requirement_templates
        (name, type, scope, scope_value, deadline, department, created_by_user_id)
