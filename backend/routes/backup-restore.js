@@ -44,6 +44,12 @@ const SELECTED_IMPORT_TABLES = [
   "section_assignments",
 ];
 
+const CORE_IMPORT_TABLES = [
+  "external_partners",
+  "users",
+  "section_assignments",
+];
+
 const OJT_IMPORT_TABLES = [
   "ojt_students",
   "ojt_attendance",
@@ -843,6 +849,59 @@ router.post(
       return res.status(500).json({
         success: false,
         message: error.message || "Failed to import all OJT CSV data.",
+      });
+    }
+  },
+);
+
+router.post(
+  "/import/core-data",
+  requireAuth,
+  CSV_IMPORT_UPLOAD.single("file"),
+  async (req, res) => {
+    try {
+      const dept = getDept(req);
+      const file = req.file;
+      if (!file?.buffer || !file?.originalname) {
+        return res.status(400).json({
+          success: false,
+          message: "ZIP file with CSV entries is required.",
+        });
+      }
+
+      const csvMap = await resolveCsvMapFromZipUpload(
+        file.buffer,
+        file.originalname,
+      );
+
+      const reports = [];
+      const ignoredFiles = [];
+
+      for (const [tableName, rows] of csvMap.entries()) {
+        if (!CORE_IMPORT_TABLES.includes(tableName)) {
+          ignoredFiles.push(tableName);
+          continue;
+        }
+
+        const report = await runTableImport(tableName, rows, dept);
+        reports.push(report);
+      }
+
+      const failedCount = reports.reduce((acc, item) => acc + item.failed, 0);
+      const importedTables = reports.map((item) => item.table);
+
+      return res.json({
+        success: failedCount === 0,
+        mode: "core-data",
+        importedTables,
+        ignoredFiles,
+        reports,
+      });
+    } catch (error) {
+      console.error("core-data import error:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Failed to import core data CSV files.",
       });
     }
   },

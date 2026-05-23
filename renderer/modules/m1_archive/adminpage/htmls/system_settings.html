@@ -741,8 +741,8 @@
               <div class="general-card">
                 <h4>CSV Export Bundles</h4>
                 <p>
-                  Export core records, section assignments, and all OJT-related
-                  records into zipped CSV bundles.
+                  Export core records and all OJT-related records into zipped
+                  CSV bundles.
                 </p>
                 <div class="inline-actions backup-actions-wrap">
                   <button
@@ -755,13 +755,6 @@
                   <button
                     type="button"
                     class="cancel-btn"
-                    onclick="exportSectionAssignmentsCsvBundle()"
-                  >
-                    Export Section Assignments CSV ZIP
-                  </button>
-                  <button
-                    type="button"
-                    class="cancel-btn"
                     onclick="exportAllOjtCsvBundle()"
                   >
                     Export All OJT CSV ZIP
@@ -770,24 +763,52 @@
               </div>
 
               <div class="general-card">
+                <h4>Import Core Data (CSV/ZIP)</h4>
+                <p>
+                  Import core records (external partners, users, section
+                  assignments) using CSV or ZIP file (auto-detects CSV entry in
+                  ZIP).
+                </p>
+                <div class="setting-grid">
+                  <label>
+                    Selected ZIP File
+                    <input
+                      id="backupCoreDataImportFile"
+                      type="text"
+                      readonly
+                      placeholder="No file selected"
+                    />
+                  </label>
+                </div>
+                <div class="inline-actions backup-actions-wrap">
+                  <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="pickBackupImportFile('core-data')"
+                  >
+                    Choose CSV/ZIP File
+                  </button>
+                  <button
+                    type="button"
+                    class="save-btn"
+                    onclick="runCoreDataImport()"
+                  >
+                    Import Core Data
+                  </button>
+                </div>
+              </div>
+
+              <div class="general-card">
                 <h4>Import Selected Table (CSV/ZIP)</h4>
                 <p>
-                  Import external partners, users, OJT students, or
-                  section_assignments using CSV or ZIP (auto-detects CSV entry
-                  in ZIP).
+                  Import OJT students or other individual records using CSV or
+                  ZIP (auto-detects CSV entry in ZIP).
                 </p>
                 <div class="setting-grid two-column backup-import-grid">
                   <label>
                     Target Table
                     <select id="backupSelectedTable">
-                      <option value="external_partners">
-                        external_partners
-                      </option>
-                      <option value="users">users</option>
                       <option value="ojt_students">ojt_students</option>
-                      <option value="section_assignments">
-                        section_assignments
-                      </option>
                     </select>
                   </label>
                   <label>
@@ -1054,6 +1075,7 @@
         deletedSectionIds: [],
       };
       let backupRestoreState = {
+        coreDataImportPath: "",
         selectedImportPath: "",
         allOjtImportPath: "",
       };
@@ -1096,10 +1118,16 @@
       }
 
       function renderBackupRestoreFileInputs() {
+        const coreDataInput = document.getElementById(
+          "backupCoreDataImportFile",
+        );
         const selectedInput = document.getElementById(
           "backupSelectedImportFile",
         );
         const allInput = document.getElementById("backupAllOjtImportFile");
+        if (coreDataInput) {
+          coreDataInput.value = backupRestoreState.coreDataImportPath || "";
+        }
         if (selectedInput) {
           selectedInput.value = backupRestoreState.selectedImportPath || "";
         }
@@ -1223,6 +1251,8 @@
 
         if (mode === "all") {
           backupRestoreState.allOjtImportPath = result.localPath || "";
+        } else if (mode === "core-data") {
+          backupRestoreState.coreDataImportPath = result.localPath || "";
         } else {
           backupRestoreState.selectedImportPath = result.localPath || "";
         }
@@ -1317,6 +1347,46 @@
 
         showBackupRestoreStatus(
           `All-OJT import complete. Inserted: ${totals.inserted}, Updated: ${totals.updated}, Failed: ${totals.failed}.`,
+          false,
+        );
+      }
+
+      async function runCoreDataImport() {
+        if (!electronAPI) {
+          showBackupRestoreStatus("Core data import is unavailable.", true);
+          return;
+        }
+
+        const localPath = String(
+          backupRestoreState.coreDataImportPath || "",
+        ).trim();
+        if (!localPath) {
+          showBackupRestoreStatus("Choose a CSV or ZIP file first.", true);
+          return;
+        }
+
+        showBackupRestoreStatus("Importing core data CSV files from ZIP...");
+        const result = await electronAPI.importCoreDataZip({ localPath });
+        if (!result?.success) {
+          showBackupRestoreStatus(
+            result?.message || "Core data import failed.",
+            true,
+          );
+          return;
+        }
+
+        const reports = Array.isArray(result.reports) ? result.reports : [];
+        const totals = reports.reduce(
+          (acc, item) => ({
+            inserted: acc.inserted + (item.inserted || 0),
+            updated: acc.updated + (item.updated || 0),
+            failed: acc.failed + (item.failed || 0),
+          }),
+          { inserted: 0, updated: 0, failed: 0 },
+        );
+
+        showBackupRestoreStatus(
+          `Core data import complete. Inserted: ${totals.inserted}, Updated: ${totals.updated}, Failed: ${totals.failed}.`,
           false,
         );
       }
@@ -3122,6 +3192,7 @@
       window.pickBackupImportFile = pickBackupImportFile;
       window.runSelectedTableImport = runSelectedTableImport;
       window.runAllOjtImport = runAllOjtImport;
+      window.runCoreDataImport = runCoreDataImport;
 
       async function saveChanges() {
         const activeSection = document.querySelector(
@@ -3243,6 +3314,7 @@
         }
 
         if (activeSection?.id === "backup-restore") {
+          backupRestoreState.coreDataImportPath = "";
           backupRestoreState.selectedImportPath = "";
           backupRestoreState.allOjtImportPath = "";
           renderBackupRestoreFileInputs();

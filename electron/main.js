@@ -2474,6 +2474,29 @@ ipcMain.handle("importAllOjtZip", async (event, { localPath } = {}) => {
   }
 });
 
+ipcMain.handle("importCoreDataZip", async (event, { localPath } = {}) => {
+  try {
+    const resolvedPath = String(localPath || "").trim();
+    if (!resolvedPath) {
+      return { success: false, message: "Import file path is required." };
+    }
+
+    const buffer = await fs.readFile(resolvedPath);
+    return await api.postFile(
+      "/backup-restore/import/core-data",
+      buffer,
+      path.basename(resolvedPath),
+      "application/octet-stream",
+      {},
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to import core data ZIP.",
+    };
+  }
+});
+
 ipcMain.handle("resetThesisCapstoneArchives", async () => {
   try {
     return await api.post("/backup-restore/reset/thesis-capstone", {});
