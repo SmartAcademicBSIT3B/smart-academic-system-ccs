@@ -45,6 +45,13 @@ function getProgramFromSection(sectionName) {
   return null;
 }
 
+function getFourthYearSectionGroup(sectionName) {
+  const normalized = normalizeText(sectionName).toUpperCase();
+  const match = normalized.match(/^[^\d]+/);
+  const group = match ? match[0].trim() : "";
+  return group || "Unassigned";
+}
+
 function normalizeStudentStatus(status) {
   const normalized = normalizeUpper(status);
   if (!normalized) return "";
@@ -128,6 +135,8 @@ router.get("/dashboard-summary", requireAuth, async (req, res) => {
     const schoolYearMap = {};
     const deployedFieldMap = {};
     const deployedSectionMap = {};
+    const populationSectionMap = {};
+    const fourthYearPopulationMap = {};
 
     for (const student of students) {
       const sectionName = normalizeText(student.section) || "Unassigned";
@@ -139,6 +148,14 @@ router.get("/dashboard-summary", requireAuth, async (req, res) => {
 
       if (program === "BSIT" && isFourthYear) bsitPopulation += 1;
       if (program === "BSCS" && isFourthYear) bscsPopulation += 1;
+
+      if (isFourthYear) {
+        populationSectionMap[sectionName] =
+          (populationSectionMap[sectionName] || 0) + 1;
+        const groupLabel = getFourthYearSectionGroup(sectionName);
+        fourthYearPopulationMap[groupLabel] =
+          (fourthYearPopulationMap[groupLabel] || 0) + 1;
+      }
 
       if (isDeployed) {
         deployedCount += 1;
@@ -211,7 +228,8 @@ router.get("/dashboard-summary", requireAuth, async (req, res) => {
           { label: "Pending", value: completionCounts.pending },
         ],
         deployedPerSection: toSortedEntryArray(deployedSectionMap),
-        populationPerSection: toSortedEntryArray(deployedSectionMap),
+        populationPerSection: toSortedEntryArray(populationSectionMap),
+        sectionPopulationByGroup: toSortedEntryArray(fourthYearPopulationMap),
         deploymentStatus: [
           { label: "Deployed", value: deployedCount },
           { label: "Pre-Deployment", value: preDeploymentCount },

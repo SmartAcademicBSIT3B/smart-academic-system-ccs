@@ -1496,6 +1496,17 @@
           fromSettings = false,
           mandatory = false,
         } = {}) {
+          // Ensure departments are loaded before rendering the setup modal
+          if (
+            !Array.isArray(availableDepartments) ||
+            availableDepartments.length === 0
+          ) {
+            try {
+              await loadDepartments();
+            } catch (_e) {
+              // ignore - loadDepartments handles failures
+            }
+          }
           setupState.fromSettings = fromSettings;
           setupState.mandatory = mandatory;
           setupState.currentStep = 1;

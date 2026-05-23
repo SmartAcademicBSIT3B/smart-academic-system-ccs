@@ -2130,7 +2130,20 @@
           if (data.authors[0]) a1El.value = data.authors[0];
           if (data.authors[1]) a2El.value = data.authors[1];
           if (data.authors[2]) a3El.value = data.authors[2];
-          if (data.keywords.length) keywordsEl.value = data.keywords.join(", ");
+
+          const extractedKeywords = Array.isArray(data.keywords)
+            ? data.keywords
+            : [];
+          if (extractedKeywords.length) {
+            keywordsEl.value = extractedKeywords.join(", ");
+          } else {
+            keywordsEl.value = "";
+            showToast(
+              "No keywords were extracted from this PDF. Please enter keywords manually.",
+              "error",
+              5000,
+            );
+          }
 
           if (data.advisor) {
             let opt = Array.from(professorEl.options).find(
@@ -2152,6 +2165,11 @@
           dropZoneFilename.textContent = "OK " + file.name;
         } catch (err) {
           console.error("PDF auto-fill failed:", err);
+          showToast(
+            "PDF extraction failed. Please fill in archive details manually.",
+            "error",
+            5000,
+          );
           dropZoneFilename.textContent = file.name;
         }
       }

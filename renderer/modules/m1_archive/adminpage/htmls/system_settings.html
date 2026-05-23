@@ -1710,6 +1710,39 @@
         if (emailInput) emailInput.value = user?.email || "";
       }
 
+      function updateDepartmentTabVisibility() {
+        const departmentTab = document.querySelector(
+          '.settings-menu li[data-section="department"]',
+        );
+        const departmentSection = document.getElementById("department");
+        const userDepartment = String(
+          activeUser?.department_code || activeUser?.department || "",
+        )
+          .trim()
+          .toUpperCase();
+        const isCcsAdmin = userDepartment === "CCS";
+
+        if (departmentTab) {
+          departmentTab.style.display = isCcsAdmin ? "" : "none";
+        }
+        if (departmentSection) {
+          departmentSection.style.display = isCcsAdmin ? "" : "none";
+        }
+
+        if (!isCcsAdmin) {
+          const activeItem = document.querySelector(".settings-menu li.active");
+          if (activeItem?.dataset?.section === "department") {
+            activeItem.classList.remove("active");
+            const profileItem = document.querySelector(
+              '.settings-menu li[data-section="profile"]',
+            );
+            const profileSection = document.getElementById("profile");
+            if (profileItem) profileItem.classList.add("active");
+            if (profileSection) profileSection.classList.add("active");
+          }
+        }
+      }
+
       function clearSensitiveInputs() {
         const current = document.getElementById("profileCurrentPassword");
         const next = document.getElementById("profileNewPassword");
@@ -1744,6 +1777,7 @@
         activeUser = mergedUser;
         writeStoredUser(mergedUser);
         fillProfileForm(mergedUser);
+        updateDepartmentTabVisibility();
         showProfileStatus("");
       }
 

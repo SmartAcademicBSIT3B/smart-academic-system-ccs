@@ -348,7 +348,13 @@
                     <label
                       >EMAIL <span class="required-asterisk">*</span></label
                     >
-                    <input id="ojt-email" type="email" placeholder="Email" />
+                    <input
+                      id="ojt-email"
+                      type="email"
+                      placeholder="Email"
+                      pattern="^[^@\s]+@plpasig\.edu\.ph$"
+                      title="Email must be a @plpasig.edu.ph address"
+                    />
                     <div class="field-error" id="ojt-email-error"></div>
                   </div>
 

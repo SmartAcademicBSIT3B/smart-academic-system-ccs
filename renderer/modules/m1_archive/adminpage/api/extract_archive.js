@@ -393,16 +393,56 @@ function parsePdfKeywords(allText) {
   }
 
   if (startIdx === -1) return [];
-  const termPat =
-    /^([A-Z][A-Za-z0-9\s\(\)\/\-&]{2,80})\s*(?:[\u2013\u2014\-:]|\s{2,})\s+/;
+
+  const termPatterns = [
+    /^([A-Z][A-Za-z0-9\s\(\)\/\-&,]{2,80})\s*(?:[\u2013\u2014\-:]|\.{2,}|\s{2,})\s+/,
+    /^[\dIVX]+\.\s*([A-Z][A-Za-z0-9\s\(\)\/\-&,]{2,80})\s*(?:[\u2013\u2014\-:]|\.{2,}|\s{2,})\s+/,
+    /^[a-z]\.\s*([A-Z][A-Za-z0-9\s\(\)\/\-&,]{2,80})\s*(?:[\u2013\u2014\-:]|\.{2,}|\s{2,})\s+/,
+    /^[\-•\u2022]\s*([A-Z][A-Za-z0-9\s\(\)\/\-&,]{2,80})\s*(?:[\u2013\u2014\-:]|\.{2,}|\s{2,})\s+/,
+    // Some PDFs use a single period after the term ("Term. definition") — accept that too
+    // Accept uppercase or lowercase start of the definition sentence
+    /^([A-Z][A-Za-z0-9\s\(\)\/\-&,]{2,80})\s*\.\s+[A-Za-z].*/,
+  ];
+  const termOnlyPattern = /^([A-Z][A-Za-z0-9\s\(\)\/\-&]{2,80})$/;
   const stopPat =
     /^(CHAPTER|REFERENCES|APPENDIX|BIBLIOGRAPHY|INDEX|ABSTRACT|ACKNOWLEDGMENT|ACKNOWLEDGEMENTS|TABLE OF CONTENTS)\b/i;
   const keywords = [];
+
   for (let i = startIdx; i < lines.length && keywords.length < 30; i++) {
-    if (stopPat.test(lines[i])) break;
-    const m = lines[i].match(termPat);
-    if (m) keywords.push(m[1].trim());
+    const line = lines[i];
+    if (stopPat.test(line)) break;
+
+    let match = null;
+    for (const pat of termPatterns) {
+      match = line.match(pat);
+      if (match) break;
+    }
+
+    if (!match && termOnlyPattern.test(line)) {
+      const nextLine = lines[i + 1] || "";
+      const isNextLineHeadingLike =
+        /^[A-Z0-9\s\(\)\/\-&,]{6,}$/.test(nextLine) &&
+        !/[:\-–—\.]/.test(nextLine);
+
+      if (nextLine && !stopPat.test(nextLine) && !isNextLineHeadingLike) {
+        match = [line, line];
+      }
+    }
+
+    if (!match) {
+      const dottedMatch = line.match(
+        /^([A-Z][A-Za-z0-9\s\(\)\/\-&,]{2,80})\s*\.\.{2,}\s*.*$/,
+      );
+      if (dottedMatch) {
+        match = dottedMatch;
+      }
+    }
+
+    if (match) {
+      keywords.push(match[1].trim());
+    }
   }
+
   return uniqueNonEmpty(keywords, 30);
 }
 

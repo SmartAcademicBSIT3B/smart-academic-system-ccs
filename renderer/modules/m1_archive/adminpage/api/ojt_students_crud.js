@@ -50,18 +50,11 @@
   function formatOjtNameValue(raw) {
     const v = asText(raw).replace(/\s+/g, " ").trim();
     if (!v) return "";
-    const parts = v.split(" ").filter(Boolean);
-    if (parts.length === 1) return parts[0].toUpperCase();
-
-    const first = parts[0].toUpperCase();
-    const last = parts[parts.length - 1].toUpperCase();
-    const middles = parts.slice(1, -1);
-    const middleInitials = middles
-      .map((m) => (m ? m.charAt(0).toUpperCase() + "." : ""))
+    return v
+      .split(" ")
       .filter(Boolean)
+      .map((part) => part.toUpperCase())
       .join(" ");
-
-    return [first, middleInitials, last].filter(Boolean).join(" ");
   }
 
   function formatStudentNameForTable(nameValue) {
@@ -893,6 +886,12 @@
       errors["ojt-email"] = "Email is required to create a student account.";
     } else if (!validateEmail(payload.email)) {
       errors["ojt-email"] = "Please enter a valid email address.";
+    } else if (
+      !String(payload.email || "")
+        .toLowerCase()
+        .endsWith("@plpasig.edu.ph")
+    ) {
+      errors["ojt-email"] = "Email must be a @plpasig.edu.ph address.";
     }
     if (payload.contact_no && payload.contact_no.length < 7) {
       errors["ojt-contact-no"] = "Contact number is too short.";

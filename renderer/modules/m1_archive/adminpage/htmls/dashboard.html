@@ -18,17 +18,7 @@
 
       <!-- STATS CARDS -->
       <div class="cards">
-        <div class="card highlight">
-          <h3 id="card-bsit-population">0</h3>
-          <p>Population of</p>
-          <span>BSIT 4th Year</span>
-        </div>
-
-        <div class="card highlight">
-          <h3 id="card-bscs-population">0</h3>
-          <p>Population of</p>
-          <span>BSCS 4th Year</span>
-        </div>
+        <div id="sectionPopulationCards"></div>
 
         <div class="card">
           <h3 id="card-thesis-records">0</h3>
@@ -87,8 +77,7 @@
         document.addEventListener("DOMContentLoaded", loadDashboard);
 
         async function loadDashboard() {
-          setCardValue("card-bsit-population", 0);
-          setCardValue("card-bscs-population", 0);
+          renderSectionPopulationCards([]);
           setCardValue("card-thesis-records", 0);
           setCardValue("card-external-partners", 0);
 
@@ -318,9 +307,12 @@
         function renderDashboard(payload) {
           const cards = payload?.cards || {};
           const charts = payload?.charts || {};
+          const sectionPopulations =
+            toArray(charts.sectionPopulationByGroup).length > 0
+              ? toArray(charts.sectionPopulationByGroup)
+              : toArray(charts.populationPerSection);
 
-          setCardValue("card-bsit-population", toNumber(cards.bsitPopulation));
-          setCardValue("card-bscs-population", toNumber(cards.bscsPopulation));
+          renderSectionPopulationCards(sectionPopulations);
           setCardValue("card-thesis-records", toNumber(cards.thesisRecords));
           setCardValue(
             "card-external-partners",
@@ -509,6 +501,48 @@
         function setCardValue(id, value) {
           const el = document.getElementById(id);
           if (el) el.textContent = String(value);
+        }
+
+        function renderSectionPopulationCards(populations) {
+          const container = document.getElementById("sectionPopulationCards");
+          if (!container) return;
+
+          container.innerHTML = "";
+          const fragment = document.createDocumentFragment();
+
+          for (const population of toArray(populations)) {
+            const count = toNumber(population.value || population.count || 0);
+            const label = String(
+              population.label || population.name || "Unknown",
+            ).trim();
+
+            const card = document.createElement("div");
+            card.className = "card highlight";
+
+            const heading = document.createElement("h3");
+            heading.textContent = String(count);
+            card.appendChild(heading);
+
+            const paragraph = document.createElement("p");
+            paragraph.textContent = "Population of";
+            card.appendChild(paragraph);
+
+            const span = document.createElement("span");
+            span.textContent = `${label} 4th Year`;
+            card.appendChild(span);
+
+            fragment.appendChild(card);
+          }
+
+          container.appendChild(fragment);
+        }
+
+        function setCardVisibility(id, isVisible) {
+          const valueElement = document.getElementById(id);
+          const card = valueElement?.closest(".card");
+          if (card) {
+            card.style.display = isVisible ? "" : "none";
+          }
         }
 
         function toArray(value) {
