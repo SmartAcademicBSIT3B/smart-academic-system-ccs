@@ -313,6 +313,8 @@ router.post("/", requireAuth, async (req, res) => {
       name: data.name,
       email: normalizedEmail,
       status: data.status,
+      use_student_id_as_password: Boolean(req.body?.use_student_id_as_password),
+      send_password_email: req.body?.send_password_email !== false,
     });
 
     await connection.commit();
@@ -484,7 +486,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
 
     const department = getDept(req);
     const existing = await query(
-      "SELECT id FROM ojt_students WHERE id = ? AND department = ? LIMIT 1",
+      "SELECT id, student_id FROM ojt_students WHERE id = ? AND department = ? LIMIT 1",
       [id, department],
     );
     if (!existing || existing.length === 0) {
@@ -493,12 +495,27 @@ router.delete("/:id", requireAuth, async (req, res) => {
         message: "OJT student not found or already deleted.",
       });
     }
-
+    // Remove archive links related to this OJT student
     await removeArchiveLinksByStudentId(id);
+
+    // Delete the OJT student row
     await query("DELETE FROM ojt_students WHERE id = ? AND department = ?", [
       id,
       department,
     ]);
+
+    // Also delete the corresponding students_user record (if any)
+    try {
+      const studentId = String(existing[0].student_id || "").trim();
+      if (studentId) {
+        await query("DELETE FROM students_user WHERE student_id = ?", [
+          studentId,
+        ]);
+      }
+    } catch (err) {
+      console.error("Failed to delete students_user for OJT student:", err);
+      // Non-fatal: continue but log the error
+    }
     return res.json({
       success: true,
       message: "OJT student deleted successfully.",

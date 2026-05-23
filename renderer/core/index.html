@@ -1202,6 +1202,50 @@
           return setupState.department || null;
         }
 
+        function findDepartmentByReference(preferredDepartment) {
+          if (
+            !Array.isArray(availableDepartments) ||
+            availableDepartments.length === 0 ||
+            !preferredDepartment ||
+            typeof preferredDepartment !== "object"
+          ) {
+            return null;
+          }
+
+          const preferredId = String(preferredDepartment.id ?? "").trim();
+          const preferredCode = String(
+            preferredDepartment.department_code || "",
+          ).trim();
+          const preferredName = String(
+            preferredDepartment.department_name || "",
+          ).trim();
+
+          if (preferredId) {
+            const matchById = availableDepartments.find(
+              (dept) => String(dept?.id ?? "").trim() === preferredId,
+            );
+            if (matchById) return matchById;
+          }
+
+          if (preferredCode) {
+            const matchByCode = availableDepartments.find(
+              (dept) =>
+                String(dept?.department_code || "").trim() === preferredCode,
+            );
+            if (matchByCode) return matchByCode;
+          }
+
+          if (preferredName) {
+            const matchByName = availableDepartments.find(
+              (dept) =>
+                String(dept?.department_name || "").trim() === preferredName,
+            );
+            if (matchByName) return matchByName;
+          }
+
+          return null;
+        }
+
         async function loadDepartments() {
           if (
             !electronAPI ||
@@ -1448,7 +1492,7 @@
             setupState.currentStep === 6 ? "inline-flex" : "none";
         }
 
-        function openConfigSetupModal({
+        async function openConfigSetupModal({
           fromSettings = false,
           mandatory = false,
         } = {}) {
@@ -1456,8 +1500,12 @@
           setupState.mandatory = mandatory;
           setupState.currentStep = 1;
           setupState.lastRenderedStep = null;
-          setupState.department =
-            settingsDraft.department || availableDepartments[0] || null;
+
+          const resolvedDepartment =
+            findDepartmentByReference(settingsDraft.department) ||
+            availableDepartments[0] ||
+            null;
+          setupState.department = resolvedDepartment;
           setupState.gdriveAuthorized = false;
           setupState.adminCreated = false;
           setupState.otpSent = false;
@@ -1472,7 +1520,11 @@
 
           renderConfigDepartmentOptions(setupState.department);
           if (setupState.department) {
-            ensureConfigLocalPathForDepartment(setupState.department);
+            configAdminDepartment.value = String(
+              setupState.department.department_code || "",
+            ).trim();
+            await ensureConfigLocalPathForDepartment(setupState.department);
+            await refreshSetupAdminUserId();
           }
 
           configAdminName.value = "";
@@ -1721,7 +1773,10 @@
           }
 
           if (result.requiresSetup) {
-            openConfigSetupModal({ fromSettings: false, mandatory: true });
+            await openConfigSetupModal({
+              fromSettings: false,
+              mandatory: true,
+            });
           }
         }
 
@@ -2209,7 +2264,7 @@
         settingsSetupBtn.addEventListener("click", async function () {
           await bootstrapSettingsModal();
           closeSettingsModal();
-          openConfigSetupModal({ fromSettings: true, mandatory: false });
+          await openConfigSetupModal({ fromSettings: true, mandatory: false });
         });
 
         settingsCloseBtn.addEventListener("click", closeSettingsModal);

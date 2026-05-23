@@ -305,6 +305,16 @@
                       class="required-field"
                       placeholder="Student Name"
                     />
+                    <div
+                      class="field-hint"
+                      style="
+                        font-size: 12px;
+                        color: var(--text-secondary);
+                        margin-top: 6px;
+                      "
+                    >
+                      Use FIRSTNAME MIDDLE&nbsp;INITIAL SURNAME format
+                    </div>
                     <div class="field-error" id="ojt-name-error"></div>
                   </div>
 
@@ -346,7 +356,10 @@
                     <label>CONTACT NO.</label>
                     <input
                       id="ojt-contact-no"
-                      type="text"
+                      type="tel"
+                      maxlength="11"
+                      inputmode="numeric"
+                      pattern="\d{11}"
                       placeholder="Contact No."
                     />
                     <div class="field-error" id="ojt-contact-no-error"></div>
@@ -374,6 +387,31 @@
                       role="listbox"
                       aria-label="External partner suggestions"
                     ></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label>Send generated password to student email</label>
+                    <div class="toggle-switch" style="margin-top: 6px">
+                      <input
+                        id="ojt-send-password-toggle"
+                        class="toggle-switch-input"
+                        type="checkbox"
+                        checked
+                      />
+                      <label
+                        class="toggle-switch-label"
+                        for="ojt-send-password-toggle"
+                      >
+                        <span class="toggle-switch-track"></span>
+                        <span
+                          class="toggle-switch-thumb"
+                          aria-hidden="true"
+                        ></span>
+                      </label>
+                      <div class="toggle-switch-text">
+                        Yes — send email (auto-generated password)
+                      </div>
+                    </div>
                   </div>
 
                   <div class="input-group">

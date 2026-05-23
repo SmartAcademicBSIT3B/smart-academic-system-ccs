@@ -1531,7 +1531,7 @@
       headerWidth,
       headerHeight,
     );
-    cursorY += headerHeight + 12;
+    cursorY += headerHeight + 30;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(17);
@@ -1797,7 +1797,7 @@
       headerWidth,
       headerHeight,
     );
-    cursorY += headerHeight + 12;
+    cursorY += headerHeight + 30;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(17);

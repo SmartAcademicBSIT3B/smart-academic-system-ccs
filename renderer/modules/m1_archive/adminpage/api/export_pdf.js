@@ -324,7 +324,8 @@
       headerWidth,
       headerHeight,
     );
-    cursorY += headerHeight + 16;
+    // add an even larger gap between header image and report title for clearer separation
+    cursorY += headerHeight + 52;
 
     const reportTitle = "Thesis/Capstone Archives Report";
     const filterSummary = resolveActiveFilterSummary();

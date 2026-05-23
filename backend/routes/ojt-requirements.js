@@ -1339,13 +1339,13 @@ async function checkAutoStatusTransition(dbStudentId, dept, changedByUserId) {
 
     const templateIds = requiredTemplates.map((t) => t.id);
     const placeholders = templateIds.map(() => "?").join(",");
-    const verifiedSubs = await query(
+    const uploadedSubs = await query(
       `SELECT template_id FROM ojt_requirement_submissions
-       WHERE ojt_student_id = ? AND template_id IN (${placeholders}) AND status = 'verified'`,
+       WHERE ojt_student_id = ? AND template_id IN (${placeholders}) AND status IN ('submitted', 'verified')`,
       [dbStudentId, ...templateIds],
     );
 
-    if (verifiedSubs.length >= templateIds.length) {
+    if (uploadedSubs.length >= templateIds.length) {
       await query(
         "UPDATE ojt_students SET status = 'Pre-Deployment', updated_at = NOW() WHERE id = ?",
         [dbStudentId],
@@ -1359,7 +1359,7 @@ async function checkAutoStatusTransition(dbStudentId, dept, changedByUserId) {
           currentStatus,
           "Pre-Deployment",
           changedByUserId || null,
-          "Auto-transitioned: all pre requirements verified",
+          "Auto-transitioned: all pre requirements uploaded or verified",
         ],
       );
     }

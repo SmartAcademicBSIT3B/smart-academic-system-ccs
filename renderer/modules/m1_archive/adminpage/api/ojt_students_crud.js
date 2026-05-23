@@ -47,6 +47,23 @@
     return middle.charAt(0).toUpperCase();
   }
 
+  function formatOjtNameValue(raw) {
+    const v = asText(raw).replace(/\s+/g, " ").trim();
+    if (!v) return "";
+    const parts = v.split(" ").filter(Boolean);
+    if (parts.length === 1) return parts[0].toUpperCase();
+
+    const first = parts[0].toUpperCase();
+    const last = parts[parts.length - 1].toUpperCase();
+    const middles = parts.slice(1, -1);
+    const middleInitials = middles
+      .map((m) => (m ? m.charAt(0).toUpperCase() + "." : ""))
+      .filter(Boolean)
+      .join(" ");
+
+    return [first, middleInitials, last].filter(Boolean).join(" ");
+  }
+
   function formatStudentNameForTable(nameValue) {
     const raw = asText(nameValue);
     if (!raw) return "";
@@ -816,6 +833,22 @@
     };
   }
 
+  // Extended form values including password/email flags
+  function getFormValuesExtended() {
+    const base = getFormValues();
+    const sendPasswordToggle = document.getElementById(
+      "ojt-send-password-toggle",
+    );
+    const sendPassword = Boolean(
+      sendPasswordToggle && sendPasswordToggle.checked,
+    );
+    return {
+      ...base,
+      send_password_email: sendPassword,
+      use_student_id_as_password: !sendPassword,
+    };
+  }
+
   function clearAllFieldErrors() {
     [
       "ojt-student-id",
@@ -857,8 +890,7 @@
     if (!payload.name) errors["ojt-name"] = "Name is required.";
     if (!payload.section) errors["ojt-section"] = "Section is required.";
     if (!payload.email) {
-      errors["ojt-email"] =
-        "Email is required to send student login credentials.";
+      errors["ojt-email"] = "Email is required to create a student account.";
     } else if (!validateEmail(payload.email)) {
       errors["ojt-email"] = "Please enter a valid email address.";
     }
@@ -894,6 +926,9 @@
     document.getElementById("ojt-nature-of-business").value = asText(
       student.nature_of_business,
     );
+    // Default the send-password toggle to checked when editing existing student
+    const sendToggle = document.getElementById("ojt-send-password-toggle");
+    if (sendToggle) sendToggle.checked = true;
   }
 
   function resetForm() {
@@ -1143,7 +1178,7 @@
     const electronAPI = getElectronAPI();
     if (!ui || !electronAPI) return;
 
-    const payload = getFormValues();
+    const payload = getFormValuesExtended();
     clearAllFieldErrors();
     const validation = validatePayload(payload);
 
@@ -1169,7 +1204,10 @@
 
     const isEdit = Boolean(editingRow && editingRow.dataset.id);
     if (isEdit) payload.id = Number.parseInt(editingRow.dataset.id, 10);
-    if (!isEdit) payload.email_dispatch_mode = "wait";
+    if (!isEdit)
+      payload.email_dispatch_mode = payload.send_password_email
+        ? "wait"
+        : "none";
 
     setStudentModalLoading(
       true,
@@ -1362,6 +1400,10 @@
       status: asText(record.status) || "Deployed",
       external_partner_assigned: asText(record.external_partner_assigned),
       nature_of_business: asText(record.nature_of_business),
+      // Bulk import should default to using student ID as initial password
+      use_student_id_as_password: true,
+      send_password_email: false,
+      email_dispatch_mode: "none",
     };
   }
 
@@ -1374,7 +1416,7 @@
       <td><input type="text" class="ojt-bulk-section" value="${esc(record.section || "")}" /></td>
       <td><input type="text" class="ojt-bulk-department" value="${esc(record.department || appDefaultDepartment)}" /></td>
       <td><input type="text" class="ojt-bulk-email" value="${esc(record.email || "")}" /></td>
-      <td><input type="text" class="ojt-bulk-contact-no" value="${esc(record.contact_no || "")}" /></td>
+      <td><input type="tel" maxlength="11" inputmode="numeric" class="ojt-bulk-contact-no" value="${esc(record.contact_no || "")}" /></td>
       <td><input type="text" class="ojt-bulk-status" value="${esc(record.status || "Deployed")}" /></td>
       <td><input type="text" class="ojt-bulk-external-partner-assigned" value="${esc(record.external_partner_assigned || "")}" /></td>
       <td><input type="text" class="ojt-bulk-nature-of-business" value="${esc(record.nature_of_business || "")}" /></td>
@@ -1595,6 +1637,44 @@
     const ui = window.OjtStudentsUI;
 
     initDragSelect();
+
+    // Name input: convert letters to uppercase while typing and format on blur
+    const nameField = document.getElementById("ojt-name");
+    if (nameField) {
+      nameField.addEventListener("input", (e) => {
+        const target = e.target;
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        target.value = String(target.value || "").replace(/[a-zÀ-ÿ]/g, (c) =>
+          c.toUpperCase(),
+        );
+        try {
+          target.setSelectionRange(start, end);
+        } catch (_e) {}
+      });
+      nameField.addEventListener("blur", (e) => {
+        e.target.value = formatOjtNameValue(e.target.value);
+      });
+    }
+
+    // Contact input: digits only, max 11
+    const contactField = document.getElementById("ojt-contact-no");
+    if (contactField) {
+      contactField.addEventListener("input", (e) => {
+        const target = e.target;
+        const cleaned = String(target.value || "")
+          .replace(/\D+/g, "")
+          .slice(0, 11);
+        const pos = target.selectionStart || 0;
+        target.value = cleaned;
+        try {
+          target.setSelectionRange(
+            Math.min(pos, cleaned.length),
+            Math.min(pos, cleaned.length),
+          );
+        } catch (_e) {}
+      });
+    }
 
     document
       .getElementById("ojt-open-modal")

@@ -125,7 +125,14 @@ async function createOrUpdateStudentUser(connection, studentData) {
     return { mode: "updated", emailPayload: null };
   }
 
-  const temporaryPassword = generateTemporaryPassword(12);
+  const useStudentIdAsPassword = Boolean(
+    studentData.use_student_id_as_password,
+  );
+  const sendPasswordEmail = studentData.send_password_email !== false;
+
+  const temporaryPassword = useStudentIdAsPassword
+    ? studentId
+    : generateTemporaryPassword(12);
   const passwordHash = hashPassword(temporaryPassword);
 
   await connection.execute(
@@ -137,12 +144,14 @@ async function createOrUpdateStudentUser(connection, studentData) {
 
   return {
     mode: "created",
-    emailPayload: {
-      email: normalizedEmail,
-      name,
-      studentId,
-      password: temporaryPassword,
-    },
+    emailPayload: sendPasswordEmail
+      ? {
+          email: normalizedEmail,
+          name,
+          studentId,
+          password: temporaryPassword,
+        }
+      : null,
   };
 }
 
