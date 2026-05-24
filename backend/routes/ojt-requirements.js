@@ -519,10 +519,32 @@ router.get("/templates", requireAuth, async (req, res) => {
       );
     }
 
-    const templates = rows.map((r) => ({
-      ...r,
-      deadline_badge: deadlineBadge(r.deadline),
-    }));
+    // Deduplicate templates with the same name, keeping the oldest created template.
+    const templatesByName = new Map();
+    for (const row of rows) {
+      const key = String(row.name || "")
+        .trim()
+        .toLowerCase();
+      const existing = templatesByName.get(key);
+      if (
+        !existing ||
+        new Date(row.created_at) < new Date(existing.created_at)
+      ) {
+        templatesByName.set(key, row);
+      }
+    }
+
+    const templates = Array.from(templatesByName.values())
+      .sort((a, b) => {
+        const orderA = Number(a.display_order || 0);
+        const orderB = Number(b.display_order || 0);
+        if (orderA !== orderB) return orderA - orderB;
+        return new Date(a.created_at) - new Date(b.created_at);
+      })
+      .map((r) => ({
+        ...r,
+        deadline_badge: deadlineBadge(r.deadline),
+      }));
 
     return res.json({ success: true, templates });
   } catch (error) {
