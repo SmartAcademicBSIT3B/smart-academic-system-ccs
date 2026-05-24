@@ -326,12 +326,27 @@ async function initializeBackendRuntime(apiClient) {
     process.env.BACKEND_URL = DEV_BACKEND_URL;
     apiClient.setBaseUrl(DEV_BACKEND_URL);
     const devHealth = await readBackendHealth(DEV_BACKEND_URL);
+
+    if (devHealth?.ok) {
+      backendRuntimeDiagnostics = {
+        ...backendRuntimeDiagnostics,
+        mode: "dev-local",
+        source: "development",
+        backendHealthVersion: String(devHealth.version || ""),
+        startupError: "",
+      };
+      return;
+    }
+
+    const fallbackHealth = await readBackendHealth(PACKAGED_BACKEND_URL);
+    process.env.BACKEND_URL = PACKAGED_BACKEND_URL;
+    apiClient.setBaseUrl(PACKAGED_BACKEND_URL);
     backendRuntimeDiagnostics = {
       ...backendRuntimeDiagnostics,
-      mode: "dev-local",
-      source: "development",
-      backendHealthVersion: String(devHealth?.version || ""),
-      startupError: "",
+      mode: "dev-remote",
+      source: "development-fallback-remote",
+      backendHealthVersion: String(fallbackHealth?.version || ""),
+      startupError: `Local backend unavailable, falling back to remote backend ${PACKAGED_BACKEND_URL}`,
     };
     return;
   }

@@ -73,7 +73,6 @@ function buildRequestHeaders(extraHeaders = {}) {
 // ── Core request ──────────────────────────────────────────────────────────────
 async function request(method, path, body = null, extraHeaders = {}) {
   const url = `${resolveEffectiveBaseUrl()}/api${path}`;
-
   const headers = buildRequestHeaders(extraHeaders);
 
   let bodyStr = null;
@@ -82,11 +81,19 @@ async function request(method, path, body = null, extraHeaders = {}) {
     bodyStr = JSON.stringify(body);
   }
 
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: body instanceof FormData ? body : bodyStr,
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers,
+      body: body instanceof FormData ? body : bodyStr,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to connect to backend at ${url}: ${error?.message || "network error"}`,
+    };
+  }
 
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) {
@@ -118,11 +125,17 @@ async function requestRaw(method, path, body = null, extraHeaders = {}) {
     payload = JSON.stringify(body);
   }
 
-  return fetch(url, {
-    method,
-    headers,
-    body: payload,
-  });
+  try {
+    return await fetch(url, {
+      method,
+      headers,
+      body: payload,
+    });
+  } catch (error) {
+    throw new Error(
+      `Failed to connect to backend at ${url}: ${error?.message || "network error"}`,
+    );
+  }
 }
 
 function get(path) {
